@@ -1,2 +1,6 @@
 /venv/
 /.idea/
+
+/manati_ui/migrations/*
+*/*.pyc
+*.pyc

@@ -5,10 +5,13 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 class AnalysisSession(models.Model):
-    db_table = 'analysis_sessions'
+
     users = models.ManyToManyField(User)
     created_at = models.TimeField(auto_now_add=True)
     updated_at = models.TimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'manati_analysis_sessions'
 
 class Weblog(models.Model):
     db_table = 'weblogs'
@@ -36,3 +39,7 @@ class Weblog(models.Model):
     cs_User_Agent = models.CharField(max_length=200)
     created_at = models.TimeField(auto_now_add=True)
     updated_at = models.TimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'manati_weblogs'
+
