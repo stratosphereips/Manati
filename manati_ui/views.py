@@ -4,6 +4,7 @@ from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
+from .models import AnalysisSession
 
 class IndexView(generic.ListView):
     template_name = 'manati_ui/index.html'
@@ -15,5 +16,17 @@ class IndexView(generic.ListView):
 		published in the future).
 		"""
 		return ''
+
+class AnalysisSessionNewView(generic.DetailView):
+    model = AnalysisSession
+    template_name = 'manati_ui/analysis_session/new.html'
+
+def new_analysis_session_view(request):
+    # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
+    # output = ', '.join([q.question_text for q in lastest_question_list])
+    context = {}
+    return render(request, 'manati_ui/analysis_session/new.html', context)
+
+
 
 # Create your views here.

@@ -1,0 +1,151 @@
+{% extends 'manati_ui/base.html' %}
+{% block title %}
+    New Analysis Session
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <form enctype="multipart/form-data" role="form">
+                <div class="form-group">
+                    <label> Add Weblog file</label>
+                    <input name="weblog_file" type="file" />
+                    <input type="button" id="upload" value="Upload"/>
+                    <progress></progress>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-12">
+            <div class="panel panel-default" id="panel-datatable">
+                <div class="panel-heading">
+                    Table of weblogs
+                </div>
+                <div class="panel-body">
+                    <div class="dataTable_wrapper">
+                        <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            <div class="panel panel-default" id="loading">
+                {% load staticfiles %}
+                <img src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
+            </div>
+
+        </div>
+    </div>
+    <script type="text/javascript">
+        var _dt;
+        function completeFn(results,file){
+            if (results && results.errors)
+            {
+                if (results.errors)
+                {
+                    errorCount = results.errors.length;
+                    firstError = results.errors[0];
+                }
+                if (results.data && results.data.length > 0)
+                    rowCount = results.data.length;
+            }
+
+            console.log("Parse complete", file);
+            console.log("Results:", results);
+        }
+        var stepped = 0;
+        var rowCount, firstError, errorCount = 0;
+        function tt(data){
+            _dt.row.add([data[0],data[1],data[2],data[3]]).draw( false );
+        }
+        function stepFn(results, parser)
+        {
+            stepped++;
+            if (results)
+            {
+                if (results.data){
+                    rowCount += results.data.length;
+                    var data = results.data[0];
+                    if(stepped > 1){
+                        Concurrent.Thread.create(tt,data);
+                    }else{
+                        var elem = '<tr>';
+                        elem+='<th>' +data[0]+ '</th>';
+                        elem+='<th>' +data[1]+ '</th>';
+                        elem+='<th>' +data[2]+ '</th>';
+                        elem+='<th>' +data[3]+ '</th>';
+                        elem+='</tr>';
+                        $('#dataTables-example thead').html(elem);
+                        $('#panel-datatable').show();
+                        $('#loading').hide();
+                    }
+
+                }
+
+                if (results.errors)
+                {
+                    errorCount += results.errors.length;
+                    firstError = firstError || results.errors[0];
+                }
+            }
+        }
+        function temmp(){
+            $('input[type=file]').parse({
+                config: {
+                    delimiter: "|",
+                    complete: completeFn,
+                    step: stepFn
+                    // base config to use for each file
+                },
+                before: function(file, inputElem)
+                {
+                    console.log("Parsing file...", file);
+                },
+                error: function(err, file, inputElem, reason)
+                {
+                    console.log("ERROR:", err, file);
+                },
+                complete: function()
+                {
+                    console.log("Done with all files");
+                }
+            });
+        };
+        $(document).ready(function() {
+            _dt = $('#dataTables-example').DataTable({
+                    responsive: true
+            });
+            $('#panel-datatable, #loading').hide();
+            $('#upload').click(function (){
+                $('#loading').show();
+                temmp();
+
+            });
+    });
+
+    </script>
+{% endblock %}
+
+{#<h1>{{ question.question_text }}</h1>#}
+{##}
+{#<ul>#}
+{#{% for choice in question.choice_set.all %}#}
+{#    <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>#}
+{#{% endfor %}#}
+{#</ul>#}
+{##}
+{#<a href="{% url 'polls:detail' question.id %}">Vote again?</a>#}
