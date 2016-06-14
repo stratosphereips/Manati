@@ -18,6 +18,8 @@
             <div class="panel panel-default" id="panel-datatable">
                 <div class="panel-heading">
                     Table of weblogs
+{#                    {% load staticfiles %}#}
+{#                    <img id="loading" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>#}
                 </div>
                 <div class="panel-body">
                     <div class="dataTable_wrapper">
@@ -43,13 +45,15 @@
                 </div>
 
             </div>
-            <div class="panel panel-default" id="loading">
-                {% load staticfiles %}
-                <img src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
-            </div>
 
         </div>
     </div>
+    <style>
+        div.dataTables_wrapper {
+            width: 100%;
+            margin: 0 auto;
+        }
+    </style>
     <script type="text/javascript">
         var _dt;
         function completeFn(results,file){
@@ -63,14 +67,11 @@
                 if (results.data && results.data.length > 0)
                     rowCount = results.data.length;
             }
-
-            console.log("Parse complete", file);
-            console.log("Results:", results);
         }
         var stepped = 0;
         var rowCount, firstError, errorCount = 0;
         function tt(data){
-            _dt.row.add([data[0],data[1],data[2],data[3]]).draw( false );
+            _dt.row.add(data).draw( false );
         }
         function stepFn(results, parser)
         {
@@ -84,14 +85,17 @@
                         Concurrent.Thread.create(tt,data);
                     }else{
                         var elem = '<tr>';
-                        elem+='<th>' +data[0]+ '</th>';
-                        elem+='<th>' +data[1]+ '</th>';
-                        elem+='<th>' +data[2]+ '</th>';
-                        elem+='<th>' +data[3]+ '</th>';
+                        var elem_tr = '<tr>';
+                        for(var i = 0; i< data.length ; i++){
+                            elem+='<th>' +data[i]+ '</th>';
+                            elem_tr+='<td></td>';
+                        }
                         elem+='</tr>';
+                        elem_tr+='</tr>';
                         $('#dataTables-example thead').html(elem);
+                        $('#dataTables-example tbody').html(elem_tr);
+                        _dt = $('#dataTables-example').DataTable({responsive: true,"scrollX": true});
                         $('#panel-datatable').show();
-                        $('#loading').hide();
                     }
 
                 }
@@ -103,8 +107,12 @@
                 }
             }
         }
-        function temmp(){
-            $('input[type=file]').parse({
+        $(document).ready(function() {
+
+            $('#panel-datatable').hide();
+            $('#upload').click(function (){
+
+                 $('input[type=file]').parse({
                 config: {
                     delimiter: "|",
                     complete: completeFn,
@@ -124,15 +132,6 @@
                     console.log("Done with all files");
                 }
             });
-        };
-        $(document).ready(function() {
-            _dt = $('#dataTables-example').DataTable({
-                    responsive: true
-            });
-            $('#panel-datatable, #loading').hide();
-            $('#upload').click(function (){
-                $('#loading').show();
-                temmp();
 
             });
     });
