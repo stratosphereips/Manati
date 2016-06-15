@@ -7,6 +7,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
+{#            <a href="#menu-toggle" data-toggle="collapse" data-target=".navbar-collapse" class="btn btn-default" id="menu-toggle">Menu</a>#}
             <a class="navbar-brand" href="index.html">ManaTI Project</a>
         </div>
         <!-- /.navbar-header -->
@@ -230,3 +231,9 @@
         {% include "manati_ui/base_nav.html" %}
         <!-- /.navbar-static-side -->
     </nav>
+    <script>
+        $("#menu-toggle").click(function(e) {
+        e.preventDefault();
+        $(".navbar-collapse").toggleClass("toggled");
+        });
+    </script>
