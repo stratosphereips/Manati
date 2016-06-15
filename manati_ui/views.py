@@ -1,5 +1,5 @@
-from django.shortcuts import render
 from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
 from django.views import generic
@@ -21,6 +21,7 @@ class AnalysisSessionNewView(generic.DetailView):
     model = AnalysisSession
     template_name = 'manati_ui/analysis_session/new.html'
 
+@login_required(login_url="login/")
 def new_analysis_session_view(request):
     # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
     # output = ', '.join([q.question_text for q in lastest_question_list])
