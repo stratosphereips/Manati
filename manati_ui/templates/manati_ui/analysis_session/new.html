@@ -117,7 +117,10 @@
                             "scrollX": true,
                             dom: 'Bfrtip',
                             colReorder: true,
-                            buttons: ['colvis']
+                            buttons: ['colvis'],
+                            "initComplete" : function () {
+                                $('#dataTables-example thead').hide();
+                            }
                         });
                         _dt.buttons().container().appendTo( '#example_wrapper .col-sm-6:eq(0)' );
                         $('#panel-datatable').show();

@@ -21,7 +21,7 @@ class AnalysisSessionNewView(generic.DetailView):
     model = AnalysisSession
     template_name = 'manati_ui/analysis_session/new.html'
 
-@login_required(login_url="login/")
+@login_required(login_url="/")
 def new_analysis_session_view(request):
     # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
     # output = ', '.join([q.question_text for q in lastest_question_list])
