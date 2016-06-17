@@ -1,0 +1,42 @@
+<h1 id="project-manati.-machine-learning-for-threat-intuitive-analysis">Project Manati. Machine Learning for Threat Intuitive Analysis</h1>
+<p>The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.</p>
+<h2 id="authors">Authors</h2>
+<ul>
+<li>Raul B. Netto (raulbeni@gmail.com )</li>
+<li>Sebastian Garcia (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)</li>
+</ul>
+<h2 id="instalation">Instalation</h2>
+<p>Manati is a django project with a postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The instalation steps for linux are:</p>
+<ol style="list-style-type: decimal">
+<li>git clone git@bitbucket.org:rbenitez/project_manati.git</li>
+<li>apt-get install virtualenv</li>
+<li>virtualenv vmanati</li>
+<li>source vmanati/bin/activate</li>
+<li>apt-get install postgresql-server-dev-all</li>
+<li>pip install -r requirements.txt</li>
+<li><p>Start postgresql</p>
+<p>/etc/init.d/postgresql start</p></li>
+</ol>
+<h2 id="configure-the-database">Configure the database</h2>
+<ol start="8" style="list-style-type: decimal">
+<li><p>As root: (There should be a user postgres after installing the database)</p>
+su - postgres</li>
+<li><p>psql (to connect to the database). Inside the psql console type:</p>
+<p>create user manati_db_user with password 'password';</p>
+<p>create database manati_db;</p>
+<p>grant all privileges on database manati_db to manati_db_user;</p>
+<p>alter role manati_db_user craterole createdb;</p></li>
+</ol>
+<h2 id="verify-that-the-db-was-created-successfully">Verify that the db was created successfully</h2>
+<ol start="10" style="list-style-type: decimal">
+<li><p>As the postgres user</p>
+<p>psql -h localhost -d manati_db -U manati_db_user</p></li>
+</ol>
+<p>After putting the password you should be able to login.</p>
+<p>You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py</p>
+<h2 id="how-to-run-it">How to run it</h2>
+<p>It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:</p>
+<pre><code>python ./manage.py runserver</code></pre>
+<p>After this, just open your browser in <a href="http://localhost:8000/manati_ui">http://localhost:8000/manati_ui</a></p>
+<p>If you want to open the server in the network, you can do it with:</p>
+<pre><code>python ./manage.py runserver &lt;ip-address&gt;:8000</code></pre>
