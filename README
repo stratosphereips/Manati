@@ -1,2 +1,69 @@
-# Project Manati
-Machine Learning for Threat Intuitive Analysis
+# Project Manati. Machine Learning for Threat Intuitive Analysis
+The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
+
+## Authors
+
+- Raul B. Netto (raulbeni@gmail.com )
+- Sebastian Garcia (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
+
+## Instalation
+Manati is a django project with a postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The instalation steps for linux are:
+
+1. git clone git@bitbucket.org:rbenitez/project_manati.git
+2. apt-get install virtualenv
+3. virtualenv vmanati
+4. source vmanati/bin/activate
+5. apt-get install postgresql-server-dev-all
+6. pip install -r requirements.txt
+7. Start postgresql
+
+    /etc/init.d/postgresql start
+
+## Configure the database
+8. As root: (There should be a user postgres after installing the database)
+
+    su - postgres 
+9. psql (to connect to the database). Inside the psql console type: 
+
+    create user manati_db_user with password 'password';
+
+    create database manati_db;
+
+    grant all privileges on database manati_db to manati_db_user;
+
+    alter role manati_db_user craterole createdb;
+
+## Verify that the db was created successfully
+10. As the postgres user
+
+    psql -h localhost -d manati_db -U manati_db_user
+
+After putting the password you should be able to login.
+
+You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
+
+## How to run it
+It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:
+
+    python ./manage.py runserver
+
+After this, just open your browser in [http://localhost:8000/manati_ui](http://localhost:8000/manati_ui)
+
+If you want to open the server in the network, you can do it with:
+
+    python ./manage.py runserver <ip-address>:8000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
