@@ -6,6 +6,9 @@ The goal of the ManaTi project is to develop machine learning techniques to assi
 - Raul B. Netto (raulbeni@gmail.com )
 - Sebastian Garcia (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
 
+## Version
+0.1
+
 ## Instalation
 Manati is a django project with a postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The instalation steps for linux are:
 
@@ -53,7 +56,8 @@ If you want to open the server in the network, you can do it with:
 
     python ./manage.py runserver <ip-address>:8000
 
-
+## Weblogs
+The weblogs that now can be loaded should use the character | as a separator. See the example weblogs. This will be changed in the future.
 
 
 
