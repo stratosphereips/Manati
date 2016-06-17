@@ -5,6 +5,8 @@ from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
 from .models import AnalysisSession
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
 
 class IndexView(generic.ListView):
     template_name = 'manati_ui/index.html'
@@ -27,6 +29,28 @@ def new_analysis_session_view(request):
     # output = ', '.join([q.question_text for q in lastest_question_list])
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
+
+@login_required(login_url="/")
+@csrf_exempt
+def create_analysis_session(request):
+    analysis_session_id = -1
+    try:
+        if request.method == 'POST':
+            data = request.POST.get('data', '')
+            keys = request.POST.get('keys', '')
+            filename = request.POST.get('filename', '')
+            analysis_session = AnalysisSession.create_from_request(keys, data, filename)
+            if analysis_session is AnalysisSession:
+                messages.success(request, 'Analysis Session was created .')
+                analysis_session_id = analysis_session.id
+            else:
+                messages.error(request, 'Analysis Session wasn\'t created .')
+        else:
+            messages.error(request, 'Only POST request')
+    except Exception:
+        messages.error(request, 'Error Happened')
+
+    return HttpResponseRedirect('/manati_ui/analysis_session/new')
 
 
 

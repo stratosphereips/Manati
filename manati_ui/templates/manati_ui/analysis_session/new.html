@@ -13,14 +13,15 @@
                 <div class="form-group">
                     <div class="input-group">
                         <label class="input-group-btn">
-                            <span class="btn btn-primary">
+                            <span class="btn btn-success">
                                 Browse&hellip; <input type="file" style="display: none;" multiple>
                             </span>
                         </label>
                         <input type="text" class="form-control" readonly>
                     </div>
                     <input type="button" id="upload" class="btn btn-default" value="Upload File"/>
-{#                    <progress></progress>#}
+                    <input type="button" id="save-table" class="btn btn-primary"  value="Save!" />
+                    <progress></progress>
 
                 </div>
 
@@ -35,7 +36,7 @@
                 </div>
                 <div class="panel-body">
 {#                    <div class="dataTable_wrapper">#}
-                        <table class="table table-striped table-bordered table-hover" id="weblogs-datatable">
+                        <table class="table table-striped table-bordered table-hover"  cellspacing="0" width="100%" id="weblogs-datatable">
                             <thead>
                             </thead>
                             <tbody>
@@ -73,6 +74,10 @@
     </style>
     <script type="text/javascript">
         var _dt;
+        var stepped = 0;
+        var rowCount, firstError, errorCount = 0;
+        var _keys = [];
+        var _filename;
         function completeFn(results,file){
             if (results && results.errors)
             {
@@ -85,8 +90,7 @@
                     rowCount = results.data.length;
             }
         }
-        var stepped = 0;
-        var rowCount, firstError, errorCount = 0;
+
         function tt(data){
             _dt.row.add(data).draw( false );
         }
@@ -101,23 +105,19 @@
                     if(stepped > 1){
                         Concurrent.Thread.create(tt,data);
                     }else{
-                        var elem = '<tr>';
-                        var elem_tr = '<tr>';
+                        var columns = [];
                         for(var i = 0; i< data.length ; i++){
-                            elem+='<th>' +data[i]+ '</th>';
-                            elem_tr+='<td></td>';
+                            columns.add({title: data[i]});
                         }
-                        elem+='</tr>';
-                        elem_tr+='</tr>';
-                        $('#weblogs-datatable thead').html(elem);
-{#                        $('#dataTables-example tbody').html(elem_tr);#}
+                        _keys = data;
                         _dt = $('#weblogs-datatable').DataTable({
-                            lengthChange: false,
+                            lengthChange: true,
                             responsive: true,
                             "scrollX": true,
                             dom: 'Bfrtip',
                             colReorder: true,
                             buttons: ['copy', 'excel', 'pdf','colvis'],
+                            columns: columns
                         });
                         _dt.buttons().container().appendTo( '#example_wrapper .col-sm-6:eq(0)' );
                         $('#panel-datatable').show();
@@ -132,20 +132,6 @@
                 }
             }
         }
-        $(document).ready( function() {
-              $(':file').on('fileselect', function(event, numFiles, label) {
-
-                  var input = $(this).parents('.input-group').find(':text'),
-                      log = numFiles > 1 ? numFiles + ' files selected' : label;
-
-                  if( input.length ) {
-                      input.val(log);
-                  } else {
-                      if( log ) alert(log);
-                  }
-
-              });
-        });
         $(document).ready(function() {
 
             $('#panel-datatable').hide();
@@ -159,6 +145,7 @@
                     },
                     before: function(file, inputElem)
                     {
+                        _filename = file.name;
                         console.log("Parsing file...", file);
                         $("#weblogfile-name").html(file.name)
                     },
@@ -173,11 +160,34 @@
                     }
                 });
             });
+            $(':file').on('fileselect', function(event, numFiles, label) {
+
+                  var input = $(this).parents('.input-group').find(':text'),
+                      log = numFiles > 1 ? numFiles + ' files selected' : label;
+
+                  if( input.length ) {
+                      input.val(log);
+                  } else {
+                      if( log ) alert(log);
+                  }
+
+              });
             $(document).on('change', ':file', function() {
                 var input = $(this),
                     numFiles = input.get(0).files ? input.get(0).files.length : 1,
                     label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
                 input.trigger('fileselect', [numFiles, label]);
+            });
+            $('#save-table').click( function () {
+                var data = {'filename': _filename, 'keys': _keys, 'csrfmiddlewaretoken': '{{ csrf_token }}', };
+                $.ajax({
+                    type:"POST",
+                    'dataType': 'html',
+                    data: data,
+                    'contentType': 'application/json',
+                    url: "/manati_ui/analysis_session/create"
+
+                });
             });
 {#            $('a.toggle-vis').on( 'click', function (e) {#}
 {#                e.preventDefault();#}
