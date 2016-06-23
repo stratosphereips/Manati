@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from model_utils import Choices
 from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
+from django.core.exceptions import ValidationError
+
 MESSAGE_TAGS = {
     message_constants.DEBUG: 'info',
     message_constants.INFO: 'info',
@@ -15,34 +17,46 @@ MESSAGE_TAGS = {
 }
 
 
-class AnalysisSession(models.Model):
-
-    users = models.ManyToManyField(User)
-    name = models.CharField(max_length=200, blank=False, null=False)
-    created_at = models.TimeField(auto_now_add=True)
-    updated_at = models.TimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'manati_analysis_sessions'
+class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
     def create_from_request(self, keys, data, name):
         try:
+            analysis_session = AnalysisSession()
             with transaction.atomic():
-                self.name = name
-                self.save()
+                analysis_session.name = name
+                analysis_session.full_clean()
+                analysis_session.save()
+                print(len(data))
                 for elem in data:
                     i = 0
-                    hash_attr={}
+                    hash_attr = {}
                     for k in keys:
                         hash_attr[k] = elem[i]
                         i += 1
                     wb = Weblog(**hash_attr)
-                    wb.analysis_session = self
+                    wb.analysis_session = analysis_session
+                    wb.full_clean()
                     wb.save()
-            return self
+            return analysis_session
+        except ValidationError as e:
+            pass
         except IntegrityError:
             return None
+
+
+class AnalysisSession(models.Model):
+
+    users = models.ManyToManyField(User)
+    name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
+    created_at = models.TimeField(auto_now_add=True)
+    updated_at = models.TimeField(auto_now=True)
+
+    objects = AnalysisSessionManager()
+
+    class Meta:
+        db_table = 'manati_analysis_sessions'
+
 
 
 
