@@ -1,3 +1,4 @@
 Django==1.9.7
 django-bootstrap3==7.0.1
+django-model-utils==2.5
 psycopg2==2.6.1
