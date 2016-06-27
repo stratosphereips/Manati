@@ -35,6 +35,13 @@
 {#                    <img id="loading" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>#}
                 </div>
                 <div class="panel-body">
+                    <h4>Verdict's Buttos</h4>
+                    <p>
+                        <button type="button" data-verdict="normal" class="verdict btn btn-primary">Normal</button>
+                        <button type="button" data-verdict="malicious" class="verdict btn btn-danger">Malicious</button>
+                        <button type="button" data-verdict="legitimate" class="verdict btn btn-info">Legitimate</button>
+                        <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
+                    </p>
 {#                    <div class="dataTable_wrapper">#}
                         <table class="table table-striped table-bordered table-hover"  cellspacing="0" width="100%" id="weblogs-datatable">
                             <thead>
@@ -73,12 +80,14 @@
         }
     </style>
     <script type="text/javascript">
+        var _countID =1;
         var _dt;
         var stepped = 0;
         var rowCount, firstError, errorCount = 0;
         var _keys = [];
         var _filename;
-        var _db = new PouchDB('weblogs_db');
+        var _db;
+        var db_name = 'weblogs_db';
 {#        var attributes_db = {{ weblogs_attribute|safe }};#}
         var myDjangoList = (("{{weblogs_attribute |safe}}").replace(/&(l|g|quo)t;/g, function(a,b){
             return {
@@ -100,13 +109,28 @@
 {#            title: text,#}
 {#            completed: false#}
 {#          };#}
-          weblog['_id'] =  new Date().toISOString()
+{#          weblog['_id'] =  _countID; //new Date().toISOString()#}
           _db.put(weblog, function callback(err, result) {
             if (!err) {
               console.log('Successfully save a weblog!');
+            }else{
+                console.log('ERROR saving');
+                console.log(err);
             }
           });
+{#            _countID++;#}
         };
+        function updateWeblog(weblog){
+            _db.put(weblog, function callback(err, result) {
+            if (!err) {
+              console.log('Successfully updated a weblog!');
+            }else{
+                console.log('ERROR updating');
+                console.log(err);
+            }
+          });
+
+        }
         function showAllWeblogs() {
           _db.allDocs({include_docs: true, descending: true}, function(err, doc) {
             for(var i = 0 ; i < doc.rows.length ; i++){
@@ -128,13 +152,23 @@
         }
 
         function addRowThread(data){
-            _dt.row.add(data).draw( false );
-            var weblog = {};
-            for(var i_attr = 0; i_attr < _keys.length; i_attr++ ){
-                var attr = _keys[i_attr];
-                weblog[attr] = data[i_attr];
+            data.add('undefined');
+            data.add(_countID.toString());
+            _countID++;
+            if(data.length !== _attributes_db.length) {
+                alert("Row and columns are not equals!");
+                console.log(data);
             }
-            addWeblog(weblog)
+            else{
+                _dt.row.add(data).draw( false );
+                var weblog = {};
+                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
+                    var attr = _attributes_db[i_attr];
+                    weblog[attr] = data[i_attr];
+                }
+                addWeblog(weblog)
+            }
+
         }
         function stepFn(results, parser)
         {
@@ -148,20 +182,53 @@
                         Concurrent.Thread.create(addRowThread,data);
                     }else{
                         var columns = [];
-                        for(var i = 0; i< data.length ; i++){
-                            columns.add({title: data[i]});
+                        for(var i = 0; i< _attributes_db.length ; i++){
+                            columns.add({title: _attributes_db[i]});
                         }
-                        _keys = data;
+                        _keys = _attributes_db;
                         _dt = $('#weblogs-datatable').DataTable({
                             lengthChange: true,
                             responsive: true,
                             "scrollX": true,
                             dom: 'Bfrtip',
                             colReorder: true,
-                            buttons: ['copy', 'excel', 'pdf','colvis'],
+                            buttons: ['copy', 'excel','colvis'],
                             columns: columns
                         });
-                        _dt.buttons().container().appendTo( '#example_wrapper .col-sm-6:eq(0)' );
+                        _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
+                        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
+                            $(this).toggleClass('selected');
+                        } );
+
+                        $('.btn.verdict').click( function () {
+                            var verdict = $(this).data('verdict');
+                            _dt.rows('.selected').every( function () {
+                                var d = this.data();
+                                var size_d = d.length;
+                                d[size_d - 2]= verdict; // update data source for the row
+                                var weblog = {};
+                                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
+                                    var attr = _attributes_db[i_attr];
+                                    if(attr === 'verdict'){
+                                        weblog[attr] = verdict;
+                                    }else {
+                                        weblog[attr] = d[i_attr];
+                                    }
+
+                                }
+                                updateWeblog(weblog);
+                                this.invalidate(); // invalidate the data DataTables has cached for this row
+                            } );
+
+                            // Draw once all updates are done
+                            _dt.draw(false);
+                        } );
+                        $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
+                            var colIdx = _dt.cell(this).index().column;
+
+                            $( _dt.cells().nodes() ).removeClass( 'highlight' );
+                            $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
+                        } );
                         $('#panel-datatable').show();
                     }
 
@@ -188,6 +255,15 @@
                     },
                     before: function(file, inputElem)
                     {
+                        if(_db == undefined || _db == null) {
+                            _db =  new PouchDB(db_name);
+                        }
+                        else{
+                            _db.destroy().then(function () {
+                              _db =  new PouchDB(db_name);
+                            }).catch(function (err) { // error occurred
+                                })
+                        }
                         _filename = file.name;
                         console.log("Parsing file...", file);
                         $("#weblogfile-name").html(file.name)
@@ -200,6 +276,7 @@
                     {
                         console.log("Done with all files");
                         $('#save-table').show();
+
 
                     }
                 });
@@ -247,6 +324,7 @@
 
                 });
             });
+
 {#            $('a.toggle-vis').on( 'click', function (e) {#}
 {#                e.preventDefault();#}
 {#                // Get the column API object#}

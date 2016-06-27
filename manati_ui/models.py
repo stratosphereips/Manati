@@ -111,7 +111,8 @@ class Weblog(models.Model):
         # attrs.remove('created_at')
         # attrs.remove('updated_at')
         # return attrs
-        return ['time', 'http_url', 'http_status', 'endpoints_server', 'transfer_upload', 'transfer_download']
+        return ['time', 'http_url', 'http_status', 'endpoints_server', 'transfer_upload', 'transfer_download',
+                'time_duration', 'http_referer', 'http_userAgent', 'contentType_fromHttp','user_name', 'verdict', '_id']
 
     def get_model_fields_json(self):
         return self.get_model_fields()
