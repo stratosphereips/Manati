@@ -61,29 +61,39 @@ class AnalysisSession(models.Model):
 
 
 class Weblog(models.Model):
-    db_table = 'weblogs'
     analysis_session = models.ForeignKey(AnalysisSession, on_delete=models.CASCADE, null=False)
-    timestamp = models.CharField(max_length=200)
-    s_port = models.IntegerField()
-    sc_http_status = models.CharField(max_length=200)
-    sc_bytes = models.CharField(max_length=200)
-    sc_header_bytes = models.CharField(max_length=200)
-    c_port = models.CharField(max_length=200)
-    cs_bytes = models.CharField(max_length=200)
-    cs_header_bytes = models.CharField(max_length=200)
-    cs_method = models.CharField(max_length=50)
-    cs_url = models.URLField(max_length=255)
-    s_ip = models.CharField(max_length=200)
-    c_ip = models.CharField(max_length=200)
-    connection_time = models.CharField(max_length=200)
-    request_time = models.CharField(max_length=200)
-    response_time = models.CharField(max_length=200)
-    close_time = models.CharField(max_length=200)
-    idle_time0 = models.CharField(max_length=200)
-    idle_time1 = models.CharField(max_length=200)
-    cs_mime_type = models.CharField(max_length=200)
-    cs_Referer = models.CharField(max_length=200)
-    cs_User_Agent = models.CharField(max_length=200)
+    # timestamp = models.CharField(max_length=200)
+    # s_port = models.IntegerField()
+    # sc_http_status = models.CharField(max_length=200)
+    # sc_bytes = models.CharField(max_length=200)
+    # sc_header_bytes = models.CharField(max_length=200)
+    # c_port = models.CharField(max_length=200)
+    # cs_bytes = models.CharField(max_length=200)
+    # cs_header_bytes = models.CharField(max_length=200)
+    # cs_method = models.CharField(max_length=50)
+    # cs_url = models.URLField(max_length=255)
+    # s_ip = models.CharField(max_length=200)
+    # c_ip = models.CharField(max_length=200)
+    # connection_time = models.CharField(max_length=200)
+    # request_time = models.CharField(max_length=200)
+    # response_time = models.CharField(max_length=200)
+    # close_time = models.CharField(max_length=200)
+    # idle_time0 = models.CharField(max_length=200)
+    # idle_time1 = models.CharField(max_length=200)
+    # cs_mime_type = models.CharField(max_length=200)
+    # cs_Referer = models.CharField(max_length=200)
+    # cs_User_Agent = models.CharField(max_length=200)
+    time = models.CharField(max_length=200, null=True)
+    http_url = models.URLField(max_length=255, null=True)
+    http_status = models.CharField(max_length=30, null=True)
+    endpoints_server = models.CharField(max_length=100, null=True)
+    transfer_upload = models.IntegerField(null=True)
+    transfer_download = models.IntegerField(null=True)
+    time_duration = models.CharField(max_length=200, null=True)
+    http_referer = models.CharField(max_length=200, null=True)
+    http_userAgent = models.CharField(max_length=200, null=True)
+    contentType_fromHttp = models.CharField(max_length=200, null=True)
+    user_name = models.CharField(max_length=200, null=True)
     # Verdict Status Attr
     VERDICT_STATUS = Choices('normal', 'malicious', 'legitimate', 'suspicious', ('false_positive','False Positive'))
     verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.normal, max_length=20)
@@ -93,4 +103,16 @@ class Weblog(models.Model):
 
     class Meta:
         db_table = 'manati_weblogs'
+
+    @classmethod
+    def get_model_fields(model):
+        # attrs = [f.name for f in model._meta.get_fields()]
+        # attrs.remove('analysis_session')
+        # attrs.remove('created_at')
+        # attrs.remove('updated_at')
+        # return attrs
+        return ['time', 'http_url', 'http_status', 'endpoints_server', 'transfer_upload', 'transfer_download']
+
+    def get_model_fields_json(self):
+        return self.get_model_fields()
 

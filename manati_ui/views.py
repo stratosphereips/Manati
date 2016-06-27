@@ -4,10 +4,11 @@ from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonRespons
 from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
-from .models import AnalysisSession
+from .models import AnalysisSession, Weblog
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
+from django.core import serializers
 
 class IndexView(generic.ListView):
     template_name = 'manati_ui/index.html'
@@ -28,7 +29,7 @@ class AnalysisSessionNewView(generic.DetailView):
 def new_analysis_session_view(request):
     # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
     # output = ', '.join([q.question_text for q in lastest_question_list])
-    context = {}
+    context = {"weblogs_attribute": Weblog.get_model_fields()}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
 @login_required(login_url="/")

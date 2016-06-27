@@ -78,6 +78,42 @@
         var rowCount, firstError, errorCount = 0;
         var _keys = [];
         var _filename;
+        var _db = new PouchDB('weblogs_db');
+{#        var attributes_db = {{ weblogs_attribute|safe }};#}
+        var myDjangoList = (("{{weblogs_attribute |safe}}").replace(/&(l|g|quo)t;/g, function(a,b){
+            return {
+                l   : '<',
+                g   : '>',
+                quo : '"'
+            }[b];
+        }));
+
+        myDjangoList = myDjangoList.replace(/u'/g, '\'');
+        myDjangoList = myDjangoList.replace(/'/g, '\"');
+
+        var _attributes_db = JSON.parse( myDjangoList );
+        function addWeblog(weblog) {
+
+{#          var todo = {#}
+{##}
+{#            _id: new Date().toISOString(),#}
+{#            title: text,#}
+{#            completed: false#}
+{#          };#}
+          weblog['_id'] =  new Date().toISOString()
+          _db.put(weblog, function callback(err, result) {
+            if (!err) {
+              console.log('Successfully save a weblog!');
+            }
+          });
+        };
+        function showAllWeblogs() {
+          _db.allDocs({include_docs: true, descending: true}, function(err, doc) {
+            for(var i = 0 ; i < doc.rows.length ; i++){
+                console.log(doc.rows[i]);
+            }
+          });
+        }
         function completeFn(results,file){
             if (results && results.errors)
             {
@@ -91,8 +127,14 @@
             }
         }
 
-        function tt(data){
+        function addRowThread(data){
             _dt.row.add(data).draw( false );
+            var weblog = {};
+            for(var i_attr = 0; i_attr < _keys.length; i_attr++ ){
+                var attr = _keys[i_attr];
+                weblog[attr] = data[i_attr];
+            }
+            addWeblog(weblog)
         }
         function stepFn(results, parser)
         {
@@ -103,7 +145,7 @@
                     rowCount += results.data.length;
                     var data = results.data[0];
                     if(stepped > 1){
-                        Concurrent.Thread.create(tt,data);
+                        Concurrent.Thread.create(addRowThread,data);
                     }else{
                         var columns = [];
                         for(var i = 0; i< data.length ; i++){
@@ -139,7 +181,7 @@
             $('#upload').click(function (){
                  $('input[type=file]').parse({
                     config: {
-                        delimiter: '|',//'\t',
+                        delimiter: ',', // '|',//'\t',
                         complete: completeFn,
                         step: stepFn
                         // base config to use for each file
