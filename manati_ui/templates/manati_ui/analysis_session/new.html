@@ -206,6 +206,7 @@
                         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
                         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
                             $(this).toggleClass('selected');
+                            $('.contextMenuPlugin').remove();
                         } );
 
 
@@ -226,6 +227,31 @@
                     firstError = firstError || results.errors[0];
                 }
             }
+        }
+        function markVerdict(verdict) {
+
+            _dt.rows('.selected').every( function () {
+                var d = this.data();
+                var size_d = d.length;
+                d[size_d - 2]= verdict; // update data source for the row
+    {#                    var weblog = {};#}
+    {#                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
+    {#                        var attr = _attributes_db[i_attr];#}
+    {#                        if(attr === 'verdict'){#}
+    {#                            weblog[attr] = verdict;#}
+    {#                        }else {#}
+    {#                            weblog[attr] = d[i_attr];#}
+    {#                        }#}
+    {##}
+    {#                    }#}
+    {#                    updateWeblog(weblog);#}
+                this.invalidate(); // invalidate the data DataTables has cached for this row
+            } );
+            // Draw once all updates are done
+            _dt.draw(false);
+            _dt.rows('.selected').nodes().to$().find('td').removeClass('undefined').addClass(verdict);
+            _dt.rows('.selected').nodes().to$().removeClass('selected');
+
         }
         $(document).ready(function() {
 
@@ -287,28 +313,19 @@
             });
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
-                _dt.rows('.selected').every( function () {
-                    var d = this.data();
-                    var size_d = d.length;
-                    d[size_d - 2]= verdict; // update data source for the row
-{#                    var weblog = {};#}
-{#                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
-{#                        var attr = _attributes_db[i_attr];#}
-{#                        if(attr === 'verdict'){#}
-{#                            weblog[attr] = verdict;#}
-{#                        }else {#}
-{#                            weblog[attr] = d[i_attr];#}
-{#                        }#}
-{##}
-{#                    }#}
-{#                    updateWeblog(weblog);#}
-                    this.invalidate(); // invalidate the data DataTables has cached for this row
-                } );
-                // Draw once all updates are done
-                _dt.draw(false);
-                _dt.rows('.selected').nodes().to$().find('td').removeClass('undefined').addClass(verdict);
-                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                markVerdict(verdict);
+
             } );
+            $('#weblogs-datatable').contextPopup({
+                  title: 'Mark Verdict',
+                  items: [
+                      {label: _verdicts[0], action: function (ev) {markVerdict(_verdicts[0])}},
+                      {label: _verdicts[1], action: function (ev) {markVerdict(_verdicts[1])}},
+                      {label: _verdicts[2], action: function (ev) {markVerdict(_verdicts[2])}},
+                      {label: _verdicts[3], action: function (ev) {markVerdict(_verdicts[3])}},
+                      {label: _verdicts[4], action: function (ev) {markVerdict(_verdicts[4])}}
+                  ]
+            });
 {#            $('#save-table').click( function () {#}
 {#                var data = {    'filename': _filename, 'keys': _keys,#}
 {#                                'csrfmiddlewaretoken': '{{ csrf_token }}',#}
