@@ -99,7 +99,6 @@
 
         myDjangoList = myDjangoList.replace(/u'/g, '\'');
         myDjangoList = myDjangoList.replace(/'/g, '\"');
-
         var _attributes_db = JSON.parse( myDjangoList );
         function addWeblog(weblog) {
 
@@ -156,17 +155,16 @@
             data.add(_countID.toString());
             _countID++;
             if(data.length !== _attributes_db.length) {
-                alert("Row and columns are not equals!");
                 console.log(data);
             }
             else{
                 _dt.row.add(data).draw( false );
-                var weblog = {};
-                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-                    var attr = _attributes_db[i_attr];
-                    weblog[attr] = data[i_attr];
-                }
-                addWeblog(weblog)
+{#                var weblog = {};#}
+{#                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
+{#                    var attr = _attributes_db[i_attr];#}
+{#                    weblog[attr] = data[i_attr];#}
+{#                }#}
+{#                addWeblog(weblog)#}
             }
 
         }
@@ -187,48 +185,26 @@
                         }
                         _keys = _attributes_db;
                         _dt = $('#weblogs-datatable').DataTable({
-                            lengthChange: true,
                             responsive: true,
+                            columns: columns,
                             "scrollX": true,
                             dom: 'Bfrtip',
                             colReorder: true,
                             buttons: ['copy', 'excel','colvis'],
-                            columns: columns
+                            responsive: true,
                         });
                         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
                         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
                             $(this).toggleClass('selected');
                         } );
 
-                        $('.btn.verdict').click( function () {
-                            var verdict = $(this).data('verdict');
-                            _dt.rows('.selected').every( function () {
-                                var d = this.data();
-                                var size_d = d.length;
-                                d[size_d - 2]= verdict; // update data source for the row
-                                var weblog = {};
-                                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-                                    var attr = _attributes_db[i_attr];
-                                    if(attr === 'verdict'){
-                                        weblog[attr] = verdict;
-                                    }else {
-                                        weblog[attr] = d[i_attr];
-                                    }
 
-                                }
-                                updateWeblog(weblog);
-                                this.invalidate(); // invalidate the data DataTables has cached for this row
-                            } );
-
-                            // Draw once all updates are done
-                            _dt.draw(false);
-                        } );
-                        $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
-                            var colIdx = _dt.cell(this).index().column;
-
-                            $( _dt.cells().nodes() ).removeClass( 'highlight' );
-                            $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
-                        } );
+{#                        $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {#}
+{#                            var colIdx = _dt.cell(this).index().column;#}
+{##}
+{#                            $( _dt.cells().nodes() ).removeClass( 'highlight' );#}
+{#                            $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );#}
+{#                        } );#}
                         $('#panel-datatable').show();
                     }
 
@@ -255,15 +231,15 @@
                     },
                     before: function(file, inputElem)
                     {
-                        if(_db == undefined || _db == null) {
-                            _db =  new PouchDB(db_name);
-                        }
-                        else{
-                            _db.destroy().then(function () {
-                              _db =  new PouchDB(db_name);
-                            }).catch(function (err) { // error occurred
-                                })
-                        }
+{#                        if(_db == undefined || _db == null) {#}
+{#                            _db =  new PouchDB(db_name);#}
+{#                        }#}
+{#                        else{#}
+{#                            _db.destroy().then(function () {#}
+{#                              _db =  new PouchDB(db_name);#}
+{#                            }).catch(function (err) { // error occurred#}
+{#                                })#}
+{#                        }#}
                         _filename = file.name;
                         console.log("Parsing file...", file);
                         $("#weblogfile-name").html(file.name)
@@ -299,31 +275,54 @@
                     label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
                 input.trigger('fileselect', [numFiles, label]);
             });
-            $('#save-table').click( function () {
-                var data = {    'filename': _filename, 'keys': _keys,
-                                'csrfmiddlewaretoken': '{{ csrf_token }}',
-                                'data[]': _dt.rows().data() };
-                $.ajax({
-                    type:"POST",
-                    data: data,
-                    dataType: "json",
-                    url: "/manati_ui/analysis_session/create",
-                    // handle a successful response
-                    success : function(json) {
+            $('.btn.verdict').click( function () {
+                var verdict = $(this).data('verdict');
+                _dt.rows('.selected').every( function () {
+                    var d = this.data();
+                    var size_d = d.length;
+                    d[size_d - 2]= verdict; // update data source for the row
+{#                    var weblog = {};#}
+{#                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
+{#                        var attr = _attributes_db[i_attr];#}
+{#                        if(attr === 'verdict'){#}
+{#                            weblog[attr] = verdict;#}
+{#                        }else {#}
+{#                            weblog[attr] = d[i_attr];#}
+{#                        }#}
+{##}
+{#                    }#}
+{#                    updateWeblog(weblog);#}
+                    this.invalidate(); // invalidate the data DataTables has cached for this row
+                } );
+                // Draw once all updates are done
+                _dt.draw(false);
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+            } );
+{#            $('#save-table').click( function () {#}
+{#                var data = {    'filename': _filename, 'keys': _keys,#}
+{#                                'csrfmiddlewaretoken': '{{ csrf_token }}',#}
+{#                                'data[]': _dt.rows().data() };#}
+{#                $.ajax({#}
+{#                    type:"POST",#}
+{#                    data: data,#}
+{#                    dataType: "json",#}
+{#                    url: "/manati_ui/analysis_session/create",#}
+{#                    // handle a successful response#}
+{#                    success : function(json) {#}
 {#                        $('#post-text').val(''); // remove the value from the input#}
-                        console.log(json); // log the returned json to the console
-                        console.log("success"); // another sanity check
-                    },
-
-                    // handle a non-successful response
-                    error : function(xhr,errmsg,err) {
-                        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                            " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                    }
-
-                });
-            });
+{#                        console.log(json); // log the returned json to the console#}
+{#                        console.log("success"); // another sanity check#}
+{#                    },#}
+{##}
+{#                    // handle a non-successful response#}
+{#                    error : function(xhr,errmsg,err) {#}
+{#                        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+#}
+{#                            " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom#}
+{#                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console#}
+{#                    }#}
+{##}
+{#                });#}
+{#            });#}
 
 {#            $('a.toggle-vis').on( 'click', function (e) {#}
 {#                e.preventDefault();#}
