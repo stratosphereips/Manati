@@ -37,6 +37,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'bootstrap3',
+    'sass_processor',
     'manati_ui.apps.ManatiUiConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -139,6 +140,17 @@ USE_L10N = True
 USE_TZ = True
 
 SITE_ID = 1
+
+SASS_PROCESSOR_INCLUDE_DIRS = (
+    os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
+)
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'sass_processor.finders.CssFinder',
+)
+
+SASS_PRECISION = 8
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/

@@ -1,0 +1,15 @@
+.dataTables_wrapper table tbody tr td.normal {
+  background-color: whitesmoke;
+}
+.dataTables_wrapper table tbody tr td.malicious {
+  background-color: red;
+}
+.dataTables_wrapper table tbody tr td.legitimate {
+  background-color: green;
+}
+.dataTables_wrapper table tbody tr td.suspicious {
+  background-color: darkorange;
+}
+.dataTables_wrapper table tbody tr td.false_positive {
+  background-color: lightskyblue;
+}
