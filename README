@@ -66,15 +66,3 @@ To login into the system you need a user and password. To generate one, go to th
     python manage.py createsuperuser
 
 After this you are ready to login and start using the system.
-
-
-
-
-
-
-
-
-
-
->>>>>>> release/v0.2
-
