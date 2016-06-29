@@ -41,6 +41,7 @@
                         <button type="button" data-verdict="legitimate" class="verdict btn btn-success">Legitimate</button>
                         <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
                         <button type="button" data-verdict="false_positive" class="verdict btn btn-info">False Positive</button>
+                        <a href="#" id="unselect">Unselect</a>
                     </p>
 {#                    <div class="dataTable_wrapper">#}
                         <table class="table table-striped table-bordered table-hover"  cellspacing="0" width="100%" id="weblogs-datatable">
@@ -328,8 +329,10 @@
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
                 markVerdict(verdict);
-
             } );
+            $('#unselect').on('click', function (){
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+            });
             $('#weblogs-datatable').contextPopup({
                   title: 'Mark Verdict',
                   items: [
