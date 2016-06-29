@@ -92,7 +92,8 @@
             "malicious":2,
             "legitimate":0,
             "suspicious":1,
-            "false_positive":3
+            "false_positive":3,
+            "undefined": -1
         };
         var _verdicts = ["malicious","legitimate","suspicious","false_positive"];
 {#        var attributes_db = {{ weblogs_attribute|safe }};#}
@@ -237,9 +238,10 @@
             _dt.rows('.selected').every( function () {
                 var d = this.data();
                 var size_d = d.length;
-                var new_w = _verdicts_weight[verdict];
-                var old_w = _verdicts_weight[d[size_d - 2]];
-                if(new_w >= old_w){
+{#                var new_w = _verdicts_weight[verdict];#}
+{#                var old_w = _verdicts_weight[d[size_d - 2]];#}
+{#                if(new_w >= old_w){#}
+                var old_verdict = d[size_d - 2];
                    d[size_d - 2]= verdict; // update data source for the row
     {#                    var weblog = {};#}
     {#                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
@@ -254,14 +256,14 @@
     {#                    updateWeblog(weblog);#}
                     this.invalidate(); // invalidate the data DataTables has cached for this row
 
-                }else{
-                    alert("You cannot assign a verdict lower than the previous one Ex: False Positive > Legitimate");
-                }
+{#                }else{#}
+{#                    alert("You cannot assign a verdict lower than the previous one Ex: False Positive > Legitimate");#}
+{#                }#}
 
             } );
             // Draw once all updates are done
             _dt.draw(false);
-            _dt.rows('.selected').nodes().to$().find('td').removeClass('undefined').addClass(verdict);
+            _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
             _dt.rows('.selected').nodes().to$().removeClass('selected');
 
         }
