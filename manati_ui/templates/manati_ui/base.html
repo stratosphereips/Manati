@@ -7,35 +7,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="Raul B. Netto">
-
-    <!-- Bootstrap Core CSS -->
-{#    <link href="css/bootstrap.min.css" rel="stylesheet">#}
     {% load staticfiles %}
     {% load bootstrap3 %}
+    <link href="{% static 'manati_ui/images/favicon.ico' %}" rel="icon" type="image/x-icon" />
+
+
     {# Load CSS and JavaScript #}
     <script src="{% static 'manati_ui/js/libs/Concurrent.Thread.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/jquery.min.js' %}" type="text/javascript"></script>
+    <!-- Bootstrap Core CSS -->
     {% bootstrap_css %}
+    <!-- Bootstrap Core JS -->
     {% bootstrap_javascript %}
 
     <!-- Custom CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/timeline.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/dataTables.bootstrap.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/sb-admin-2.css' %}" />
-
-
     <script src="{% static 'manati_ui/js/sb-admin-2.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/metisMenu.min.js' %}" type="text/javascript"></script>
+
+    {% comment %}Libraris for datatable{% endcomment %}
+    {% comment %}CSS{% endcomment %}
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/dataTables.bootstrap.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/buttons.bootstrap.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/colReorder.bootstrap.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css"/>
+    {% comment %}JS{% endcomment %}
     <script src="{% static 'manati_ui/js/libs/jquery.dataTables.min.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/dataTables.bootstrap.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/dataTables.colReorder.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/dataTables.buttons.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/buttons.bootstrap.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/buttons.colVis.min.js' %}" type="text/javascript"></script>
+{#    <script type="text/javascript" src="{% static 'manati_ui/js/libs/pouchdb-5.4.4.min.js' %}"></script>#}
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js" type="text/javascript"></script>
+    <script src="http://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js" type="text/javascript"></script>
+    <script src="http://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js" type="text/javascript"></script>
+    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.html5.min.js" type="text/javascript"></script>
+    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.print.min.js" type="text/javascript"></script>
+    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.colVis.min.js" type="text/javascript"></script>
 
-
-    <!-- Morris Charts CSS -->
-{#    <link href="css/plugins/morris.css" rel="stylesheet">#}
 
     <!-- Custom Fonts -->
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/font-awesome/css/font-awesome.min.css' %}" />
-{#    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">#}
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -45,6 +59,11 @@
     <![endif]-->
 
     <script src="{% static 'manati_ui/js/libs/papaparse.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/jquery.contextMenu.js' %}" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery.contextmenu.css' %}" />
+
+
+    <link href="{% static 'manati_ui/css/style_ui.css' %}" rel="stylesheet" type="text/css" />
 
 </head>
 <body>
@@ -57,6 +76,7 @@
                     <h1 class="page-header">{% block title %}{% endblock %}</h1>
                 </div>
             <div class="row">
+                {% include "manati_ui/messages.html" %}
                 {% block content %}{% endblock %}
             </div>
             <!-- /.row -->
