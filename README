@@ -1,6 +1,10 @@
 # Project Manati. Machine Learning for Threat Intuitive Analysis
 The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
+## Versions
+
+- Wed Jun 29 10:44:15 CEST 2016: Version 0.2
+
 ## Authors
 
 - Raul B. Netto (raulbeni@gmail.com )
@@ -53,6 +57,15 @@ If you want to open the server in the network, you can do it with:
 
     python ./manage.py runserver <ip-address>:8000
 
+## Weblogs
+The weblogs that now can be loaded should use the character | as a separator. See the example weblogs. This will be changed in the future.
+
+# Login
+To login into the system you need a user and password. To generate one, go to the console and run:
+
+    python manage.py createsuperuser
+
+After this you are ready to login and start using the system.
 
 
 
@@ -63,7 +76,5 @@ If you want to open the server in the network, you can do it with:
 
 
 
-
-
-
+>>>>>>> release/v0.2
 
