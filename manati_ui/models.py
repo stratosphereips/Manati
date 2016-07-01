@@ -95,8 +95,8 @@ class Weblog(models.Model):
     contentType_fromHttp = models.CharField(max_length=200, null=True)
     user_name = models.CharField(max_length=200, null=True)
     # Verdict Status Attr
-    VERDICT_STATUS = Choices('malicious', 'legitimate', 'suspicious', ('false_positive','False Positive'))
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20)
+    VERDICT_STATUS = Choices('Malicious', 'Legitimate', 'Suspicious', ('false_positive','False Positive', 'Undefined'))
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.Legitimate, max_length=20)
     #attrs usefull for auditing
     created_at = models.TimeField(auto_now_add=True)
     updated_at = models.TimeField(auto_now=True)

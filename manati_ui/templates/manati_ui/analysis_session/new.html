@@ -41,6 +41,7 @@
                         <button type="button" data-verdict="legitimate" class="verdict btn btn-success">Legitimate</button>
                         <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
                         <button type="button" data-verdict="false_positive" class="verdict btn btn-info">False Positive</button>
+                        <button type="button" data-verdict="undefined" class="verdict btn btn-undefined">Undefined</button>
                         <a href="#" id="unselect">Unselect</a>
                     </p>
 {#                    <div class="dataTable_wrapper">#}
@@ -96,7 +97,7 @@
             "false_positive":3,
             "undefined": -1
         };
-        var _verdicts = ["malicious","legitimate","suspicious","false_positive"];
+        var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 {#        var attributes_db = {{ weblogs_attribute|safe }};#}
         var myDjangoList = (("{{weblogs_attribute |safe}}").replace(/&(l|g|quo)t;/g, function(a,b){
             return {
@@ -339,7 +340,8 @@
                       {label: _verdicts[0], action: function (ev) {markVerdict(_verdicts[0])}},
                       {label: _verdicts[1], action: function (ev) {markVerdict(_verdicts[1])}},
                       {label: _verdicts[2], action: function (ev) {markVerdict(_verdicts[2])}},
-                      {label: _verdicts[3], action: function (ev) {markVerdict(_verdicts[3])}}
+                      {label: _verdicts[3], action: function (ev) {markVerdict(_verdicts[3])}},
+                      {label: _verdicts[4], action: function (ev) {markVerdict(_verdicts[4])}}
                   ]
             });
 {#            $('#save-table').click( function () {#}

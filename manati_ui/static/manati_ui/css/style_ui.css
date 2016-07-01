@@ -10,3 +10,6 @@
 .dataTables_wrapper table tbody tr:not(.selected) td.false_positive {
   background-color: lightskyblue;
 }
+.dataTables_wrapper table tbody tr:not(.selected) td.undefined {
+  background-color: whitesmoke;
+}

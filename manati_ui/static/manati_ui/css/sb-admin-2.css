@@ -168,10 +168,15 @@ body {
     color: #d9534f;
 }
 
+.btn-undefined.btn-outline {
+    color: #fff;
+}
+
 .btn-primary.btn-outline:hover,
 .btn-success.btn-outline:hover,
 .btn-info.btn-outline:hover,
 .btn-warning.btn-outline:hover,
+.btn-undefined.btn-outline:hover,
 .btn-danger.btn-outline:hover {
     color: #fff;
 }
