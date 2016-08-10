@@ -38,7 +38,7 @@ function AnalysisSessionLogic(attributes_db){
     _attributes_db = JSON.parse( myDjangoList );
 
      /************************************************************
-                            FUNCTIONS
+                            PRIVATE FUNCTIONS
      *************************************************************/
      function addWeblog(weblog) {
 /**
@@ -210,6 +210,10 @@ function AnalysisSessionLogic(attributes_db){
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
     }
+    /************************************************************
+                            PUBLIC FUNCTIONS
+     *************************************************************/
+    //INITIAL function , like a contructor
     thiz.init = function(){
         $(document).ready(function() {
 
