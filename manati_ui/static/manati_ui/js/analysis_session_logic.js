@@ -3,7 +3,7 @@
  */
 var _dt;
 var _countID =1;
-var _attributes_db
+var _attributes_db;
 function AnalysisSessionLogic(attributes_db){
     /************************************************************
                             GLOBAL ATTRIBUTES
@@ -210,11 +210,7 @@ function AnalysisSessionLogic(attributes_db){
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
     }
-    /************************************************************
-                            PUBLIC FUNCTIONS
-     *************************************************************/
-    //INITIAL function , like a contructor
-    thiz.init = function(){
+    function on_ready_fn (){
         $(document).ready(function() {
 
             $('#panel-datatable').hide();
@@ -275,6 +271,8 @@ function AnalysisSessionLogic(attributes_db){
                     label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
                 input.trigger('fileselect', [numFiles, label]);
             });
+
+            //events for verdict buttons
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
                 markVerdict(verdict);
@@ -282,14 +280,16 @@ function AnalysisSessionLogic(attributes_db){
             $('#unselect').on('click', function (){
                 _dt.rows('.selected').nodes().to$().removeClass('selected');
             });
+
+            //events for verdicts buttons on context popup menu
             $('#weblogs-datatable').contextPopup({
                   title: 'Mark Verdict',
                   items: [
-                      {label: _verdicts[0], action: function (ev) {markVerdict(_verdicts[0])}},
-                      {label: _verdicts[1], action: function (ev) {markVerdict(_verdicts[1])}},
-                      {label: _verdicts[2], action: function (ev) {markVerdict(_verdicts[2])}},
-                      {label: _verdicts[3], action: function (ev) {markVerdict(_verdicts[3])}},
-                      {label: _verdicts[4], action: function (ev) {markVerdict(_verdicts[4])}}
+                      {label: _verdicts[0], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[0]); return false;}},
+                      {label: _verdicts[1], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[1]); return false;}},
+                      {label: _verdicts[2], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[2]); return false;}},
+                      {label: _verdicts[3], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[3]); return false;}},
+                      {label: _verdicts[4], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[4]); return false;}}
                   ]
             });
             /**
@@ -329,7 +329,13 @@ function AnalysisSessionLogic(attributes_db){
             } );
             **/
         });
-
+    };
+    /************************************************************
+                            PUBLIC FUNCTIONS
+     *************************************************************/
+    //INITIAL function , like a contructor
+    thiz.init = function(){
+        on_ready_fn();
     };
 
 
