@@ -125,7 +125,7 @@ function AnalysisSessionLogic(attributes_db){
                 }else{
                     var columns = [];
                     for(var i = 0; i< _attributes_db.length ; i++){
-                        columns.add({title: _attributes_db[i]});
+                        columns.add({title: _attributes_db[i], name: _attributes_db[i]});
                     }
                     _keys = _attributes_db;
                     _dt = $('#weblogs-datatable').DataTable({
@@ -172,7 +172,8 @@ function AnalysisSessionLogic(attributes_db){
             }
         }
     }
-    function markVerdict(verdict) {
+    this.markVerdict= function (verdict) {
+        console.log(verdict);
         _dt.rows('.selected').every( function () {
             var d = this.data();
             var size_d = d.length;
@@ -275,23 +276,96 @@ function AnalysisSessionLogic(attributes_db){
             //events for verdict buttons
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
-                markVerdict(verdict);
+                thiz.markVerdict(verdict);
             } );
             $('#unselect').on('click', function (){
                 _dt.rows('.selected').nodes().to$().removeClass('selected');
             });
 
             //events for verdicts buttons on context popup menu
-            $('#weblogs-datatable').contextPopup({
-                  title: 'Mark Verdict',
-                  items: [
-                      {label: _verdicts[0], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[0]); return false;}},
-                      {label: _verdicts[1], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[1]); return false;}},
-                      {label: _verdicts[2], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[2]); return false;}},
-                      {label: _verdicts[3], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[3]); return false;}},
-                      {label: _verdicts[4], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[4]); return false;}}
-                  ]
+            var items_menu = {}
+            _verdicts.forEach(function(v){
+                items_menu[v] = {name: v, icon: v }
             });
+            items_menu['sep1'] = "-----------";
+            items_menu['fold1'] = {
+                name: "Mark all WB with same: ",
+                disabled: function(){ return !this.data('moreDisabled'); },
+                items: {
+                "fold1-key1": {name: "EndPoints Server",
+                                callback: function(key, options) {
+                                    var verdict = _dt.rows(this).data()[0][11];
+                                    var key_source_ip = 3;
+                                    var ip_value = _dt.rows('.menucontext-open').data()[0][key_source_ip];
+                                    var rows = [];
+                                    _dt.column('endpoints_server:name').nodes().each(function (v){
+                                        var tr_dom = $(v);
+                                        if(tr_dom.html() === ip_value){
+                                            rows.add(tr_dom.closest('tr'));
+                                        }
+                                    });
+                                    _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                    _dt.rows(rows).nodes().to$().addClass('selected');
+                                    thiz.markVerdict(verdict);
+                                    // _dt.columns(key_source_ip).search(ip_value);
+                                }
+                            }
+            }};
+
+            $.contextMenu({
+                selector: '.weblogs-datatable tr',
+                callback: function(key, options) {
+                    if(key != 'undefined'){
+                        this.data('moreDisabled', !this.data('moreDisabled'));
+                    }else{
+                        this.data('moreDisabled', false);
+                    }
+                    thiz.markVerdict(key);
+                    return true;
+                },
+                events: {
+                   show : function(options){
+                        // // Add class to the menu
+                        if(!this.hasClass('selected')){
+                            this.addClass('selected');
+                        }
+                        this.addClass('menucontext-open');
+                        //
+                        // // Show an alert with the selector of the menu
+                        // if( confirm('Open menu with selector ' + options.selector + '?') === true ){
+                        //     return true;
+                        // } else {
+                        //     // Prevent the menu to be shown.
+                        //     return false;
+                        // }
+
+                       // console.log($triggerElement);
+                       // console.log(event);
+                   },
+                   hide : function(options) {
+                       // if (confirm('Hide menu with selector ' + options.selector + '?') === true) {
+                       //     return true;
+                       // } else {
+                       //     // Prevent the menu to be hidden.
+                       //     return false;
+                       // }
+                       this.removeClass('menucontext-open');
+                       this.removeClass('selected');
+                   }
+                },
+                items: items_menu
+
+            });
+            // $('#weblogs-datatable').contextPopup({
+            //       title: 'Mark Verdict',
+            //       items: [
+            //           {label: _verdicts[0], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[0]); return false;}},
+            //           {label: _verdicts[1], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[1]); return false;}},
+            //           {label: _verdicts[2], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[2]); return false;}},
+            //           {label: _verdicts[3], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[3]); return false;}},
+            //           {label: _verdicts[4], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[4]); return false;}}
+            //       ]
+            // });
             /**
             $('#save-table').click( function () {
                 var data = {    'filename': _filename, 'keys': _keys,
