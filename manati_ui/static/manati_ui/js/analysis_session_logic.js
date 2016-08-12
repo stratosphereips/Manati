@@ -278,7 +278,8 @@ function AnalysisSessionLogic(attributes_db){
                 var verdict = $(this).data('verdict');
                 thiz.markVerdict(verdict);
             } );
-            $('#unselect').on('click', function (){
+            $('.unselect').on('click', function (ev){
+                ev.preventDefault();
                 _dt.rows('.selected').nodes().to$().removeClass('selected');
             });
 
