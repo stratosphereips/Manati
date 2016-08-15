@@ -1,0 +1,12 @@
+.dataTables_wrapper table tbody tr:not(.selected) td.malicious {
+  background-color: red;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.legitimate {
+  background-color: green;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.suspicious {
+  background-color: darkorange;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.false_positive {
+  background-color: lightskyblue;
+}

@@ -1,17 +1,30 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    New Analysis Session
+    New Analysis Session - <span id="weblogfile-name"></span>
 {% endblock %}
 {% block content %}
     <div class="row">
         <div class="col-md-12">
-            <form enctype="multipart/form-data" role="form">
+            <form enctype="multipart/form-data" role="form" class="form-inline">
                 <div class="form-group">
-                    <label> Add Weblog file</label>
-                    <input name="weblog_file" type="file" />
-                    <input type="button" id="upload" value="Upload"/>
-                    <progress></progress>
+                   <h4>Add Weblog file</h4>
+
                 </div>
+                <div class="form-group">
+                    <div class="input-group">
+                        <label class="input-group-btn">
+                            <span class="btn btn-success">
+                                Browse&hellip; <input type="file" style="display: none;" multiple>
+                            </span>
+                        </label>
+                        <input type="text" class="form-control" readonly>
+                    </div>
+                    <input type="button" id="upload" class="btn btn-default" value="Upload File"/>
+                    <input type="button" id="save-table" class="btn btn-primary disabled"  disabled title="the save function is being developed" value="Save!" />
+{#                    <progress></progress>#}
+
+                </div>
+
             </form>
         </div>
         <div class="col-md-12">
@@ -22,40 +35,117 @@
 {#                    <img id="loading" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>#}
                 </div>
                 <div class="panel-body">
-                    <div class="dataTable_wrapper">
-                        <table class="table table-striped table-bordered table-hover" id="dataTables-example">
+                    <h4>Verdict's Buttons</h4>
+                    <p>
+                        <button type="button" data-verdict="malicious" class="verdict btn btn-danger">Malicious</button>
+                        <button type="button" data-verdict="legitimate" class="verdict btn btn-success">Legitimate</button>
+                        <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
+                        <button type="button" data-verdict="false_positive" class="verdict btn btn-info">False Positive</button>
+                        <a href="#" id="unselect">Unselect</a>
+                    </p>
+{#                    <div class="dataTable_wrapper">#}
+                        <table class="table table-striped table-bordered table-hover"  cellspacing="0" width="100%" id="weblogs-datatable">
                             <thead>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
                             </tbody>
                         </table>
-                    </div>
+{#                    </div>#}
                 </div>
 
             </div>
 
         </div>
+
     </div>
     <style>
-        div.dataTables_wrapper {
-            width: 100%;
-            margin: 0 auto;
+{#        div.dataTables_wrapper {#}
+{#            width: 100%;#}
+{#            margin: 0 auto;#}
+{#        }#}
+        .myFile {
+          position: relative;
+          overflow: hidden;
+          float: left;
+          clear: left;
+        }
+        .myFile input[type="file"] {
+          display: block;
+          position: absolute;
+          top: 0;
+          right: 0;
+          opacity: 0;
+          font-size: 100px;
+          filter: alpha(opacity=0);
+          cursor: pointer;
         }
     </style>
     <script type="text/javascript">
+        var _countID =1;
         var _dt;
+        var stepped = 0;
+        var rowCount, firstError, errorCount = 0;
+        var _keys = [];
+        var _filename;
+        var _db;
+        var db_name = 'weblogs_db';
+        var _verdicts_weight = {
+            "malicious":2,
+            "legitimate":0,
+            "suspicious":1,
+            "false_positive":3,
+            "undefined": -1
+        };
+        var _verdicts = ["malicious","legitimate","suspicious","false_positive"];
+{#        var attributes_db = {{ weblogs_attribute|safe }};#}
+        var myDjangoList = (("{{weblogs_attribute |safe}}").replace(/&(l|g|quo)t;/g, function(a,b){
+            return {
+                l   : '<',
+                g   : '>',
+                quo : '"'
+            }[b];
+        }));
+
+        myDjangoList = myDjangoList.replace(/u'/g, '\'');
+        myDjangoList = myDjangoList.replace(/'/g, '\"');
+        var _attributes_db = JSON.parse( myDjangoList );
+        function addWeblog(weblog) {
+
+{#          var todo = {#}
+{##}
+{#            _id: new Date().toISOString(),#}
+{#            title: text,#}
+{#            completed: false#}
+{#          };#}
+{#          weblog['_id'] =  _countID; //new Date().toISOString()#}
+          _db.put(weblog, function callback(err, result) {
+            if (!err) {
+              console.log('Successfully save a weblog!');
+            }else{
+                console.log('ERROR saving');
+                console.log(err);
+            }
+          });
+{#            _countID++;#}
+        };
+        function updateWeblog(weblog){
+            _db.put(weblog, function callback(err, result) {
+            if (!err) {
+              console.log('Successfully updated a weblog!');
+            }else{
+                console.log('ERROR updating');
+                console.log(err);
+            }
+          });
+
+        }
+        function showAllWeblogs() {
+          _db.allDocs({include_docs: true, descending: true}, function(err, doc) {
+            for(var i = 0 ; i < doc.rows.length ; i++){
+                console.log(doc.rows[i]);
+            }
+          });
+        }
         function completeFn(results,file){
             if (results && results.errors)
             {
@@ -68,10 +158,24 @@
                     rowCount = results.data.length;
             }
         }
-        var stepped = 0;
-        var rowCount, firstError, errorCount = 0;
-        function tt(data){
-            _dt.row.add(data).draw( false );
+
+        function addRowThread(data){
+            data.add('undefined');
+            data.add(_countID.toString());
+            _countID++;
+            if(data.length !== _attributes_db.length) {
+                console.log(data);
+            }
+            else{
+                _dt.row.add(data).draw( false );
+{#                var weblog = {};#}
+{#                for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
+{#                    var attr = _attributes_db[i_attr];#}
+{#                    weblog[attr] = data[i_attr];#}
+{#                }#}
+{#                addWeblog(weblog)#}
+            }
+
         }
         function stepFn(results, parser)
         {
@@ -82,19 +186,43 @@
                     rowCount += results.data.length;
                     var data = results.data[0];
                     if(stepped > 1){
-                        Concurrent.Thread.create(tt,data);
+                        Concurrent.Thread.create(addRowThread,data);
                     }else{
-                        var elem = '<tr>';
-                        var elem_tr = '<tr>';
-                        for(var i = 0; i< data.length ; i++){
-                            elem+='<th>' +data[i]+ '</th>';
-                            elem_tr+='<td></td>';
+                        var columns = [];
+                        for(var i = 0; i< _attributes_db.length ; i++){
+                            columns.add({title: _attributes_db[i]});
                         }
-                        elem+='</tr>';
-                        elem_tr+='</tr>';
-                        $('#dataTables-example thead').html(elem);
-                        $('#dataTables-example tbody').html(elem_tr);
-                        _dt = $('#dataTables-example').DataTable({responsive: true,"scrollX": true});
+                        _keys = _attributes_db;
+                        _dt = $('#weblogs-datatable').DataTable({
+                            responsive: true,
+                            columns: columns,
+                            "scrollX": true,
+                            dom: 'Bfrtip',
+                            colReorder: true,
+                            buttons: ['copy', 'csv', 'excel','colvis'],
+                            responsive: true,
+                            "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+{#                                var arraycontainsturtles = (myarr.indexOf("turtles") > -1);#}
+                                $('td', nRow).addClass(aData[11]);
+{#                                else if ( aData[2] == "4" )#}
+{#                                {#}
+{#                                    $('td', nRow).css('background-color', 'Orange');#}
+{#                                }#}
+                            }
+                        });
+                        _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
+                        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
+                            $(this).toggleClass('selected');
+                            $('.contextMenuPlugin').remove();
+                        } );
+
+
+{#                        $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {#}
+{#                            var colIdx = _dt.cell(this).index().column;#}
+{##}
+{#                            $( _dt.cells().nodes() ).removeClass( 'highlight' );#}
+{#                            $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );#}
+{#                        } );#}
                         $('#panel-datatable').show();
                     }
 
@@ -107,44 +235,148 @@
                 }
             }
         }
+        function markVerdict(verdict) {
+            _dt.rows('.selected').every( function () {
+                var d = this.data();
+                var size_d = d.length;
+{#                var new_w = _verdicts_weight[verdict];#}
+{#                var old_w = _verdicts_weight[d[size_d - 2]];#}
+{#                if(new_w >= old_w){#}
+                var old_verdict = d[size_d - 2];
+                   d[size_d - 2]= verdict; // update data source for the row
+    {#                    var weblog = {};#}
+    {#                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){#}
+    {#                        var attr = _attributes_db[i_attr];#}
+    {#                        if(attr === 'verdict'){#}
+    {#                            weblog[attr] = verdict;#}
+    {#                        }else {#}
+    {#                            weblog[attr] = d[i_attr];#}
+    {#                        }#}
+    {##}
+    {#                    }#}
+    {#                    updateWeblog(weblog);#}
+                    this.invalidate(); // invalidate the data DataTables has cached for this row
+
+{#                }else{#}
+{#                    alert("You cannot assign a verdict lower than the previous one Ex: False Positive > Legitimate");#}
+{#                }#}
+
+            } );
+            // Draw once all updates are done
+            _dt.draw(false);
+            _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
+            _dt.rows('.selected').nodes().to$().removeClass('selected');
+
+        }
         $(document).ready(function() {
 
             $('#panel-datatable').hide();
+            $('#save-table').hide();
             $('#upload').click(function (){
-
                  $('input[type=file]').parse({
-                config: {
-                    delimiter: "|",
-                    complete: completeFn,
-                    step: stepFn
-                    // base config to use for each file
-                },
-                before: function(file, inputElem)
-                {
-                    console.log("Parsing file...", file);
-                },
-                error: function(err, file, inputElem, reason)
-                {
-                    console.log("ERROR:", err, file);
-                },
-                complete: function()
-                {
-                    console.log("Done with all files");
-                }
-            });
+                    config: {
+                        delimiter: ',',
+                        complete: completeFn,
+                        step: stepFn
+                        // base config to use for each file
+                    },
+                    before: function(file, inputElem)
+                    {
+{#                        if(_db == undefined || _db == null) {#}
+{#                            _db =  new PouchDB(db_name);#}
+{#                        }#}
+{#                        else{#}
+{#                            _db.destroy().then(function () {#}
+{#                              _db =  new PouchDB(db_name);#}
+{#                            }).catch(function (err) { // error occurred#}
+{#                                })#}
+{#                        }#}
+                        _filename = file.name;
+                        console.log("Parsing file...", file);
+                        $("#weblogfile-name").html(file.name)
+                    },
+                    error: function(err, file, inputElem, reason)
+                    {
+                        console.log("ERROR:", err, file);
+                    },
+                    complete: function()
+                    {
+                        console.log("Done with all files");
+                        $('#save-table').show();
 
+
+                    }
+                });
             });
-    });
+            $(':file').on('fileselect', function(event, numFiles, label) {
+
+                  var input = $(this).parents('.input-group').find(':text'),
+                      log = numFiles > 1 ? numFiles + ' files selected' : label;
+
+                  if( input.length ) {
+                      input.val(log);
+                  } else {
+                      if( log ) alert(log);
+                  }
+
+              });
+            $(document).on('change', ':file', function() {
+                var input = $(this),
+                    numFiles = input.get(0).files ? input.get(0).files.length : 1,
+                    label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+                input.trigger('fileselect', [numFiles, label]);
+            });
+            $('.btn.verdict').click( function () {
+                var verdict = $(this).data('verdict');
+                markVerdict(verdict);
+            } );
+            $('#unselect').on('click', function (){
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+            });
+            $('#weblogs-datatable').contextPopup({
+                  title: 'Mark Verdict',
+                  items: [
+                      {label: _verdicts[0], action: function (ev) {markVerdict(_verdicts[0])}},
+                      {label: _verdicts[1], action: function (ev) {markVerdict(_verdicts[1])}},
+                      {label: _verdicts[2], action: function (ev) {markVerdict(_verdicts[2])}},
+                      {label: _verdicts[3], action: function (ev) {markVerdict(_verdicts[3])}}
+                  ]
+            });
+{#            $('#save-table').click( function () {#}
+{#                var data = {    'filename': _filename, 'keys': _keys,#}
+{#                                'csrfmiddlewaretoken': '{{ csrf_token }}',#}
+{#                                'data[]': _dt.rows().data() };#}
+{#                $.ajax({#}
+{#                    type:"POST",#}
+{#                    data: data,#}
+{#                    dataType: "json",#}
+{#                    url: "/manati_ui/analysis_session/create",#}
+{#                    // handle a successful response#}
+{#                    success : function(json) {#}
+{#                        $('#post-text').val(''); // remove the value from the input#}
+{#                        console.log(json); // log the returned json to the console#}
+{#                        console.log("success"); // another sanity check#}
+{#                    },#}
+{##}
+{#                    // handle a non-successful response#}
+{#                    error : function(xhr,errmsg,err) {#}
+{#                        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+#}
+{#                            " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom#}
+{#                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console#}
+{#                    }#}
+{##}
+{#                });#}
+{#            });#}
+
+{#            $('a.toggle-vis').on( 'click', function (e) {#}
+{#                e.preventDefault();#}
+{#                // Get the column API object#}
+{#                var column = _dt.column( $(this).attr('data-column') );#}
+{##}
+{#                // Toggle the visibility#}
+{#                column.visible( ! column.visible() );#}
+{#            } );#}
+        });
 
     </script>
 {% endblock %}
-
-{#<h1>{{ question.question_text }}</h1>#}
-{##}
-{#<ul>#}
-{#{% for choice in question.choice_set.all %}#}
-{#    <li>{{ choice.choice_text }} -- {{ choice.votes }} vote{{ choice.votes|pluralize }}</li>#}
-{#{% endfor %}#}
-{#</ul>#}
-{##}
-{#<a href="{% url 'polls:detail' question.id %}">Vote again?</a>#}

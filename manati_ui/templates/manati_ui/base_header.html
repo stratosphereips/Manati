@@ -7,6 +7,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
+{#            <a href="#menu-toggle" data-toggle="collapse" data-target=".navbar-collapse" class="btn btn-default" id="menu-toggle">Menu</a>#}
             <a class="navbar-brand" href="index.html">ManaTI Project</a>
         </div>
         <!-- /.navbar-header -->
@@ -212,7 +213,13 @@
                     <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
                     </li>
                     <li class="divider"></li>
-                    <li><a href="login.html"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+{#                    {{ user }}#}
+{#      {% if user.is_anonymous %}#}
+{#      <a href="{% url 'django.contrib.auth.views.login' %}">login</a>#}
+{#      {% else %}#}
+{#      <a href="{% url 'django.contrib.auth.views.logout' %}">logout</a>#}
+{#      {% endif %}#}
+                    <li><a href="/logout"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>
                 </ul>
                 <!-- /.dropdown-user -->
@@ -224,3 +231,9 @@
         {% include "manati_ui/base_nav.html" %}
         <!-- /.navbar-static-side -->
     </nav>
+    <script>
+        $("#menu-toggle").click(function(e) {
+        e.preventDefault();
+        $(".navbar-collapse").toggleClass("toggled");
+        });
+    </script>
