@@ -53,7 +53,6 @@ You can change the password of the manati_db_user in the database and the in the
 12. python ./manage.py migrate
 
 ## create super user for login
-
 13. python manage.py createsuperuser
 
 ## How to run it
