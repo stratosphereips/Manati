@@ -32,8 +32,14 @@ su - postgres</li>
 <li><p>As the postgres user</p>
 <p>psql -h localhost -d manati_db -U manati_db_user</p></li>
 </ol>
+<ol>
+    <li><p>python ./manage.py makemigrations</li>
+    <li><p>python ./manage.py migrate</p></li>
+    <li><p>python manage.py createsuperuser</p></li>
+</ol>
 <p>After putting the password you should be able to login.</p>
 <p>You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py</p>
+
 <h2 id="how-to-run-it">How to run it</h2>
 <p>It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:</p>
 <pre><code>python ./manage.py runserver</code></pre>
