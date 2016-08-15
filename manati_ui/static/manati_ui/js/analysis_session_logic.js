@@ -1,9 +1,25 @@
 /**
  * Created by raulbeniteznetto on 8/10/16.
  */
+//Concurrent variables for loading data in datatable
 var _dt;
 var _countID =1;
 var _attributes_db;
+var thiz;
+var _db;
+var _filename;
+
+//Concurrent variables for saving on PG DB
+var _data_wb = [];
+var _init_count = 0;
+var _finish_count = 10;
+var _total_data_wb;
+var _analysis_session_id = -1;
+var SIZE_REQUEST = 10;
+var COLUMN_DT_ID = 13;
+var COLUMN_DB_ID = 14;
+var COLUMN_REG_STATUS = 12;
+var _data_updated = [];
 function AnalysisSessionLogic(attributes_db){
     /************************************************************
                             GLOBAL ATTRIBUTES
@@ -13,10 +29,8 @@ function AnalysisSessionLogic(attributes_db){
     var stepped = 0;
     var rowCount, firstError, errorCount = 0;
     var _keys = [];
-    var _filename;
-    var _db;
     var db_name = 'weblogs_db';
-    var thiz = this;
+    thiz = this;
     var _verdicts_weight = {
         "malicious":2,
         "legitimate":0,
@@ -36,20 +50,21 @@ function AnalysisSessionLogic(attributes_db){
     myDjangoList = myDjangoList.replace(/u'/g, '\'');
     myDjangoList = myDjangoList.replace(/'/g, '\"');
     _attributes_db = JSON.parse( myDjangoList );
+    _attributes_db.push('dt_id');
+    _attributes_db.push('db_id');
 
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
-     function addWeblog(weblog) {
+     this.addWeblog = function (weblog) {
 /**
           var todo = {
 
             _id: new Date().toISOString(),
             title: text,
             completed: false
-          };
-          weblog['_id'] =  _countID; //new Date().toISOString()
- */
+          }; */
+           // weblog['_id'] =  _countID; //new Date().toISOString()
           _db.put(weblog, function callback(err, result) {
             if (!err) {
               console.log('Successfully save a weblog!');
@@ -94,26 +109,27 @@ function AnalysisSessionLogic(attributes_db){
     function addRowThread(data){
         var data = data;
         data.add('undefined');
+        data.add(-1);
         data.add(_countID.toString());
-        _countID++;
+        data.add("NOT SAVE");
         if(data.length !== _attributes_db.length) {
+            console.log("ERROR");
             console.log(data);
         }
         else{
             _dt.row.add(data).draw(false);
-            /**
-            var weblog = {};
-            for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-                var attr = _attributes_db[i_attr];
-                weblog[attr] = data[i_attr];
-            }
-            addWeblog(weblog)
-             */
+            // add to local DB
+            // var weblog = {};
+            // for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
+            //     var attr = _attributes_db[i_attr];
+            //     weblog[attr] = data[i_attr];
+            // }
+            // thiz.addWeblog(weblog);
         }
+        _countID++;
 
     }
-    function stepFn(results, parser)
-    {
+    function stepFn(results, parser) {
         stepped++;
         if (results)
         {
@@ -210,6 +226,93 @@ function AnalysisSessionLogic(attributes_db){
         _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
+    };
+
+    function saveDB(){
+        $('#save-table').attr('disabled',true).addClass('disabled');
+        var data = { filename: _filename};
+        //send the name of the file, and the first 10 registers
+        $.ajax({
+            type:"POST",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/analysis_session/create",
+            // handle a successful response
+            success : function(json) {
+                // $('#post-text').val(''); // remove the value from the input
+                console.log(json); // log the returned json to the console
+                console.log("success"); // another sanity check
+                _analysis_session_id = json['data']['analysis_session_id'];
+                    //send the weblogs
+                _total_data_wb = _dt.rows().data().length;
+                var i = 0;
+                while(i < _total_data_wb){
+                    _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
+                    _data_wb[i] = _dt.row(i).data().toArray();
+                    i++;
+                }
+                thiz.sendWB();
+            },
+
+            // handle a non-successful response
+            error : function(xhr,errmsg,err) {
+                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                $('#save-table').attr('disabled',false).removeClass('disabled');
+            }
+        });
+
+
+
+    }
+    this.sendWB = function(){
+        var data = {'data[]': _data_wb.slice(_init_count,_finish_count), 'analysis_session_id':_analysis_session_id};
+        $.ajax({
+            type:"POST",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/analysis_session/add_weblogs",
+            // handle a successful response
+            success : function(json) {
+                console.log(json); // log the returned json to the console
+                var data = json['data'];
+                //update state and id of all data used
+                data.forEach(function(elem) {
+                    var dt_id = elem['dt_id'];
+                    var rs = elem['register_status'];
+                    var id = elem['id'];
+                    _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
+                    _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
+                });
+                // continue with the loop until all file are done
+                console.log("success"); // another sanity check
+                if(_finish_count >= _total_data_wb){
+                    _init_count = 0;
+                    _finish_count = 10;
+                    //hide button save
+                    $('#save-table').hide();
+                    return true;
+                }
+                _init_count = _finish_count;
+                if(_finish_count + SIZE_REQUEST <= _total_data_wb){
+                    _finish_count+= SIZE_REQUEST;
+                }else{
+                    _finish_count+= (_total_data_wb - _finish_count) ;
+                }
+
+                thiz.sendWB();
+
+            },
+
+            // handle a non-successful response
+            error : function(xhr,errmsg,err) {
+                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                $('#save-table').attr('disabled',false).removeClass('disabled');
+            }
+        });
     }
     function on_ready_fn (){
         $(document).ready(function() {
@@ -226,17 +329,27 @@ function AnalysisSessionLogic(attributes_db){
                     },
                     before: function(file, inputElem)
                     {
-                        /**
-                        if(_db == undefined || _db == null) {
-                            _db =  new PouchDB(db_name);
-                        }
-                        else{
-                            _db.destroy().then(function () {
-                              _db =  new PouchDB(db_name);
-                            }).catch(function (err) { // error occurred
-                                })
-                        }
-                         **/
+                        // if(_db == undefined || _db == null) {
+                        //     _db =  new PouchDB(db_name);
+                        // }
+                        // else{
+                        //     _db.destroy().then(function () {
+                        //       _db =  new PouchDB(db_name);
+                        //     }).catch(function (err) {
+                        //         // error occurred
+                        //     });
+                        // }
+                        // var changes = _db.changes({
+                        //   since: 'now',
+                        //   live: true,
+                        //   include_docs: true
+                        // }).on('change', function(change) {
+                        //   console.log(change);
+                        // }).on('complete', function(info) {
+                        //   // changes() was canceled
+                        // }).on('error', function (err) {
+                        //   console.log(err);
+                        // });
                         _filename = file.name;
                         console.log("Parsing file...", file);
                         $("#weblogfile-name").html(file.name)
@@ -357,16 +470,10 @@ function AnalysisSessionLogic(attributes_db){
                 items: items_menu
 
             });
-            // $('#weblogs-datatable').contextPopup({
-            //       title: 'Mark Verdict',
-            //       items: [
-            //           {label: _verdicts[0], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[0]); return false;}},
-            //           {label: _verdicts[1], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[1]); return false;}},
-            //           {label: _verdicts[2], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[2]); return false;}},
-            //           {label: _verdicts[3], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[3]); return false;}},
-            //           {label: _verdicts[4], action: function (ev) {ev.preventDefault(); markVerdict(_verdicts[4]); return false;}}
-            //       ]
-            // });
+            $('#save-table').on('click',function(){
+                Concurrent.Thread.create(saveDB);
+               // saveDB();
+            });
             /**
             $('#save-table').click( function () {
                 var data = {    'filename': _filename, 'keys': _keys,
@@ -405,12 +512,35 @@ function AnalysisSessionLogic(attributes_db){
             **/
         });
     };
+
+    function syncDB(){
+
+
+
+        // var sync = PouchDB.replicate(db_name, 'http://localhost:8000/manati_ui/analysis_session/sync_db', {
+        //   live: true,
+        //   retry: true
+        // }).on('change', function (info) {
+        //   // handle change
+        // }).on('paused', function (err) {
+        //   // replication paused (e.g. replication up to date, user went offline)
+        // }).on('active', function () {
+        //   // replicate resumed (e.g. new changes replicating, user went back online)
+        // }).on('denied', function (err) {
+        //   // a document failed to replicate (e.g. due to permissions)
+        // }).on('complete', function (info) {
+        //   // handle complete
+        // }).on('error', function (err) {
+        //   // handle error
+        // });
+    };
     /************************************************************
                             PUBLIC FUNCTIONS
      *************************************************************/
     //INITIAL function , like a contructor
     thiz.init = function(){
         on_ready_fn();
+        syncDB();
     };
 
 

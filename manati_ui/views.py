@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonResponse
+from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseServerError
 from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
@@ -8,7 +8,9 @@ from .models import AnalysisSession, Weblog
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
+import json
 from django.core import serializers
+
 
 class IndexView(generic.ListView):
     template_name = 'manati_ui/index.html'
@@ -32,33 +34,61 @@ def new_analysis_session_view(request):
     context = {"weblogs_attribute": Weblog.get_model_fields()}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
+#ajax connexions
 @login_required(login_url="/")
 @csrf_exempt
 def create_analysis_session(request):
     analysis_session_id = -1
     # try:
     if request.method == 'POST':
-        data = request.POST.getlist('data[]')
-        print(data)
-        keys = request.POST.get('keys', '')
-        filename = request.POST.get('filename', '')
-        analysis_session = AnalysisSession.objects.create_from_request(keys, data, filename)
-        if analysis_session is AnalysisSession:
+        filename = str(request.POST.get('filename', ''))
+        analysis_session = AnalysisSession.objects.create(filename)
+        if not analysis_session :
+            messages.error(request, 'Analysis Session wasn\'t created .')
+            return HttpResponseServerError("Error saving the data")
+        else:
             messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
-        else:
-            messages.error(request, 'Analysis Session wasn\'t created .')
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id}, msg='Analysis Session was created .' ))
+
     else:
         messages.error(request, 'Only POST request')
-
-    return HttpResponseRedirect('/manati_ui/analysis_session/new')
+        return HttpResponseServerError("Only POST request")
     # except Exception as e:
     #     messages.error(request, 'Error Happened')
     #     data = {'dd': 'something', 'safe': True}
     #     # return JsonResponse({"nothing to see": "this isn't happening"})
     #     return render_to_json(request, data)
 
+#ajax connexions
+@login_required(login_url="/")
+@csrf_exempt
+def add_weblogs(request):
+    if request.method == 'POST':
+        # json_data = json.loads(request.body)
+        # data = json_data['data']
+        u_data_list = request.POST.getlist('data[]')
+        data_list = [str(x).split(',') for x in u_data_list]
+        analysis_session_id = request.POST.get('analysis_session_id', '')
+        data = AnalysisSession.objects.add_weblogs(analysis_session_id, data_list)
+        if not data:
+            messages.error(request, 'Error in Saving the data')
+            return HttpResponseServerError("Error saving the data")
+        else:
+            json_data = []
+            for elem in data:
+                json_data.append({'id': elem.id, 'register_status': elem.register_status, 'dt_id': elem.dt_id })
+            return JsonResponse(dict(data=json_data, msg='All WBs were created'))
+
+    else:
+        messages.error(request, 'Only POST request')
+        return HttpResponseServerError("Error with the data")
 
 
+def update_analysis_session(request):
+    return JsonResponse({'foo': 'bar'})
 
-# Create your views here.
+@login_required(login_url="/")
+@csrf_exempt
+def sync_db(request):
+    return JsonResponse({'foo': 'bar'})

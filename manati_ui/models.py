@@ -7,6 +7,7 @@ from model_utils import Choices
 from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
+from django_enumfield import enum
 
 MESSAGE_TAGS = {
     message_constants.DEBUG: 'info',
@@ -15,7 +16,6 @@ MESSAGE_TAGS = {
     message_constants.WARNING: 'warning',
     message_constants.ERROR: 'danger',
 }
-
 
 class AnalysisSessionManager(models.Manager):
 
@@ -31,18 +31,64 @@ class AnalysisSessionManager(models.Manager):
                 for elem in data:
                     i = 0
                     hash_attr = {}
-                    for k in keys:
+                    for k in Weblog.get_model_fields():
                         hash_attr[k] = elem[i]
                         i += 1
                     wb = Weblog(**hash_attr)
                     wb.analysis_session = analysis_session
+                    wb.register_status = RegisterStatus.READY
                     wb.full_clean()
                     wb.save()
             return analysis_session
         except ValidationError as e:
-            pass
-        except IntegrityError:
+            print(e)
             return None
+        except IntegrityError as e:
+            print(e)
+            return None
+
+    @transaction.atomic
+    def create(self, filename):
+        try:
+            analysis_session = AnalysisSession()
+            with transaction.atomic():
+                analysis_session.name = filename
+                analysis_session.full_clean()
+                analysis_session.save()
+            return analysis_session
+        except Exception as e:
+            print(e)
+            return None
+
+
+    @transaction.atomic
+    def add_weblogs(self,analysis_session_id, data):
+        try:
+            print("Weblogs to save: ")
+            print(len(data))
+            wb_list = []
+            with transaction.atomic():
+                for elem in data:
+                    i = 0
+                    hash_attr = {}
+                    for k in Weblog.get_model_fields():
+                        hash_attr[k] = elem[i]
+                        i += 1
+                    wb = Weblog(**hash_attr)
+                    wb.analysis_session_id = analysis_session_id
+                    wb.register_status = RegisterStatus.READY
+                    wb.dt_id = elem[13]
+                    wb.full_clean()
+                    wb.save()
+                    wb_list.append(wb)
+            return wb_list
+        except ValidationError as e:
+            print(e)
+            return []
+        except IntegrityError as e:
+            print(e)
+            return []
+
 
 
 class AnalysisSession(models.Model):
@@ -59,6 +105,13 @@ class AnalysisSession(models.Model):
 
 
 
+
+class RegisterStatus(enum.Enum):
+    NOT_SAVE = -1
+    READY = 0
+    CLIENT_MODIFICATION = 1
+    MODULE_MODIFICATION = 3
+    UPGRADING_LOCK = 2
 
 class Weblog(models.Model):
     analysis_session = models.ForeignKey(AnalysisSession, on_delete=models.CASCADE, null=False)
@@ -95,11 +148,13 @@ class Weblog(models.Model):
     contentType_fromHttp = models.CharField(max_length=200, null=True)
     user_name = models.CharField(max_length=200, null=True)
     # Verdict Status Attr
-    VERDICT_STATUS = Choices('Malicious', 'Legitimate', 'Suspicious', ('false_positive','False Positive', 'Undefined'))
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.Legitimate, max_length=20)
-    #attrs usefull for auditing
+    VERDICT_STATUS = Choices(('malicious','Malicious'), ('legitimate','Legitimate'), ('suspicious','Suspicious'), ('undefined', 'Undefined'), ('false_positive','False Positive'))
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20)
+    #attrs useful for auditing
     created_at = models.TimeField(auto_now_add=True)
     updated_at = models.TimeField(auto_now=True)
+    register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY)
+    dt_id = -1
 
     class Meta:
         db_table = 'manati_weblogs'
@@ -112,7 +167,8 @@ class Weblog(models.Model):
         # attrs.remove('updated_at')
         # return attrs
         return ['time', 'http_url', 'http_status', 'endpoints_server', 'transfer_upload', 'transfer_download',
-                'time_duration', 'http_referer', 'http_userAgent', 'contentType_fromHttp','user_name', 'verdict', '_id']
+                'time_duration', 'http_referer', 'http_userAgent', 'contentType_fromHttp','user_name', 'verdict',
+                'register_status']
 
     def get_model_fields_json(self):
         return self.get_model_fields()
