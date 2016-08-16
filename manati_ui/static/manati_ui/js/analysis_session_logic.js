@@ -145,24 +145,19 @@ function AnalysisSessionLogic(attributes_db){
                     }
                     _keys = _attributes_db;
                     _dt = $('#weblogs-datatable').DataTable({
-                        responsive: true,
                         columns: columns,
                         "scrollX": true,
-                        dom: 'Bfrtip',
+                        "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
+                    //     "sDom": "Rlfrtip",
                         colReorder: true,
-                        buttons: ['copy', 'csv', 'excel','colvis'],
+                        renderer: "bootstrap",
                         responsive: true,
+                        buttons: ['copy', 'csv', 'excel','colvis'],
                         "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-            //                var arraycontainsturtles = (myarr.indexOf("turtles") > -1);
                             $('td', nRow).addClass(aData[11]);
-                            /**
-                            else if ( aData[2] == "4" )
-                            {
-                                $('td', nRow).css('background-color', 'Orange');
-                            }
-                             */
                         }
                     });
+
                     _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
                     $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
                         $(this).toggleClass('selected');
