@@ -13,3 +13,6 @@
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined {
   background-color: whitesmoke;
 }
+.dataTables_wrapper table tbody tr.selected td {
+  background-color: #447e9b;
+}
