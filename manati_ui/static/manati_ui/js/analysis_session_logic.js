@@ -146,6 +146,11 @@ function AnalysisSessionLogic(attributes_db){
                     _keys = _attributes_db;
                     _dt = $('#weblogs-datatable').DataTable({
                         columns: columns,
+                        columnDefs: [
+                            {'visible':false,"searchable": false, "targets": COLUMN_DB_ID},
+                            {'visible':false,"searchable": false, "targets": COLUMN_REG_STATUS},
+                            {'visible':false,"searchable": false, "targets": COLUMN_DT_ID}
+                        ],
                         "scrollX": true,
                         "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
                     //     "sDom": "Rlfrtip",
