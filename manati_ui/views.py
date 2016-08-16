@@ -8,7 +8,7 @@ from .models import AnalysisSession, Weblog
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
-import json
+import json, collections
 from django.core import serializers
 
 
@@ -88,7 +88,31 @@ def add_weblogs(request):
 def update_analysis_session(request):
     return JsonResponse({'foo': 'bar'})
 
+def convert(data):
+    if isinstance(data, basestring):
+        return str(data)
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data
+
 @login_required(login_url="/")
 @csrf_exempt
 def sync_db(request):
-    return JsonResponse({'foo': 'bar'})
+    try:
+        if request.method == 'POST':
+            received_json_data = json.loads(request.body)
+            analysis_session_id = received_json_data['analysis_session_id']
+            data = convert(received_json_data['data'])
+
+            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
+            return JsonResponse(dict(data=serializers.serialize("json", wb_query_set), msg='Sync DONE'))
+        else:
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print(e)
+        return HttpResponseServerError("There was a error in the Server")
+

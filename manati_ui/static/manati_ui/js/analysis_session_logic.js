@@ -19,6 +19,7 @@ var SIZE_REQUEST = 10;
 var COLUMN_DT_ID = 13;
 var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
+var COLUMN_VERDICT = 11;
 var _data_updated = [];
 function AnalysisSessionLogic(attributes_db){
     /************************************************************
@@ -475,65 +476,48 @@ function AnalysisSessionLogic(attributes_db){
                 Concurrent.Thread.create(saveDB);
                // saveDB();
             });
-            /**
-            $('#save-table').click( function () {
-                var data = {    'filename': _filename, 'keys': _keys,
-                                'csrfmiddlewaretoken': '{{ csrf_token }}',
-                                'data[]': _dt.rows().data() };
-                $.ajax({
-                    type:"POST",
-                    data: data,
-                    dataType: "json",
-                    url: "/manati_ui/analysis_session/create",
-                    // handle a successful response
-                    success : function(json) {
-                        $('#post-text').val(''); // remove the value from the input
-                        console.log(json); // log the returned json to the console
-                        console.log("success"); // another sanity check
-                    },
-
-                    // handle a non-successful response
-                    error : function(xhr,errmsg,err) {
-                        $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                            " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                    }
-
-                });
-            });
-
-            $('a.toggle-vis').on( 'click', function (e) {
-                e.preventDefault();
-                // Get the column API object
-                var column = _dt.column( $(this).attr('data-column') );
-
-                // Toggle the visibility
-                column.visible( ! column.visible() );
-            } );
-            **/
         });
     };
 
-    function syncDB(){
+    this.syncDB = function (){
+        var arr_list = _dt.rows([1,2,3,4,5]).data();
+        var data_row = {};
+        var data_pos = {};
+        arr_list.each(function(elem){
+            data_row[elem[COLUMN_DB_ID]] = elem[COLUMN_VERDICT];
+            data_pos[elem[COLUMN_DB_ID]]=elem[COLUMN_DT_ID];
+        });
+        var data = {'analysis_session_id': _analysis_session_id,
+                        'data': data_row };
+        $.ajax({
+            type:"POST",
+            data: JSON.stringify(data),
+            dataType: "json",
+            url: "/manati_ui/analysis_session/sync_db",
+            // handle a successful response
+            success : function(json) {
+                // $('#post-text').val(''); // remove the value from the input
+                // console.log(json); // log the returned json to the console
+                var data = JSON.parse(json['data']);
+                console.log(data);
+                $.each(data,function (index, elem) {
+                    console.log(elem);
+                    var dt_id = data_pos[elem.pk];
+                    _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
+                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
+                });
 
+                console.log("success"); // another sanity check
+            },
 
+            // handle a non-successful response
+            error : function(xhr,errmsg,err) {
+                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+            }
 
-        // var sync = PouchDB.replicate(db_name, 'http://localhost:8000/manati_ui/analysis_session/sync_db', {
-        //   live: true,
-        //   retry: true
-        // }).on('change', function (info) {
-        //   // handle change
-        // }).on('paused', function (err) {
-        //   // replication paused (e.g. replication up to date, user went offline)
-        // }).on('active', function () {
-        //   // replicate resumed (e.g. new changes replicating, user went back online)
-        // }).on('denied', function (err) {
-        //   // a document failed to replicate (e.g. due to permissions)
-        // }).on('complete', function (info) {
-        //   // handle complete
-        // }).on('error', function (err) {
-        //   // handle error
-        // });
+        });
     };
     /************************************************************
                             PUBLIC FUNCTIONS
@@ -541,7 +525,7 @@ function AnalysisSessionLogic(attributes_db){
     //INITIAL function , like a contructor
     thiz.init = function(){
         on_ready_fn();
-        syncDB();
+        // syncDB();
     };
 
 

@@ -8,6 +8,8 @@ from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
 from django_enumfield import enum
+# from django.db.models.signals import post_save
+# from django.dispatch import receiver
 
 MESSAGE_TAGS = {
     message_constants.DEBUG: 'info',
@@ -92,10 +94,40 @@ class AnalysisSessionManager(models.Manager):
             print(e)
             return []
 
+    @transaction.atomic
+    def sync_weblogs(self, analysis_session_id,data):
+        try:
+            print("Weblogs to update: ")
+            print(len(data))
+            data_ids = list(data.keys())
+            with transaction.atomic():
+                #get all WB changed by models
+                analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+                wb_list = analysis_session.weblog_set.filter(register_status=RegisterStatus.MODULE_MODIFICATION)
+                wb_exlude_similar = wb_list.exclude(id__in=data_ids)
+                list_objs = []
+                for wb in wb_exlude_similar:
+                    wb.set_register_status(RegisterStatus.READY, save=True)
+                    list_objs.append(wb)
+
+                wb_similar = analysis_session.weblog_set.filter(id__in=data_ids)
+                for wb in wb_similar:
+                    wb.set_verdict(data[str(wb.id)], save=True)
+                    list_objs.append(wb)
+
+            return list_objs
+        except ValidationError as e:
+            print(e)
+            return []
+        except IntegrityError as e:
+            print(e)
+            return []
+        except Exception as e:
+            print(e)
+            return []
 
 
 class AnalysisSession(models.Model):
-
     users = models.ManyToManyField(User)
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
     created_at = models.TimeField(auto_now_add=True)
@@ -107,14 +139,13 @@ class AnalysisSession(models.Model):
         db_table = 'manati_analysis_sessions'
 
 
-
-
 class RegisterStatus(enum.Enum):
     NOT_SAVE = -1
     READY = 0
     CLIENT_MODIFICATION = 1
     MODULE_MODIFICATION = 3
     UPGRADING_LOCK = 2
+
 
 class Weblog(models.Model):
     analysis_session = models.ForeignKey(AnalysisSession, on_delete=models.CASCADE, null=False)
@@ -151,7 +182,22 @@ class Weblog(models.Model):
     contentType_fromHttp = models.CharField(max_length=200, null=True)
     user_name = models.CharField(max_length=200, null=True)
     # Verdict Status Attr
-    VERDICT_STATUS = Choices(('malicious','Malicious'), ('legitimate','Legitimate'), ('suspicious','Suspicious'), ('undefined', 'Undefined'), ('false_positive','False Positive'))
+    VERDICT_STATUS = Choices(('malicious','Malicious'),
+                             ('legitimate','Legitimate'),
+                             ('suspicious','Suspicious'),
+                             ('undefined', 'Undefined'),
+                             ('false_positive','False Positive'),
+                             ('malicious_legitimate', 'Malicious/Legitimate'),
+                             ('suspicious_legitimate', 'Suspicious/Legitimate'),
+                             ('undefined_legitimate', 'Undefined/Legitimate'),
+                             ('false_positive_legitimate', 'False Positive/Legitimate'),
+                             ('undefined_malicious', 'Undefined/Malicious'),
+                             ('suspicious_malicious', 'Suspicious/Malicious'),
+                             ('false_positive_malicious', 'False Positive/Malicious'),
+                             ('false_positive_suspicious', 'False Positive/Suspicious'),
+                             ('undefined_suspicious', 'Undefined/Suspicious'),
+                             ('undefined_false_positive', 'Undefined/False Positive'),
+                             )
     verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20)
     #attrs useful for auditing
     created_at = models.TimeField(auto_now_add=True)
@@ -175,4 +221,48 @@ class Weblog(models.Model):
 
     def get_model_fields_json(self):
         return self.get_model_fields()
+
+    def set_register_status(self, status, save=False):
+        self.register_status = status
+        if save:
+            self.save()
+    def set_verdict_from_module(self, verdict, save=False):
+        #method that modules have to use for changing the verdict
+        pass
+    def set_verdict(self, verdict, save=False):
+        #ADDING LOCK
+        #check if verdict exist
+        if verdict in dict(self.VERDICT_STATUS):
+            if self.verdict and self.register_status == RegisterStatus.MODULE_MODIFICATION:
+                temp_verdict1 = str(self.verdict) + '_' + str(verdict)
+                temp_verdict2 = str(verdict) + '_' + str(self.verdict)
+                if temp_verdict1 in dict(self.VERDICT_STATUS):
+                    self.verdict = temp_verdict1
+                elif temp_verdict2 in dict(self.VERDICT_STATUS):
+                    self.verdict = temp_verdict2
+                else:
+                    raise KeyError
+                self.set_register_status(RegisterStatus.READY)
+            elif self.verdict and self.register_status == RegisterStatus.READY:
+                self.verdict = verdict
+            elif self.verdict:
+                # this check any new state that we didn't consider yet
+                raise Exception("It must not happen, there is register_status not zero (or READY) and should be to be changed")
+            elif not self.verdict:
+                #SOMETHING IS TOTALLY WRONG
+                raise Exception(
+                    "It must not happen, verdict is false  and should be to be changed")
+        else:
+            raise ValidationError
+
+        if save:
+            self.save()
+
+
+
+# # CallBacks methods
+# @receiver(post_save, sender=AnalysisSession, dispatch_uid="refresh_view")
+# def update_stock(sender, instance, **kwargs):
+#      instance.product.stock -= instance.amount
+#      instance.product.save()
 
