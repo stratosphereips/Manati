@@ -162,7 +162,7 @@ function AnalysisSessionLogic(attributes_db){
                             $('td', nRow).addClass(aData[11]);
                         }
                     });
-
+                    _dt.clear().row();
                     _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
                     $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
                         $(this).toggleClass('selected');

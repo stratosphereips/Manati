@@ -38,6 +38,7 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     'bootstrap3',
     'sass_processor',
+    'django_extensions',
     'manati_ui.apps.ManatiUiConfig',
     'django.contrib.admin',
     'django.contrib.auth',

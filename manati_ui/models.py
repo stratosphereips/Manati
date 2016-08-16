@@ -51,6 +51,9 @@ class AnalysisSessionManager(models.Manager):
     def create(self, filename):
         try:
             analysis_session = AnalysisSession()
+            previous_exist = AnalysisSession.objects.filter(name=filename).first()
+            if (isinstance(previous_exist, AnalysisSession)):
+                previous_exist.delete()
             with transaction.atomic():
                 analysis_session.name = filename
                 analysis_session.full_clean()
