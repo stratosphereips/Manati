@@ -292,6 +292,7 @@ function AnalysisSessionLogic(attributes_db){
                     _finish_count = 10;
                     //hide button save
                     $('#save-table').hide();
+                    $('#wrap-form-upload-file').hide();
                     return true;
                 }
                 _init_count = _finish_count;
