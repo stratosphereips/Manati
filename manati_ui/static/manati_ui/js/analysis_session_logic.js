@@ -21,6 +21,7 @@ var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
 var COLUMN_VERDICT = 11;
 var COLUMN_END_POINTS_SERVER = 3;
+var REG_STATUS = {modified: 1};
 var _data_updated = [];
 
 
@@ -205,6 +206,7 @@ function AnalysisSessionLogic(attributes_db){
             */
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
+            d[COLUMN_REG_STATUS] = REG_STATUS.modified;
             /**
                     var weblog = {};
                     for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
@@ -229,6 +231,7 @@ function AnalysisSessionLogic(attributes_db){
         // Draw once all updates are done
         _dt.draw(false);
         _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
+        _dt.rows('.selected').nodes().to$().addClass('modified');
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
     };
@@ -270,12 +273,55 @@ function AnalysisSessionLogic(attributes_db){
 
     };
     this.addStepsLoading= function(step){
-        var previous_limit = _loadingPlugin.options('').limit
+        var previous_limit = _loadingPlugin.options('').limit;
         _loadingPlugin.options({limit: previous_limit + step});
     }
     this.destroyLoading = function(){
         _loadingPlugin.destroy();
-    }
+    };
+    var syncDB = function (){
+        var arr_list = _dt.rows('.modified').data();
+        var data_row = {};
+        var data_pos = {};
+        arr_list.each(function(elem){
+            if(elem[COLUMN_REG_STATUS] != -1 ){
+                data_row[elem[COLUMN_DB_ID]]=elem[COLUMN_VERDICT];
+                data_pos[elem[COLUMN_DB_ID]]=elem[COLUMN_DT_ID];
+            }
+        });
+        var data = {'analysis_session_id': _analysis_session_id,
+                        'data': data_row };
+        $.ajax({
+            type:"POST",
+            data: JSON.stringify(data),
+            dataType: "json",
+            url: "/manati_ui/analysis_session/sync_db",
+            // handle a successful response
+            success : function(json) {
+                // $('#post-text').val(''); // remove the value from the input
+                // console.log(json); // log the returned json to the console
+                var data = JSON.parse(json['data']);
+                console.log(data);
+                $.each(data,function (index, elem) {
+                    console.log(elem);
+                    var dt_id = data_pos[elem.pk];
+                    _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
+                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
+                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified');
+                });
+                console.log("DB Synchronized");
+            },
+
+            // handle a non-successful response
+            error : function(xhr,errmsg,err) {
+                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+            }
+
+        });
+    };
+
     function saveDB(){
         $('#save-table').attr('disabled',true).addClass('disabled');
         thiz.createLoading();
@@ -327,7 +373,7 @@ function AnalysisSessionLogic(attributes_db){
                 console.log(json); // log the returned json to the console
                 var data = json['data'];
                 var data_length = data.length;
-                // thiz.addStepsLoading( data_length * 100 / _total_data_wb );
+                thiz.addStepsLoading( data_length * 100 / _total_data_wb );
                 //update state and id of all data used
                 data.forEach(function(elem) {
                     var dt_id = elem['dt_id'];
@@ -335,6 +381,8 @@ function AnalysisSessionLogic(attributes_db){
                     var id = elem['id'];
                     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
                     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
+                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified')
+
 
                 });
                 // continue with the loop until all file are done
@@ -348,7 +396,7 @@ function AnalysisSessionLogic(attributes_db){
                     $('#wrap-form-upload-file').hide();
                     thiz.destroyLoading();
                     $.notify("ALL Weblogs were created successfully ", 'success');
-
+                    setInterval(syncDB, 10000 );
                     return true;
                 }
                 _init_count = _finish_count;
@@ -371,10 +419,14 @@ function AnalysisSessionLogic(attributes_db){
                 $.notify(xhr.responseText, "error");
             }
         });
-    }
+    };
     function on_ready_fn (){
         $(document).ready(function() {
-
+            //https://notifyjs.com/
+            $.notify.defaults({
+              autoHide: true,
+              autoHideDelay: 3000
+            });
             $('#panel-datatable').hide();
             $('#save-table').hide();
             $('#upload').click(function (){
@@ -540,53 +592,14 @@ function AnalysisSessionLogic(attributes_db){
         });
     };
 
-    this.syncDB = function (){
-        var arr_list = _dt.rows([1,2,3,4,5]).data();
-        var data_row = {};
-        var data_pos = {};
-        arr_list.each(function(elem){
-            data_row[elem[COLUMN_DB_ID]] = elem[COLUMN_VERDICT];
-            data_pos[elem[COLUMN_DB_ID]]=elem[COLUMN_DT_ID];
-        });
-        var data = {'analysis_session_id': _analysis_session_id,
-                        'data': data_row };
-        $.ajax({
-            type:"POST",
-            data: JSON.stringify(data),
-            dataType: "json",
-            url: "/manati_ui/analysis_session/sync_db",
-            // handle a successful response
-            success : function(json) {
-                // $('#post-text').val(''); // remove the value from the input
-                // console.log(json); // log the returned json to the console
-                var data = JSON.parse(json['data']);
-                console.log(data);
-                $.each(data,function (index, elem) {
-                    console.log(elem);
-                    var dt_id = data_pos[elem.pk];
-                    _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
-                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
-                });
 
-                console.log("success"); // another sanity check
-            },
-
-            // handle a non-successful response
-            error : function(xhr,errmsg,err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-            }
-
-        });
-    };
     /************************************************************
                             PUBLIC FUNCTIONS
      *************************************************************/
     //INITIAL function , like a contructor
     thiz.init = function(){
         on_ready_fn();
-        // syncDB();
+
     };
 
 

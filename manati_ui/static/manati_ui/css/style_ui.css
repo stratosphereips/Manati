@@ -49,6 +49,7 @@
 }
 .dataTables_wrapper table tbody tr.selected td {
   background-color: #447e9b;
+    color: white;
 }
 
 
@@ -68,4 +69,14 @@
      margin-left:22px;
      text-align: center;
      width:60px;
+}
+
+.sidebar {
+    width: 180px;
+}
+#page-wrapper{
+    margin-left: 180px;
+}
+.dataTables_wrapper th, .dataTables_wrapper td {
+    white-space: nowrap;
 }
