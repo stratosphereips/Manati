@@ -22,6 +22,8 @@ var COLUMN_REG_STATUS = 12;
 var COLUMN_VERDICT = 11;
 var COLUMN_END_POINTS_SERVER = 3;
 var _data_updated = [];
+
+
 var _loadingPlugin;
 function AnalysisSessionLogic(attributes_db){
     /************************************************************
@@ -230,21 +232,30 @@ function AnalysisSessionLogic(attributes_db){
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
     };
+    this.loopInfiniteLoading = function (){
+      _loadingPlugin = $('#loading-circle').cprogress({
+                           percent: 1, // starting position
+                           img1: '../../static/manati_ui/images/c1.png', // background
+                           img2: '../../static/manati_ui/images/c3.png', // foreground
+                           speed: 200, // speed (timeout)
+                           PIStep : 0.1, // every step foreground area is bigger about this val
+                           limit: 100, // end value
+                           loop : true, //if true, no matter if limit is set, progressbar will be running
+                           showPercent : false //show hide percent
+                      });
+    };
 
-    function createLoading(){
-        _loadingPlugin = $('#p1').cprogress({
-	       percent: 10, // starting position
-	       img1: '../../static/manati_ui/images/v1.png', // background
-	       img2: '../../static/manati_ui/images/v2.png', // foreground
-	       speed: 200, // speed (timeout)
-	       PIStep : 0.05, // every step foreground area is bigger about this val
-	       limit: 100, // end value
-	       loop : false, //if true, no matter if limit is set, progressbar will be running
-	       showPercent : true, //show hide percent
-	       onInit: function(){console.log('onInit');},
-	       onProgress: function(p){console.log('onProgress',p);}, //p=current percent
-	       onComplete: function(p){console.log('onComplete',p);}
-	  });
+    this.createLoading = function(){
+        _loadingPlugin = $('#loading-circle').cprogress({
+                           percent: 1, // starting position
+                           img1: '../../static/manati_ui/images/c1.png', // background
+                           img2: '../../static/manati_ui/images/c3.png', // foreground
+                           speed: 200, // speed (timeout)
+                           PIStep : 0.1, // every step foreground area is bigger about this val
+                           limit: 100, // end value
+                           loop : false, //if true, no matter if limit is set, progressbar will be running
+                           showPercent : false //show hide percent
+                      });
 
         // // Create
         // options = {
@@ -258,8 +269,16 @@ function AnalysisSessionLogic(attributes_db){
         // myplugin = $('#p1').cprogress(options);
 
     };
+    this.addStepsLoading= function(step){
+        var previous_limit = _loadingPlugin.options('').limit
+        _loadingPlugin.options({limit: previous_limit + step});
+    }
+    this.destroyLoading = function(){
+        _loadingPlugin.destroy();
+    }
     function saveDB(){
         $('#save-table').attr('disabled',true).addClass('disabled');
+        thiz.createLoading();
         var data = { filename: _filename};
         //send the name of the file, and the first 10 registers
         $.ajax({
@@ -307,6 +326,8 @@ function AnalysisSessionLogic(attributes_db){
             success : function(json) {
                 console.log(json); // log the returned json to the console
                 var data = json['data'];
+                var data_length = data.length;
+                // thiz.addStepsLoading( data_length * 100 / _total_data_wb );
                 //update state and id of all data used
                 data.forEach(function(elem) {
                     var dt_id = elem['dt_id'];
@@ -314,15 +335,20 @@ function AnalysisSessionLogic(attributes_db){
                     var id = elem['id'];
                     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
                     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
+
                 });
                 // continue with the loop until all file are done
                 console.log("success"); // another sanity check
-                if(_finish_count >= _total_data_wb){
+
+                if(_finish_count >= _total_data_wb){ //stop to send request, all WB were saved
                     _init_count = 0;
                     _finish_count = 10;
                     //hide button save
                     $('#save-table').hide();
                     $('#wrap-form-upload-file').hide();
+                    thiz.destroyLoading();
+                    $.notify("ALL Weblogs were created successfully ", 'success');
+
                     return true;
                 }
                 _init_count = _finish_count;
@@ -342,6 +368,7 @@ function AnalysisSessionLogic(attributes_db){
                     " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                 console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                 $('#save-table').attr('disabled',false).removeClass('disabled');
+                $.notify(xhr.responseText, "error");
             }
         });
     }
@@ -383,6 +410,7 @@ function AnalysisSessionLogic(attributes_db){
                         // });
                         _filename = file.name;
                         console.log("Parsing file...", file);
+                        $.notify("Parsing file...", "info");
                         $("#weblogfile-name").html(file.name)
                     },
                     error: function(err, file, inputElem, reason)

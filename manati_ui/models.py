@@ -89,10 +89,10 @@ class AnalysisSessionManager(models.Manager):
             return wb_list
         except ValidationError as e:
             print(e)
-            return []
+            return e
         except IntegrityError as e:
             print(e)
-            return []
+            return e
 
     @transaction.atomic
     def sync_weblogs(self, analysis_session_id,data):

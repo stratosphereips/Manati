@@ -71,9 +71,9 @@ def add_weblogs(request):
         data_list = [str(x).split(',') for x in u_data_list]
         analysis_session_id = request.POST.get('analysis_session_id', '')
         data = AnalysisSession.objects.add_weblogs(analysis_session_id, data_list)
-        if not data:
-            messages.error(request, 'Error in Saving the data')
-            return HttpResponseServerError("Error saving the data")
+        if isinstance(data, Exception):
+            messages.error(request, data.message)
+            return HttpResponseServerError(data.message)
         else:
             json_data = []
             for elem in data:

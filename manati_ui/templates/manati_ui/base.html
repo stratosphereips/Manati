@@ -78,6 +78,8 @@
     <script src="{% static 'manati_ui/js/libs/jquery.ui.position.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/jquery.contextMenu2.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/humanize.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/alert_message_helper.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/notify.min.js' %}" type="text/javascript"></script>
 {#    <script src="{% static 'manati_ui/js/libs/jquery.contextMenu.min.js.map' %}" type="text/javascript"></script>#}
 
 {#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery.contextmenu.css' %}" />#}
@@ -97,7 +99,12 @@
                     <h1 class="page-header">{% block title %}{% endblock %}</h1>
                 </div>
             <div class="row">
-                {% include "manati_ui/messages.html" %}
+                <div class="container-fluid">
+                    <div class="col-lg-4">
+                        {% include "manati_ui/messages.html" %}
+                    </div>
+                </div>
+
                 {% block content %}{% endblock %}
             </div>
             <!-- /.row -->
