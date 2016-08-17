@@ -459,11 +459,11 @@ function AnalysisSessionLogic(attributes_db){
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
                 callback: function(key, options) {
-                    if(key != 'undefined'){
-                        this.data('moreDisabled', !this.data('moreDisabled'));
-                    }else{
-                        this.data('moreDisabled', false);
-                    }
+                    // if(key != 'undefined'){
+                    //     this.data('moreDisabled', !this.data('moreDisabled'));
+                    // }else{
+                    //     this.data('moreDisabled', false);
+                    // }
                     thiz.markVerdict(key);
                     return true;
                 },
@@ -472,6 +472,11 @@ function AnalysisSessionLogic(attributes_db){
                         // // Add class to the menu
                         if(!this.hasClass('selected')){
                             this.addClass('selected');
+                        }
+                        if(!this.find('td').first().hasClass('undefined')){
+                           this.data('moreDisabled', true);
+                        }else{
+                           this.data('moreDisabled', false);
                         }
                         this.addClass('menucontext-open');
                         //
