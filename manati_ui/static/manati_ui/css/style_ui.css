@@ -13,6 +13,56 @@
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined {
   background-color: whitesmoke;
 }
+
+.dataTables_wrapper table tbody tr:not(.selected) td.malicious_legitimate {
+  background-color: red;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.suspicious_legitimate {
+  background-color: green;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.undefined_legitimate {
+  background-color: darkorange;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_legitimate {
+  background-color: lightskyblue;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.undefined_malicious {
+  background-color: whitesmoke;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.suspicious_malicious{
+  background-color: lightskyblue;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_malicious {
+  background-color: whitesmoke;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_suspicious {
+  background-color: whitesmoke;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.undefined_suspicious {
+  background-color: whitesmoke;
+}
+.dataTables_wrapper table tbody tr:not(.selected) td.undefined_false_positive {
+  background-color: whitesmoke;
+}
 .dataTables_wrapper table tbody tr.selected td {
   background-color: #447e9b;
+}
+
+
+.jCProgress {
+     position: absolute;
+     z-index: 9999999;
+     /*  margin-top:-15px; /* offset from the center */
+}
+
+.jCProgress > div.percent {
+     font: 18px/27px 'BebasRegular', Arial, sans-serif;
+     color:#ebebeb;
+     text-shadow: 1px 1px 1px #1f1f1f;
+
+     position:absolute;
+     margin-top:40px;
+     margin-left:22px;
+     text-align: center;
+     width:60px;
 }

@@ -20,7 +20,9 @@ var COLUMN_DT_ID = 13;
 var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
 var COLUMN_VERDICT = 11;
+var COLUMN_END_POINTS_SERVER = 3;
 var _data_updated = [];
+var _loadingPlugin;
 function AnalysisSessionLogic(attributes_db){
     /************************************************************
                             GLOBAL ATTRIBUTES
@@ -199,8 +201,8 @@ function AnalysisSessionLogic(attributes_db){
             var old_w = _verdicts_weight[d[size_d - 2]];
             if(new_w >= old_w){
             */
-            var old_verdict = d[size_d - 2];
-               d[size_d - 2]= verdict; // update data source for the row
+            var old_verdict = d[COLUMN_VERDICT];
+            d[COLUMN_VERDICT]= verdict; // update data source for the row
             /**
                     var weblog = {};
                     for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
@@ -229,6 +231,33 @@ function AnalysisSessionLogic(attributes_db){
 
     };
 
+    function createLoading(){
+        _loadingPlugin = $('#p1').cprogress({
+	       percent: 10, // starting position
+	       img1: '../../static/manati_ui/images/v1.png', // background
+	       img2: '../../static/manati_ui/images/v2.png', // foreground
+	       speed: 200, // speed (timeout)
+	       PIStep : 0.05, // every step foreground area is bigger about this val
+	       limit: 100, // end value
+	       loop : false, //if true, no matter if limit is set, progressbar will be running
+	       showPercent : true, //show hide percent
+	       onInit: function(){console.log('onInit');},
+	       onProgress: function(p){console.log('onProgress',p);}, //p=current percent
+	       onComplete: function(p){console.log('onComplete',p);}
+	  });
+
+        // // Create
+        // options = {
+        //      img1: 'v1.png',
+        //      img2: 'v2.png',
+        //      speed: 50,
+        //      limit: 70,
+        //
+        // };
+        //
+        // myplugin = $('#p1').cprogress(options);
+
+    };
     function saveDB(){
         $('#save-table').attr('disabled',true).addClass('disabled');
         var data = { filename: _filename};
@@ -410,9 +439,8 @@ function AnalysisSessionLogic(attributes_db){
                 items: {
                 "fold1-key1": {name: "EndPoints Server",
                                 callback: function(key, options) {
-                                    var verdict = _dt.rows(this).data()[0][11];
-                                    var key_source_ip = 3;
-                                    var ip_value = _dt.rows('.menucontext-open').data()[0][key_source_ip];
+                                    var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
+                                    var ip_value = _dt.rows('.menucontext-open').data()[0][COLUMN_END_POINTS_SERVER];
                                     var rows = [];
                                     _dt.column('endpoints_server:name').nodes().each(function (v){
                                         var tr_dom = $(v);
