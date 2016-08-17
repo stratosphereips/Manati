@@ -304,9 +304,12 @@ function AnalysisSessionLogic(attributes_db){
                 console.log(data);
                 $.each(data,function (index, elem) {
                     console.log(elem);
-                    var dt_id = data_pos[elem.pk];
+                    var row = _dt.rows('[data-dbid="'+elem.pk+'"]');
+                    var dt_id = row.data()[0][COLUMN_DT_ID];
                     _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
                     _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
+                    row.nodes().to$().addClass('selected');
+                    thiz.markVerdict(elem.fields.verdict);
                     _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified');
                 });
                 console.log("DB Synchronized");
@@ -381,9 +384,8 @@ function AnalysisSessionLogic(attributes_db){
                     var id = elem['id'];
                     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
                     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
-                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified')
-
-
+                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified');
+                    _dt.row(dt_id).nodes().to$().attr('data-dbid',id);
                 });
                 // continue with the loop until all file are done
                 console.log("success"); // another sanity check
