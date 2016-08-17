@@ -15,34 +15,37 @@
 }
 
 .dataTables_wrapper table tbody tr:not(.selected) td.malicious_legitimate {
-  background-color: red;
+    background-color: #863C00;
+    /*color: white;*/
+    /*background: -webkit-repeating-linear-gradient(145deg, red, red 10px, green 10px, green 20px);*/
+    /*background: repeating-linear-gradient(-55deg, #222, #222 10px, #333 10px, #333 20px);*/
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.suspicious_legitimate {
-  background-color: green;
+  background-color: #928300;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined_legitimate {
-  background-color: darkorange;
+  background-color: #81B67A;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.false_positive_legitimate {
-  background-color: lightskyblue;
+  background-color: #50A78A;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined_malicious {
-  background-color: whitesmoke;
+  background-color: #FA8787;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.suspicious_malicious{
-  background-color: lightskyblue;
+  background-color: #BD718A;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.false_positive_malicious {
-  background-color: whitesmoke;
+  background-color: #BD718A;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.false_positive_suspicious {
-  background-color: whitesmoke;
+  background-color: #BDB08A;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined_suspicious {
-  background-color: whitesmoke;
+  background-color: #FAC687;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.undefined_false_positive {
-  background-color: whitesmoke;
+  background-color: #C4E3F7;
 }
 .dataTables_wrapper table tbody tr.selected td {
   background-color: #447e9b;
