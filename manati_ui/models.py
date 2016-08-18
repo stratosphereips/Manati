@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
 from django_enumfield import enum
+from threading import Thread
 # from django.db.models.signals import post_save
 # from django.dispatch import receiver
 
@@ -18,6 +19,19 @@ MESSAGE_TAGS = {
     message_constants.WARNING: 'warning',
     message_constants.ERROR: 'danger',
 }
+
+
+def postpone(function):
+  def decorator(*args, **kwargs):
+    t = Thread(target = function, args=args, kwargs=kwargs)
+    t.daemon = True
+    t.start()
+  return decorator
+
+
+@postpone
+def delete_threading(previous_exist):
+    previous_exist.delete()
 
 class AnalysisSessionManager(models.Manager):
 
@@ -49,13 +63,15 @@ class AnalysisSessionManager(models.Manager):
             print(e)
             return None
 
+
+
     @transaction.atomic
     def create(self, filename):
         try:
             analysis_session = AnalysisSession()
             previous_exist = AnalysisSession.objects.filter(name=filename).first()
             if (isinstance(previous_exist, AnalysisSession)):
-                previous_exist.delete()
+                delete_threading(previous_exist)
             with transaction.atomic():
                 analysis_session.name = filename
                 analysis_session.full_clean()

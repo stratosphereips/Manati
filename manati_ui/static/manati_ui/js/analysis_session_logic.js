@@ -327,40 +327,48 @@ function AnalysisSessionLogic(attributes_db){
     };
 
     function saveDB(){
-        $('#save-table').attr('disabled',true).addClass('disabled');
-        thiz.createLoading();
-        var data = { filename: _filename};
-        //send the name of the file, and the first 10 registers
-        $.ajax({
-            type:"POST",
-            data: data,
-            dataType: "json",
-            url: "/manati_ui/analysis_session/create",
-            // handle a successful response
-            success : function(json) {
-                // $('#post-text').val(''); // remove the value from the input
-                console.log(json); // log the returned json to the console
-                console.log("success"); // another sanity check
-                _analysis_session_id = json['data']['analysis_session_id'];
-                    //send the weblogs
-                _total_data_wb = _dt.rows().data().length;
-                var i = 0;
-                while(i < _total_data_wb){
-                    _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
-                    _data_wb[i] = _dt.row(i).data().toArray();
-                    i++;
-                }
-                thiz.sendWB();
-            },
+        try{
+            $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
+            $('#save-table').attr('disabled',true).addClass('disabled');
+            thiz.createLoading();
+            var data = { filename: _filename};
+            //send the name of the file, and the first 10 registers
+            $.ajax({
+                type:"POST",
+                data: data,
+                dataType: "json",
+                url: "/manati_ui/analysis_session/create",
+                // handle a successful response
+                success : function(json) {
+                    // $('#post-text').val(''); // remove the value from the input
+                    console.log(json); // log the returned json to the console
+                    console.log("success"); // another sanity check
+                    _analysis_session_id = json['data']['analysis_session_id'];
+                        //send the weblogs
+                    _total_data_wb = _dt.rows().data().length;
+                    var i = 0;
+                    while(i < _total_data_wb){
+                        _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
+                        _data_wb[i] = _dt.row(i).data().toArray();
+                        i++;
+                    }
+                    thiz.sendWB();
+                },
 
-            // handle a non-successful response
-            error : function(xhr,errmsg,err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                $('#save-table').attr('disabled',false).removeClass('disabled');
-            }
-        });
+                // handle a non-successful response
+                error : function(xhr,errmsg,err) {
+                    $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                        " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    $('#save-table').attr('disabled',false).removeClass('disabled');
+                    thiz.destroyLoading();
+                }
+            });
+        }catch(e){
+            thiz.destroyLoading();
+            $('#save-table').attr('disabled',false).removeClass('disabled');
+        }
+
 
 
 
