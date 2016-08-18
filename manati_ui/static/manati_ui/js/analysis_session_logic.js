@@ -277,7 +277,7 @@ function AnalysisSessionLogic(attributes_db){
     };
     this.addStepsLoading= function(step){
         var previous_limit = _loadingPlugin.options('').limit;
-        console.log("Limit: " + previous_limit + " Step: " + step);
+        // console.log("Limit: " + previous_limit + " Step: " + step);
         _loadingPlugin.options({limit: previous_limit + step});
     }
     this.destroyLoading = function(){
