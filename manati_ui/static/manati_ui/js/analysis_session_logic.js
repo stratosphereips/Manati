@@ -12,10 +12,10 @@ var _filename;
 //Concurrent variables for saving on PG DB
 var _data_wb = [];
 var _init_count = 0;
-var _finish_count = 10;
 var _total_data_wb;
 var _analysis_session_id = -1;
-var SIZE_REQUEST = 10;
+var SIZE_REQUEST = 30;
+var _finish_count = 30;
 var COLUMN_DT_ID = 13;
 var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
