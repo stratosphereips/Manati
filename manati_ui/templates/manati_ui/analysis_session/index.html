@@ -1,7 +1,21 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    New Analysis Session - <span id="weblogfile-name"></span>
+    Analysis Session List
 {% endblock %}
 {% block content %}
+    <div class="row">
+        <div class="col-md-12">
+
+        </div>
+    </div>
+    {% if analysis_sessions %}
+        <ul>
+        {% for analysis_session in analysis_sessions %}
+            <li><a href="/analysis_session/{{ analysis_session.id }}/">{{ analysis_session.name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No analysis session are available.</p>
+    {% endif %}
 
 {% endblock %}

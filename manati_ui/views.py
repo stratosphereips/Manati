@@ -116,3 +116,14 @@ def sync_db(request):
         print(e)
         return HttpResponseServerError("There was a error in the Server")
 
+class IndexAnalysisSession(generic.ListView):
+    model = AnalysisSession
+    template_name = 'manati_ui/analysis_session/index.html'
+    context_object_name = 'analysis_sessions'
+
+    # def get_queryset(self):
+    #     """Return the last five published questions."""
+    #     return Question.objects.order_by('-pub_date')[:5]
+
+
+
