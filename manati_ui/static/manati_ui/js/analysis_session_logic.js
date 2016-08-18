@@ -10,12 +10,12 @@ var _db;
 var _filename;
 
 //Concurrent variables for saving on PG DB
+var SIZE_REQUEST = 30;
 var _data_wb = [];
 var _init_count = 0;
+var _finish_count = SIZE_REQUEST;
 var _total_data_wb;
 var _analysis_session_id = -1;
-var SIZE_REQUEST = 30;
-var _finish_count = 30;
 var COLUMN_DT_ID = 13;
 var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
@@ -124,7 +124,9 @@ function AnalysisSessionLogic(attributes_db){
             console.log(data);
         }
         else{
-            _dt.row.add(data).draw(false);
+            var row = _dt.row.add(data);
+            var index = row[0];
+            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
             // add to local DB
             // var weblog = {};
             // for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
@@ -256,7 +258,7 @@ function AnalysisSessionLogic(attributes_db){
                            img2: '../../static/manati_ui/images/c3.png', // foreground
                            speed: 200, // speed (timeout)
                            PIStep : 0.1, // every step foreground area is bigger about this val
-                           limit: 100, // end value
+                           limit: 1, // end value
                            loop : false, //if true, no matter if limit is set, progressbar will be running
                            showPercent : false //show hide percent
                       });
@@ -275,6 +277,7 @@ function AnalysisSessionLogic(attributes_db){
     };
     this.addStepsLoading= function(step){
         var previous_limit = _loadingPlugin.options('').limit;
+        console.log("Limit: " + previous_limit + " Step: " + step);
         _loadingPlugin.options({limit: previous_limit + step});
     }
     this.destroyLoading = function(){
@@ -345,13 +348,15 @@ function AnalysisSessionLogic(attributes_db){
                     console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
                         //send the weblogs
-                    _total_data_wb = _dt.rows().data().length;
-                    var i = 0;
-                    while(i < _total_data_wb){
-                        _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
-                        _data_wb[i] = _dt.row(i).data().toArray();
-                        i++;
-                    }
+                    _data_wb = _dt.rows().data().toArray();
+                    _total_data_wb = _data_wb.length;
+
+                    // var i = 0;
+                    // while(i < _total_data_wb){
+                    //     _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
+                    //     _data_wb[i] = _dt.rows(i).data().toArray();
+                    //     i++;
+                    // }
                     thiz.sendWB();
                 },
 
@@ -393,6 +398,7 @@ function AnalysisSessionLogic(attributes_db){
                     var id = elem['id'];
                     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
                     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
+                    _dt.cell(dt_id,COLUMN_DT_ID).data(dt_id).draw(false);
                     _dt.row(dt_id).nodes().to$().removeClass('modified');
                     _dt.row(dt_id).nodes().to$().attr('data-dbid',id);
                 });
@@ -401,7 +407,7 @@ function AnalysisSessionLogic(attributes_db){
 
                 if(_finish_count >= _total_data_wb){ //stop to send request, all WB were saved
                     _init_count = 0;
-                    _finish_count = 10;
+                    _finish_count = SIZE_REQUEST;
                     //hide button save
                     $('#save-table').hide();
                     $('#wrap-form-upload-file').hide();
@@ -630,6 +636,9 @@ function AnalysisSessionLogic(attributes_db){
     //INITIAL function , like a contructor
     thiz.init = function(){
         on_ready_fn();
+        // window.onbeforeunload = function() {
+        //     return "Dude, are you sure you want to leave? Think of the kittens!";
+        // }
 
     };
 

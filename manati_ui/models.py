@@ -70,7 +70,7 @@ class AnalysisSessionManager(models.Manager):
         try:
             analysis_session = AnalysisSession()
             previous_exist = AnalysisSession.objects.filter(name=filename).first()
-            if (isinstance(previous_exist, AnalysisSession)):
+            if isinstance(previous_exist, AnalysisSession):
                 delete_threading(previous_exist)
             with transaction.atomic():
                 analysis_session.name = filename
