@@ -311,10 +311,10 @@ function AnalysisSessionLogic(attributes_db){
                     var row = _dt.rows('[data-dbid="'+elem.pk+'"]');
                     var dt_id = row.data()[0][COLUMN_DT_ID];
                     _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
-                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
                     row.nodes().to$().addClass('selected');
                     thiz.markVerdict(elem.fields.verdict);
                     _dt.row(dt_id).nodes().to$().removeClass('modified');
+                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status);
                 });
                 console.log("DB Synchronized");
             },
