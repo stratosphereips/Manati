@@ -3,6 +3,7 @@
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.legitimate {
   background-color: green;
+    color: white;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.suspicious {
   background-color: darkorange;
