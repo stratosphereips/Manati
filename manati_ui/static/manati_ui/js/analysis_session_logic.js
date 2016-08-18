@@ -21,6 +21,7 @@ var COLUMN_DB_ID = 14;
 var COLUMN_REG_STATUS = 12;
 var COLUMN_VERDICT = 11;
 var COLUMN_END_POINTS_SERVER = 3;
+var COLUMN_HTTP_URL = 1;
 var REG_STATUS = {modified: 1};
 var _data_updated = [];
 
@@ -310,7 +311,7 @@ function AnalysisSessionLogic(attributes_db){
                     _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status).draw(false);
                     row.nodes().to$().addClass('selected');
                     thiz.markVerdict(elem.fields.verdict);
-                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified');
+                    _dt.row(dt_id).nodes().to$().removeClass('modified');
                 });
                 console.log("DB Synchronized");
             },
@@ -384,7 +385,7 @@ function AnalysisSessionLogic(attributes_db){
                     var id = elem['id'];
                     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
                     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
-                    _dt.cell(dt_id,COLUMN_REG_STATUS).row().nodes().to$().removeClass('modified');
+                    _dt.row(dt_id).nodes().to$().removeClass('modified');
                     _dt.row(dt_id).nodes().to$().attr('data-dbid',id);
                 });
                 // continue with the loop until all file are done
@@ -535,7 +536,27 @@ function AnalysisSessionLogic(attributes_db){
                                     thiz.markVerdict(verdict);
                                     // _dt.columns(key_source_ip).search(ip_value);
                                 }
+                            },
+                "fold1-key2": {name: "Domain",
+                            callback: function(key, options) {
+                                var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
+                                var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
+                                var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+                                var domain = url.match(reg_exp_domains)[0];
+                                var rows = [];
+                                _dt.column('http_url:name').nodes().each(function (v){
+                                    var tr_dom = $(v);
+                                    var local_url = tr_dom.html();
+                                    var local_domain = local_url.match(reg_exp_domains)[0];
+                                    if(local_domain === domain){
+                                        rows.add(tr_dom.closest('tr'));
+                                    }
+                                });
+                                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                _dt.rows(rows).nodes().to$().addClass('selected');
+                                thiz.markVerdict(verdict);
                             }
+                        }
             }};
 
             $.contextMenu({
