@@ -525,7 +525,7 @@ function AnalysisSessionLogic(attributes_db){
             });
 
             //events for verdicts buttons on context popup menu
-            var items_menu = {}
+            var items_menu = {};
             _verdicts.forEach(function(v){
                 items_menu[v] = {name: v, icon: v }
             });
@@ -641,6 +641,35 @@ function AnalysisSessionLogic(attributes_db){
         // }
 
     };
+    this.initData = function (data) {
+        stepFn({data:_attributes_db}, null);
+        // console.log(data);
+        $.each(data, function (index, elem){
+            // var id = elem.pk;
+            // var values = _.values(elem.fields);
+            // // var row_added = _dt.row.add(values);
+            // // var row_index = row_added[0][0];
+            // // $.each(_attributes_db, function(key){
+            // //     _dt.row(row_index).column(key+':name').data(elem.fields[key]);
+            // // });
+            var values_sorted = [];
+            $.each(_attributes_db, function (i, att) {
+                values_sorted.push(elem.fields[att]);
+            });
+            values_sorted[COLUMN_DT_ID] = 0;
+            values_sorted[COLUMN_DB_ID] = elem.pk;
+            var row = _dt.row.add(values_sorted);
+            var index = row[0];
+            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
+
+
+        });
+        $(document).ready(function(){
+            $('#panel-datatable').show();
+        })
+
+
+    }
 
 
 }

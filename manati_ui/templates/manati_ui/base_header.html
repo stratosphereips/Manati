@@ -9,7 +9,8 @@
             </button>
 {#            <a href="#menu-toggle" data-toggle="collapse" data-target=".navbar-collapse" class="btn btn-default" id="menu-toggle">Menu</a>#}
             <a class="navbar-brand" href="#" style="padding-right: 0px">ManaTI Project</a>
-            <img src="../../static/manati_ui/images/favicon.ico" height="30" width="30" style="display: inline;"/>
+             {% load staticfiles %}
+            <img src="{% static 'manati_ui/images/favicon.ico' %}" height="30" width="30" style="display: inline;"/>
         </div>
         <!-- /.navbar-header -->
 

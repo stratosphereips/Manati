@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
 from django.core import serializers
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 class IndexView(generic.ListView):
@@ -116,14 +117,29 @@ def sync_db(request):
         print(e)
         return HttpResponseServerError("There was a error in the Server")
 
-class IndexAnalysisSession(generic.ListView):
+
+class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
+    login_url = '/'
+    redirect_field_name = 'redirect_to'
     model = AnalysisSession
     template_name = 'manati_ui/analysis_session/index.html'
     context_object_name = 'analysis_sessions'
 
-    # def get_queryset(self):
-    #     """Return the last five published questions."""
-    #     return Question.objects.order_by('-pub_date')[:5]
+
+class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
+    login_url = '/'
+    redirect_field_name = 'redirect_to'
+    model = AnalysisSession
+    template_name = 'manati_ui/analysis_session/edit.html'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(EditAnalysisSession, self).get_context_data(**kwargs)
+        object = super(EditAnalysisSession, self).get_object()
+        # Add in a QuerySet of all the books
+        context['weblogs_attribute'] = Weblog.get_model_fields()
+        context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
+        return context
 
 
 

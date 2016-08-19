@@ -22,7 +22,7 @@
                                             {% for analysis_session in analysis_sessions %}
                                                 <tr>
                                                     <td>{{ forloop.counter }}</td>
-                                                    <td><a href="/analysis_session/{{ analysis_session.id }}/">{{ analysis_session.name }}</a></td>
+                                                    <td><a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a></td>
                                                     <td>{{ analysis_session.created_at }}</td>
                                                 </tr>
                                             {% endfor %}

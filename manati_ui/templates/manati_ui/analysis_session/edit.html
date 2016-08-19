@@ -1,0 +1,48 @@
+{% extends 'manati_ui/base.html' %}
+{% block title %}
+    Analysis Session - {{ analysissession.name }}
+{% endblock %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default" id="panel-datatable">
+                <div class="panel-body">
+                    <p>
+                        <button type="button" data-verdict="malicious" class="verdict btn btn-danger">Malicious</button>
+                        <button type="button" data-verdict="legitimate" class="verdict btn btn-success">Legitimate</button>
+                        <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
+                        <button type="button" data-verdict="false_positive" class="verdict btn btn-info">False Positive</button>
+                        <button type="button" data-verdict="undefined" class="verdict btn btn-undefined">Undefined</button>
+                        <a href="#" class="unselect">Unselect</a>
+                    </p>
+                    <table class="table table-striped table-bordered table-hover weblogs-datatable"  cellspacing="0" width="100%" id="weblogs-datatable">
+{#                        <thead>#}
+{#                            <tr>#}
+{#                                {% for wba in weblogs_attribute %}#}
+{#                                    <th>{{ wba }}</th>#}
+{#                                {% endfor %}#}
+{#                            </tr>#}
+{#                        </thead>#}
+{#                        <tbody>#}
+{##}
+{#                            <tr></tr>#}
+{#                        </tbody>#}
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <style>
+
+    </style>
+    <script type="text/javascript">
+       var logic = new AnalysisSessionLogic("{{weblogs_attribute |safe}}");
+        logic.init();
+       $('#panel-datatable').show();
+        logic.initData({{weblogs |safe}});
+
+    </script>
+{% endblock %}
