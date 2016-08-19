@@ -9,7 +9,7 @@
                         <!-- /.panel-heading -->
                         <div class="panel-body">
                             <div class="table-responsive">
-                                <table class="table table-striped">
+                                <table class="table table-striped" id="analysis-sessions-table">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -41,5 +41,9 @@
         </div>
     </div>
 
-
+<script type="text/javascript">
+    $(document).ready(function(){
+        $("analysis-sessions-table").DataTable();
+    });
+</script>
 {% endblock %}
