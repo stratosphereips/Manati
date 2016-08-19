@@ -642,6 +642,7 @@ function AnalysisSessionLogic(attributes_db){
 
     };
     this.initData = function (data) {
+        $.notify("The page is being loaded, maybe it will take time", "info");
         stepFn({data:_attributes_db}, null);
         // console.log(data);
         $.each(data, function (index, elem){
@@ -666,6 +667,8 @@ function AnalysisSessionLogic(attributes_db){
         });
         $(document).ready(function(){
             $('#panel-datatable').show();
+            setInterval(syncDB, 10000 );
+
         })
 
 
