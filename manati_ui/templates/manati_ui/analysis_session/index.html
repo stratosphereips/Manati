@@ -21,15 +21,13 @@
                                         {% if analysis_sessions %}
                                             {% for analysis_session in analysis_sessions %}
                                                 <tr>
-                                                <td>{{ forloop.counter }}</td>
-                                                <td><a href="/analysis_session/{{ analysis_session.id }}/">{{ analysis_session.name }}</a></td>
-                                                <td>{{ analysis_session.created_at }}</td>
-
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td><a href="/analysis_session/{{ analysis_session.id }}/">{{ analysis_session.name }}</a></td>
+                                                    <td>{{ analysis_session.created_at }}</td>
                                                 </tr>
                                             {% endfor %}
                                         {% else %}
-                                            <tr><td colspan="2">No analysis session are available.</td></tr>
-
+                                            <tr><td colspan="3">No analysis session are available.</td></tr>
                                         {% endif %}
                                     </tbody>
                                 </table>
