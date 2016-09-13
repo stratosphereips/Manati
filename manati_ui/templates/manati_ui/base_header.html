@@ -9,7 +9,8 @@
             </button>
 {#            <a href="#menu-toggle" data-toggle="collapse" data-target=".navbar-collapse" class="btn btn-default" id="menu-toggle">Menu</a>#}
             <a class="navbar-brand" href="#" style="padding-right: 0px">ManaTI Project</a>
-            <img src="../../static/manati_ui/images/favicon.ico" height="30" width="30" style="display: inline;"/>
+             {% load staticfiles %}
+            <img src="{% static 'manati_ui/images/favicon.ico' %}" height="30" width="30" style="display: inline;"/>
         </div>
         <!-- /.navbar-header -->
 
@@ -21,7 +22,6 @@
                 <ul class="dropdown-menu dropdown-user">
                     <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
                     </li>
-                    <li><a href="#"><i class="fa fa-code fa-fw"></i> Rev {% get_git_revision_number %}</a> </li>
                     <li class="divider"></li>
 {#                    {{ user }}#}
 {#      {% if user.is_anonymous %}#}

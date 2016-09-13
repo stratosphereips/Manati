@@ -1,7 +1,49 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    New Analysis Session - <span id="weblogfile-name"></span>
+    Analysis Session List
 {% endblock %}
 {% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                        <!-- /.panel-heading -->
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="analysis-sessions-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Name</th>
+                                            <th>Created at</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if analysis_sessions %}
+                                            {% for analysis_session in analysis_sessions %}
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td><a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a></td>
+                                                    <td>{{ analysis_session.created_at }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr><td colspan="3">No analysis session are available.</td></tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- /.table-responsive -->
+                        </div>
+                        <!-- /.panel-body -->
+                    </div>
+                    <!-- /.panel -->
 
+        </div>
+    </div>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $("analysis-sessions-table").DataTable();
+    });
+</script>
 {% endblock %}
