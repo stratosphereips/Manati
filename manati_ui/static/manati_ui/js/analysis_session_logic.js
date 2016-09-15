@@ -647,21 +647,16 @@ function AnalysisSessionLogic(attributes_db){
         stepFn({data:_attributes_db}, null);
         // console.log(data);
         $.each(data, function (index, elem){
-            // var id = elem.pk;
-            // var values = _.values(elem.fields);
-            // // var row_added = _dt.row.add(values);
-            // // var row_index = row_added[0][0];
-            // // $.each(_attributes_db, function(key){
-            // //     _dt.row(row_index).column(key+':name').data(elem.fields[key]);
-            // // });
             var values_sorted = [];
+            var id = elem.pk;
             $.each(_attributes_db, function (i, att) {
                 values_sorted.push(elem.fields[att]);
             });
-            values_sorted[COLUMN_DT_ID] = 0;
-            values_sorted[COLUMN_DB_ID] = elem.pk;
+            values_sorted[COLUMN_DT_ID] = 0; //just to set it
+            values_sorted[COLUMN_DB_ID] = id;
             var row = _dt.row.add(values_sorted);
             var index = row[0];
+            _dt.row(index).nodes().to$().attr('data-dbid',id);
             _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
 
 
