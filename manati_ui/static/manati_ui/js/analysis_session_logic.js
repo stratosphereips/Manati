@@ -641,7 +641,8 @@ function AnalysisSessionLogic(attributes_db){
         // }
 
     };
-    this.initData = function (data) {
+    this.initData = function (data, analysis_session_id) {
+        _analysis_session_id = analysis_session_id;
         $.notify("The page is being loaded, maybe it will take time", "info");
         stepFn({data:_attributes_db}, null);
         // console.log(data);

@@ -42,7 +42,7 @@
        var logic = new AnalysisSessionLogic("{{weblogs_attribute |safe}}");
         logic.init();
        $('#panel-datatable').show();
-        logic.initData({{weblogs |safe}});
+        logic.initData({{weblogs |safe}}, {{analysissession.id| safe}});
 
     </script>
 {% endblock %}

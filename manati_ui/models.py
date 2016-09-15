@@ -9,6 +9,7 @@ from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
 from django_enumfield import enum
 from threading import Thread
+from utils import *
 # from django.db.models.signals import post_save
 # from django.dispatch import receiver
 
@@ -133,13 +134,13 @@ class AnalysisSessionManager(models.Manager):
 
             return list_objs
         except ValidationError as e:
-            print(e)
+            print_exception()
             return []
         except IntegrityError as e:
-            print(e)
+            print_exception()
             return []
         except Exception as e:
-            print(e)
+            print_exception()
             return []
 
 

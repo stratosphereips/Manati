@@ -11,6 +11,7 @@ from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
+from utils import *
 
 
 class IndexView(generic.ListView):
@@ -114,7 +115,7 @@ def sync_db(request):
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
     except Exception as e:
-        print(e)
+        print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
 
@@ -139,6 +140,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         # Add in a QuerySet of all the books
         context['weblogs_attribute'] = Weblog.get_model_fields()
         context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
+        context['analysis_session_id'] = object.id
         return context
 
 
