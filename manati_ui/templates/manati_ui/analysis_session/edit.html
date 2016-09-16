@@ -39,7 +39,7 @@
 
     </style>
     <script type="text/javascript">
-       var logic = new AnalysisSessionLogic("{{weblogs_attribute |safe}}");
+       var logic = new AnalysisSessionLogic();
         logic.init();
        $('#panel-datatable').show();
         logic.initData({{weblogs |safe}}, {{analysissession.id| safe}});

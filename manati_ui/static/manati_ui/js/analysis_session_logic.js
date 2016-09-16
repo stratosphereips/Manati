@@ -4,10 +4,12 @@
 //Concurrent variables for loading data in datatable
 var _dt;
 var _countID =1;
-var _attributes_db;
+// var _attributes_db;
 var thiz;
 var _db;
-var _filename;
+var _filename, _size_file;
+var _data_uploaded,_data_headers;
+var _data_headers_keys = {};
 
 //Concurrent variables for saving on PG DB
 var SIZE_REQUEST = 30;
@@ -16,18 +18,19 @@ var _init_count = 0;
 var _finish_count = SIZE_REQUEST;
 var _total_data_wb;
 var _analysis_session_id = -1;
-var COLUMN_DT_ID = 13;
-var COLUMN_DB_ID = 14;
-var COLUMN_REG_STATUS = 12;
-var COLUMN_VERDICT = 11;
-var COLUMN_END_POINTS_SERVER = 3;
-var COLUMN_HTTP_URL = 1;
+var COLUMN_DT_ID, COLUMN_DB_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
+var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
 var REG_STATUS = {modified: 1};
+var COL_VERDICT_STR = 'verdict';
+var COL_REG_STATUS_STR = 'register_status';
+var COL_DT_ID_STR = 'dt_id';
+var COL_DB_ID_STR = 'db_id';
+var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 var _data_updated = [];
 
 
 var _loadingPlugin;
-function AnalysisSessionLogic(attributes_db){
+function AnalysisSessionLogic(){
     /************************************************************
                             GLOBAL ATTRIBUTES
      *************************************************************/
@@ -45,60 +48,105 @@ function AnalysisSessionLogic(attributes_db){
         "false_positive":3,
         "undefined": -1
     };
-    var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
-    var myDjangoList = ((attributes_db).replace(/&(l|g|quo)t;/g, function(a,b){
-        return {
-            l   : '<',
-            g   : '>',
-            quo : '"'
-        }[b];
-    }));
 
-    myDjangoList = myDjangoList.replace(/u'/g, '\'');
-    myDjangoList = myDjangoList.replace(/'/g, '\"');
-    _attributes_db = JSON.parse( myDjangoList );
-    _attributes_db.push('dt_id');
-    _attributes_db.push('db_id');
+    // var myDjangoList = ((attributes_db).replace(/&(l|g|quo)t;/g, function(a,b){
+    //     return {
+    //         l   : '<',
+    //         g   : '>',
+    //         quo : '"'
+    //     }[b];
+    // }));
+    //
+    // myDjangoList = myDjangoList.replace(/u'/g, '\'');
+    // myDjangoList = myDjangoList.replace(/'/g, '\"');
+    // _attributes_db = JSON.parse( myDjangoList );
+
 
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
-     this.addWeblog = function (weblog) {
-/**
-          var todo = {
+     function addRowThread(data){
+        var data = data;
+         //only it should affect new WBs added
+         if(data.length != _data_headers.length){
+             data.add('undefined');
+             data.add(-1);
+             data.add(_countID.toString());
+             data.add("DID NOT SAVE");
+         }
 
-            _id: new Date().toISOString(),
-            title: text,
-            completed: false
-          }; */
-           // weblog['_id'] =  _countID; //new Date().toISOString()
-          _db.put(weblog, function callback(err, result) {
-            if (!err) {
-              console.log('Successfully save a weblog!');
-            }else{
-                console.log('ERROR saving');
-                console.log(err);
-            }
-          });
-          //  _countID++;
-     };
-    function updateWeblog(weblog){
-        _db.put(weblog, function callback(err, result) {
-        if (!err) {
-          console.log('Successfully updated a weblog!');
-        }else{
-            console.log('ERROR updating');
-            console.log(err);
+        if(data.length !== _data_headers.length) {
+            console.log("ERROR Adding");
+            console.log(data);
         }
-      });
+        else{
+            var row = _dt.row.add(data);
+            var index = row[0];
+            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
+            _dt.row(index).nodes().to$().attr('data-dbid',data[COLUMN_DB_ID]);
+        }
+        _countID++;
 
     }
-    function showAllWeblogs() {
-      _db.allDocs({include_docs: true, descending: true}, function(err, doc) {
-        for(var i = 0 ; i < doc.rows.length ; i++){
-            console.log(doc.rows[i]);
+    function initDatatable(headers, data_init){
+        var data = data_init;
+        var columns = [];
+        for(var i = 0; i< headers.length ; i++){
+            var v = headers[i];
+            columns.add({title: v, name: v, class: v});
         }
-      });
+        _dt = $('#weblogs-datatable').DataTable({
+            columns: columns,
+            columnDefs: [
+                {'visible':false,"searchable": false, "targets": headers.indexOf("db_id")},
+                {'visible':false,"searchable": false, "targets": headers.indexOf("register_status")},
+                {'visible':false,"searchable": false, "targets": headers.indexOf("dt_id")}
+            ],
+            "scrollX": true,
+            "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
+        //     "sDom": "Rlfrtip",
+            colReorder: true,
+            renderer: "bootstrap",
+            responsive: true,
+            buttons: ['copy', 'csv', 'excel','colvis'],
+            "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+                //when you change the verdict, the color is updated
+                // $('td', nRow).addClass(aData[COLUMN_VERDICT]);
+                $(nRow).addClass(aData[COLUMN_VERDICT]);
+            }
+        });
+        _dt.clear().row();
+        _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
+            $(this).toggleClass('selected');
+            $('.contextMenuPlugin').remove();
+        } );
+        $('#panel-datatable').show();
+
+        //adding init data
+        $.each(data, function (index, objectData){
+            var objectValues = _.values(objectData);
+            Concurrent.Thread.create(addRowThread,objectValues);
+            // addRowThread(objectValues);
+        });
+
+    }
+    function initData(data, headers) {
+        _data_uploaded = data;
+        _data_headers = headers;
+        _data_headers_keys = {};
+        $.each(_data_headers,function(i, v){
+            _data_headers_keys[v] = i;
+        });
+        COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
+        COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
+        COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
+        COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
+        COLUMN_END_POINTS_SERVER = _data_headers_keys["endpoints.server"];
+        COLUMN_HTTP_URL = _data_headers_keys["htpp.url"];
+        initDatatable(_data_headers, _data_uploaded);
+        $('#save-table').show();
+
     }
     function completeFn(results,file){
         if (results && results.errors)
@@ -108,132 +156,97 @@ function AnalysisSessionLogic(attributes_db){
                 errorCount = results.errors.length;
                 firstError = results.errors[0];
             }
-            if (results.data && results.data.length > 0)
+            if (results.data && results.data.length > 0){
+
+                console.log("Done with all files");
+                //INIT DATA
                 rowCount = results.data.length;
-        }
-    }
+                var headers = results.meta.fields;
+                $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_DB_ID_STR],function (i, value){
+                    headers.push(value);
+                });
+                initData(results.data,headers);
 
-    function addRowThread(data){
-        var data = data;
-        data.add('undefined');
-        data.add(-1);
-        data.add(_countID.toString());
-        data.add("NOT SAVE");
-        if(data.length !== _attributes_db.length) {
-            console.log("ERROR");
-            console.log(data);
-        }
-        else{
-            var row = _dt.row.add(data);
-            var index = row[0];
-            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
-            // add to local DB
-            // var weblog = {};
-            // for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-            //     var attr = _attributes_db[i_attr];
-            //     weblog[attr] = data[i_attr];
-            // }
-            // thiz.addWeblog(weblog);
-        }
-        _countID++;
-
-    }
-    function stepFn(results, parser) {
-        stepped++;
-        if (results)
-        {
-            if (results.data){
-                rowCount += results.data.length;
-                var data = results.data[0];
-                if(stepped > 1){
-                    Concurrent.Thread.create(addRowThread,data);
-                }else{
-                    var columns = [];
-                    for(var i = 0; i< _attributes_db.length ; i++){
-                        columns.add({title: _attributes_db[i], name: _attributes_db[i]});
-                    }
-                    _keys = _attributes_db;
-                    _dt = $('#weblogs-datatable').DataTable({
-                        columns: columns,
-                        columnDefs: [
-                            {'visible':false,"searchable": false, "targets": COLUMN_DB_ID},
-                            {'visible':false,"searchable": false, "targets": COLUMN_REG_STATUS},
-                            {'visible':false,"searchable": false, "targets": COLUMN_DT_ID}
-                        ],
-                        "scrollX": true,
-                        "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
-                    //     "sDom": "Rlfrtip",
-                        colReorder: true,
-                        renderer: "bootstrap",
-                        responsive: true,
-                        buttons: ['copy', 'csv', 'excel','colvis'],
-                        "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-                            $('td', nRow).addClass(aData[11]);
-                        }
-                    });
-                    _dt.clear().row();
-                    _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-                    $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-                        $(this).toggleClass('selected');
-                        $('.contextMenuPlugin').remove();
-                    } );
-
-                    /**
-                    $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
-                        var colIdx = _dt.cell(this).index().column;
-                        $( _dt.cells().nodes() ).removeClass( 'highlight' );
-                        $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
-                    } );
-                     */
-                    $('#panel-datatable').show();
-                }
 
             }
 
-            if (results.errors)
-            {
-                errorCount += results.errors.length;
-                firstError = firstError || results.errors[0];
-            }
         }
     }
+
+
+    // function stepFn(results, parser) {
+    //     stepped++;
+    //     if (results)
+    //     {
+    //         if (results.data){
+    //             rowCount += results.data.length;
+    //             if(stepped > 1){
+    //                 var data = results.data[0];
+    //                 Concurrent.Thread.create(addRowThread,data);
+    //             }else{
+    //                 var data = results.data;
+    //                 var columns = [];
+    //                 for(var i = 0; i< data.length ; i++){
+    //                     columns.add({title: data[i], name: data[i], class: data[i]});
+    //                 }
+    //                 _keys = columns;
+    //                 _dt = $('#weblogs-datatable').DataTable({
+    //                     columns: columns,
+    //                     columnDefs: [
+    //                         {'visible':false,"searchable": false, "targets": COLUMN_DB_ID},
+    //                         {'visible':false,"searchable": false, "targets": COLUMN_REG_STATUS},
+    //                         {'visible':false,"searchable": false, "targets": getColumnIndexesWithClass(columns, "dt_id")}
+    //                     ],
+    //                     "scrollX": true,
+    //                     "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
+    //                 //     "sDom": "Rlfrtip",
+    //                     colReorder: true,
+    //                     renderer: "bootstrap",
+    //                     responsive: true,
+    //                     buttons: ['copy', 'csv', 'excel','colvis'],
+    //                     "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+    //                         $('td', nRow).addClass(aData[11]);
+    //                     }
+    //                 });
+    //                 _dt.clear().row();
+    //                 _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
+    //                 $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
+    //                     $(this).toggleClass('selected');
+    //                     $('.contextMenuPlugin').remove();
+    //                 } );
+    //
+    //                 /**
+    //                 $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
+    //                     var colIdx = _dt.cell(this).index().column;
+    //                     $( _dt.cells().nodes() ).removeClass( 'highlight' );
+    //                     $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
+    //                 } );
+    //                  */
+    //                 $('#panel-datatable').show();
+    //             }
+    //
+    //         }
+    //
+    //         if (results.errors)
+    //         {
+    //             errorCount += results.errors.length;
+    //             firstError = firstError || results.errors[0];
+    //         }
+    //     }
+    // }
     this.markVerdict= function (verdict) {
         console.log(verdict);
         _dt.rows('.selected').every( function () {
             var d = this.data();
-            var size_d = d.length;
-            /**
-            var new_w = _verdicts_weight[verdict];
-            var old_w = _verdicts_weight[d[size_d - 2]];
-            if(new_w >= old_w){
-            */
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
-            /**
-                    var weblog = {};
-                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-                        var attr = _attributes_db[i_attr];
-                        if(attr === 'verdict'){
-                            weblog[attr] = verdict;
-                        }else {
-                            weblog[attr] = d[i_attr];
-                        }
-
-                    }
-                    updateWeblog(weblog);
-            **/
-                this.invalidate(); // invalidate the data DataTables has cached for this row
-            /**
-            }else{
-                alert("You cannot assign a verdict lower than the previous one Ex: False Positive > Legitimate");
-            }
-             **/
+            this.invalidate(); // invalidate the data DataTables has cached for this row
 
         } );
         // Draw once all updates are done
         _dt.draw(false);
-        _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
+        _dt.rows('.selected').nodes().to$().removeClass(_verdicts.join(" ")).addClass(verdict);
         _dt.rows('.selected').nodes().to$().addClass('modified');
         _dt.rows('.selected').nodes().to$().removeClass('selected');
 
@@ -379,7 +392,7 @@ function AnalysisSessionLogic(attributes_db){
 
     }
     this.sendWB = function(){
-        var data = {'data[]': _data_wb.slice(_init_count,_finish_count), 'analysis_session_id':_analysis_session_id};
+        var data = {"keys[]": _data_headers,'data[]': _data_wb.slice(_init_count,_finish_count), 'analysis_session_id':_analysis_session_id};
         $.ajax({
             type:"POST",
             data: data,
@@ -437,94 +450,8 @@ function AnalysisSessionLogic(attributes_db){
             }
         });
     };
-    function on_ready_fn (){
-        $(document).ready(function() {
-            //https://notifyjs.com/
-            $.notify.defaults({
-              autoHide: true,
-              autoHideDelay: 3000
-            });
-            $('#panel-datatable').hide();
-            $('#save-table').hide();
-            $('#upload').click(function (){
-                 $('input[type=file]').parse({
-                    config: {
-                        delimiter: ',',
-                        complete: completeFn,
-                        step: stepFn
-                        // base config to use for each file
-                    },
-                    before: function(file, inputElem)
-                    {
-                        // if(_db == undefined || _db == null) {
-                        //     _db =  new PouchDB(db_name);
-                        // }
-                        // else{
-                        //     _db.destroy().then(function () {
-                        //       _db =  new PouchDB(db_name);
-                        //     }).catch(function (err) {
-                        //         // error occurred
-                        //     });
-                        // }
-                        // var changes = _db.changes({
-                        //   since: 'now',
-                        //   live: true,
-                        //   include_docs: true
-                        // }).on('change', function(change) {
-                        //   console.log(change);
-                        // }).on('complete', function(info) {
-                        //   // changes() was canceled
-                        // }).on('error', function (err) {
-                        //   console.log(err);
-                        // });
-                        _filename = file.name;
-                        console.log("Parsing file...", file);
-                        $.notify("Parsing file...", "info");
-                        $("#weblogfile-name").html(file.name)
-                    },
-                    error: function(err, file, inputElem, reason)
-                    {
-                        console.log("ERROR:", err, file);
-                    },
-                    complete: function()
-                    {
-                        console.log("Done with all files");
-                        $('#save-table').show();
-
-
-                    }
-                });
-            });
-            $(':file').on('fileselect', function(event, numFiles, label) {
-
-                  var input = $(this).parents('.input-group').find(':text'),
-                      log = numFiles > 1 ? numFiles + ' files selected' : label;
-
-                  if( input.length ) {
-                      input.val(log);
-                  } else {
-                      if( log ) alert(log);
-                  }
-
-              });
-            $(document).on('change', ':file', function() {
-                var input = $(this),
-                    numFiles = input.get(0).files ? input.get(0).files.length : 1,
-                    label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
-                input.trigger('fileselect', [numFiles, label]);
-            });
-
-            //events for verdict buttons
-            $('.btn.verdict').click( function () {
-                var verdict = $(this).data('verdict');
-                thiz.markVerdict(verdict);
-            } );
-            $('.unselect').on('click', function (ev){
-                ev.preventDefault();
-                _dt.rows('.selected').nodes().to$().removeClass('selected');
-            });
-
-            //events for verdicts buttons on context popup menu
+    function contextMenuSettings (){
+        //events for verdicts buttons on context popup menu
             var items_menu = {};
             _verdicts.forEach(function(v){
                 items_menu[v] = {name: v, icon: v }
@@ -622,6 +549,79 @@ function AnalysisSessionLogic(attributes_db){
                 items: items_menu
 
             });
+    }
+    function on_ready_fn (){
+        $(document).ready(function() {
+            //https://notifyjs.com/
+            $.notify.defaults({
+              autoHide: true,
+              autoHideDelay: 3000
+            });
+            $('#panel-datatable').hide();
+            $('#save-table').hide();
+            $('#upload').click(function (){
+                 $('input[type=file]').parse({
+                    config: {
+                        delimiter: ',',
+                        header: true,
+                        complete: completeFn,
+                        // step: stepFn,
+                        worker: true,
+                        skipEmptyLines: true
+                        // base config to use for each file
+                    },
+                    before: function(file, inputElem)
+                    {
+                        _filename = file.name;
+                        _size_file = file.size;
+                        console.log("Parsing file...", file);
+                        $.notify("Parsing file...", "info");
+                        $("#weblogfile-name").html(file.name);
+
+                    },
+                    error: function(err, file, inputElem, reason)
+                    {
+                        console.log("ERROR Parsing:", err, file);
+                        $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
+                    },
+                    // complete: function()
+                    // {
+                    //     $('#save-table').show();
+                    //     console.log("Done with all files");
+                    //
+                    // }
+                });
+            });
+            $(':file').on('fileselect', function(event, numFiles, label) {
+
+                  var input = $(this).parents('.input-group').find(':text'),
+                      log = numFiles > 1 ? numFiles + ' files selected' : label;
+
+                  if( input.length ) {
+                      input.val(log);
+                  } else {
+                      if( log ) alert(log);
+                  }
+
+              });
+            $(document).on('change', ':file', function() {
+                var input = $(this),
+                    numFiles = input.get(0).files ? input.get(0).files.length : 1,
+                    label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+                input.trigger('fileselect', [numFiles, label]);
+            });
+
+            //events for verdict buttons
+            $('.btn.verdict').click( function () {
+                var verdict = $(this).data('verdict');
+                thiz.markVerdict(verdict);
+            } );
+            $('.unselect').on('click', function (ev){
+                ev.preventDefault();
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+            });
+
+            contextMenuSettings();
             $('#save-table').on('click',function(){
                 Concurrent.Thread.create(saveDB);
                // saveDB();
@@ -641,26 +641,38 @@ function AnalysisSessionLogic(attributes_db){
         // }
 
     };
-    this.initData = function (data, analysis_session_id) {
+    this.initData = function (weblogs, analysis_session_id) {
         _analysis_session_id = analysis_session_id;
         $.notify("The page is being loaded, maybe it will take time", "info");
-        stepFn({data:_attributes_db}, null);
+        // stepFn({data:_attributes_db}, null);
         // console.log(data);
-        $.each(data, function (index, elem){
-            var values_sorted = [];
+        var headers = null;
+        var data = [];
+        $.each(weblogs, function (index, elem){
             var id = elem.pk;
-            $.each(_attributes_db, function (i, att) {
-                values_sorted.push(elem.fields[att]);
-            });
-            values_sorted[COLUMN_DT_ID] = 0; //just to set it
-            values_sorted[COLUMN_DB_ID] = id;
-            var row = _dt.row.add(values_sorted);
-            var index = row[0];
-            _dt.row(index).nodes().to$().attr('data-dbid',id);
-            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
+            var attributes = JSON.parse(JSON.parse(elem.fields.attributes))[0];
+            attributes[COL_VERDICT_STR] = elem.fields.verdict;
+            attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
+            attributes[COL_DT_ID_STR] = 0;
+            attributes[COL_DB_ID_STR] = id;
+
+            if(headers == null){
+                headers = _.keys(attributes);
+            }
+            data.push(attributes);
+            // $.each(, function (k, v) {
+            //     values_sorted.push(elem.fields[att]);
+            // });
+            // values_sorted[COLUMN_DT_ID] = 0; //just to set it
+            // values_sorted[COLUMN_DB_ID] = id;
+            // var row = _dt.row.add(values_sorted);
+            // var index = row[0];
+            // _dt.row(index).nodes().to$().attr('data-dbid',id);
+            // _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
 
 
         });
+        initData(data, headers );
         $(document).ready(function(){
             $('#panel-datatable').show();
             setInterval(syncDB, 10000 );

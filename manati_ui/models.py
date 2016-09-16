@@ -10,6 +10,8 @@ from django.core.exceptions import ValidationError
 from django_enumfield import enum
 from threading import Thread
 from utils import *
+import json
+from jsonfield import JSONField
 # from django.db.models.signals import post_save
 # from django.dispatch import receiver
 
@@ -84,8 +86,9 @@ class AnalysisSessionManager(models.Manager):
 
 
     @transaction.atomic
-    def add_weblogs(self,analysis_session_id, data):
+    def add_weblogs(self,analysis_session_id,key_list, data):
         try:
+            temp_key_list = key_list
             print("Weblogs to save: ")
             print(len(data))
             wb_list = []
@@ -93,13 +96,19 @@ class AnalysisSessionManager(models.Manager):
                 for elem in data:
                     i = 0
                     hash_attr = {}
-                    for k in Weblog.get_model_fields():
+                    for k in temp_key_list:
                         hash_attr[k] = elem[i]
                         i += 1
-                    wb = Weblog(**hash_attr)
+                    wb = Weblog()
                     wb.analysis_session_id = analysis_session_id
                     wb.register_status = RegisterStatus.READY
-                    wb.dt_id = elem[13]
+                    wb.dt_id = hash_attr["dt_id"]
+                    wb.verdict = hash_attr["verdict"]
+                    hash_attr.pop("db_id", None)
+                    hash_attr.pop("register_status", None)
+                    hash_attr.pop('verdict', None)
+                    hash_attr.pop('dt_id', None)
+                    wb.attributes = json.dumps([hash_attr])
                     wb.full_clean()
                     wb.save()
                     wb_list.append(wb)
@@ -187,17 +196,20 @@ class Weblog(models.Model):
     # cs_mime_type = models.CharField(max_length=200)
     # cs_Referer = models.CharField(max_length=200)
     # cs_User_Agent = models.CharField(max_length=200)
-    time = models.CharField(max_length=200, null=True)
-    http_url = models.URLField(max_length=255, null=True)
-    http_status = models.CharField(max_length=30, null=True)
-    endpoints_server = models.CharField(max_length=100, null=True)
-    transfer_upload = models.IntegerField(null=True)
-    transfer_download = models.IntegerField(null=True)
-    time_duration = models.CharField(max_length=200, null=True)
-    http_referer = models.CharField(max_length=200, null=True)
-    http_userAgent = models.CharField(max_length=200, null=True)
-    contentType_fromHttp = models.CharField(max_length=200, null=True)
-    user_name = models.CharField(max_length=200, null=True)
+
+    # time = models.CharField(max_length=200, null=True)
+    # http_url = models.URLField(max_length=255, null=True)
+    # http_status = models.CharField(max_length=30, null=True)
+    # endpoints_server = models.CharField(max_length=100, null=True)
+    # transfer_upload = models.IntegerField(null=True)
+    # transfer_download = models.IntegerField(null=True)
+    # time_duration = models.CharField(max_length=200, null=True)
+    # http_referer = models.CharField(max_length=200, null=True)
+    # http_userAgent = models.CharField(max_length=200, null=True)
+    # contentType_fromHttp = models.CharField(max_length=200, null=True)
+    # user_name = models.CharField(max_length=200, null=True)
+
+    attributes = JSONField(default="", null=False)
     # Verdict Status Attr
     VERDICT_STATUS = Choices(('malicious','Malicious'),
                              ('legitimate','Legitimate'),

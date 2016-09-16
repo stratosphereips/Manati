@@ -70,9 +70,11 @@ def add_weblogs(request):
         # json_data = json.loads(request.body)
         # data = json_data['data']
         u_data_list = request.POST.getlist('data[]')
+        u_key_list = request.POST.getlist('keys[]')
         data_list = [str(x).split(',') for x in u_data_list]
+        key_list = [str(x) for x in u_key_list]
         analysis_session_id = request.POST.get('analysis_session_id', '')
-        data = AnalysisSession.objects.add_weblogs(analysis_session_id, data_list)
+        data = AnalysisSession.objects.add_weblogs(analysis_session_id,key_list, data_list)
         if isinstance(data, Exception):
             messages.error(request, data.message)
             return HttpResponseServerError(data.message)
