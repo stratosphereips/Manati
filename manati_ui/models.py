@@ -215,11 +215,11 @@ class Weblog(models.Model):
                              ('undefined_suspicious', 'Undefined/Suspicious'),
                              ('undefined_false_positive', 'Undefined/False Positive'),
                              )
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20)
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20,null=True)
     #attrs useful for auditing
     created_at = models.TimeField(auto_now_add=True)
     updated_at = models.TimeField(auto_now=True)
-    register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY)
+    register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY,null=True)
     dt_id = -1
 
     class Meta:
