@@ -20,6 +20,7 @@ var _total_data_wb;
 var _analysis_session_id = -1;
 var COLUMN_DT_ID, COLUMN_DB_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
 var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
+var COL_END_POINTS_SERVER_STR;
 var REG_STATUS = {modified: 1};
 var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
@@ -142,8 +143,9 @@ function AnalysisSessionLogic(){
         COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
-        COLUMN_END_POINTS_SERVER = _data_headers_keys["endpoints.server"];
-        COLUMN_HTTP_URL = _data_headers_keys["htpp.url"];
+        COL_END_POINTS_SERVER_STR = "endpoints.server";
+        COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
+        COLUMN_HTTP_URL = _data_headers_keys["http.url"];
         initDatatable(_data_headers, _data_uploaded);
         $('#save-table').show();
 
@@ -459,14 +461,14 @@ function AnalysisSessionLogic(){
             items_menu['sep1'] = "-----------";
             items_menu['fold1'] = {
                 name: "Mark all WB with same: ",
-                disabled: function(){ return !this.data('moreDisabled'); },
+                // disabled: function(){ return !this.data('moreDisabled'); },
                 items: {
                 "fold1-key1": {name: "EndPoints Server",
                                 callback: function(key, options) {
                                     var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
                                     var ip_value = _dt.rows('.menucontext-open').data()[0][COLUMN_END_POINTS_SERVER];
                                     var rows = [];
-                                    _dt.column('endpoints_server:name').nodes().each(function (v){
+                                    _dt.column(COLUMN_END_POINTS_SERVER).nodes().each(function (v){
                                         var tr_dom = $(v);
                                         if(tr_dom.html() === ip_value){
                                             rows.add(tr_dom.closest('tr'));
@@ -485,7 +487,7 @@ function AnalysisSessionLogic(){
                                 var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
                                 var domain = url.match(reg_exp_domains)[0];
                                 var rows = [];
-                                _dt.column('http_url:name').nodes().each(function (v){
+                                _dt.column(COLUMN_HTTP_URL).nodes().each(function (v){
                                     var tr_dom = $(v);
                                     var local_url = tr_dom.html();
                                     var local_domain = local_url.match(reg_exp_domains)[0];
@@ -517,11 +519,11 @@ function AnalysisSessionLogic(){
                         if(!this.hasClass('selected')){
                             this.addClass('selected');
                         }
-                        if(!this.find('td').first().hasClass('undefined')){
-                           this.data('moreDisabled', true);
-                        }else{
-                           this.data('moreDisabled', false);
-                        }
+                        // if(!this.find('td').first().hasClass('undefined')){
+                        //    this.data('moreDisabled', true);
+                        // }else{
+                        //    this.data('moreDisabled', false);
+                        // }
                         this.addClass('menucontext-open');
                         //
                         // // Show an alert with the selector of the menu
