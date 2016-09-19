@@ -470,14 +470,16 @@ function AnalysisSessionLogic(){
         //events for verdicts buttons on context popup menu
             var items_menu = {};
             _verdicts.forEach(function(v){
-                items_menu[v] = {name: v, icon: v }
+                items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
             });
             items_menu['sep1'] = "-----------";
             items_menu['fold1'] = {
                 name: "Mark all WB with same: ",
+                icon: "fa-search-plus",
                 // disabled: function(){ return !this.data('moreDisabled'); },
                 items: {
-                "fold1-key1": {name: "EndPoints Server",
+                "fold1-key1": { name: "EndPoints Server",
+                                icon: "fa-paint-brush",
                                 callback: function(key, options) {
                                     var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
                                     var ip_value = _dt.rows('.menucontext-open').data()[0][COLUMN_END_POINTS_SERVER];
@@ -492,23 +494,24 @@ function AnalysisSessionLogic(){
 
                                 }
                             },
-                "fold1-key2": {name: "Domain",
-                            callback: function(key, options) {
-                                var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
-                                var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
-                                var domain = url.match(reg_exp_domains)[0];
-                                var rows = [];
-                                _dt.column(COLUMN_HTTP_URL).nodes().each(function (v){
-                                    var tr_dom = $(v);
-                                    var local_url = tr_dom.html();
-                                    var local_domain = local_url.match(reg_exp_domains)[0];
-                                    if(local_domain === domain){
-                                        rows.add(tr_dom.closest('tr'));
-                                    }
-                                });
-                                contextMenuConfirmMsg(rows, verdict);
-                            }
+                "fold1-key2": { name: "Domain",
+                                icon: "fa-paint-brush",
+                                callback: function(key, options) {
+                                    var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
+                                    var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
+                                    var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+                                    var domain = url.match(reg_exp_domains)[0];
+                                    var rows = [];
+                                    _dt.column(COLUMN_HTTP_URL).nodes().each(function (v){
+                                        var tr_dom = $(v);
+                                        var local_url = tr_dom.html();
+                                        var local_domain = local_url.match(reg_exp_domains)[0];
+                                        if(local_domain === domain){
+                                            rows.add(tr_dom.closest('tr'));
+                                        }
+                                    });
+                                    contextMenuConfirmMsg(rows, verdict);
+                                }
                         }
             }};
 
