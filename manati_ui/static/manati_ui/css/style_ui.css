@@ -1,5 +1,8 @@
 .dataTables_wrapper table tbody tr:not(.selected).malicious td {
-  background-color: red;
+  background-color: #FF6961;
+}
+#analysis-session-page .btn-danger{
+    background-color: #FF6961;
 }
 .dataTables_wrapper table tbody tr:not(.selected).legitimate td {
   background-color: green;
