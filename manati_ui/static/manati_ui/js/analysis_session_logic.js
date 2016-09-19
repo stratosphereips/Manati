@@ -26,6 +26,7 @@ var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
 var COL_DB_ID_STR = 'db_id';
+var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 var _data_updated = [];
 
@@ -468,100 +469,93 @@ function AnalysisSessionLogic(){
     }
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
-            var items_menu = {};
-            _verdicts.forEach(function(v){
-                items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
-            });
-            items_menu['sep1'] = "-----------";
-            items_menu['fold1'] = {
-                name: "Mark all WB with same: ",
-                icon: "fa-search-plus",
-                // disabled: function(){ return !this.data('moreDisabled'); },
-                items: {
-                "fold1-key1": { name: "EndPoints Server",
-                                icon: "fa-paint-brush",
-                                callback: function(key, options) {
-                                    var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                    var ip_value = _dt.rows('.menucontext-open').data()[0][COLUMN_END_POINTS_SERVER];
-                                    var rows = [];
-                                    _dt.column(COLUMN_END_POINTS_SERVER).nodes().each(function (v){
-                                        var tr_dom = $(v);
-                                        if(tr_dom.html() === ip_value){
-                                            rows.add(tr_dom.closest('tr'));
-                                        }
-                                    });
-                                    contextMenuConfirmMsg(rows, verdict);
 
-                                }
-                            },
-                "fold1-key2": { name: "Domain",
-                                icon: "fa-paint-brush",
-                                callback: function(key, options) {
-                                    var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                    var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
-                                    var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
-                                    var domain = url.match(reg_exp_domains)[0];
-                                    var rows = [];
-                                    _dt.column(COLUMN_HTTP_URL).nodes().each(function (v){
-                                        var tr_dom = $(v);
-                                        var local_url = tr_dom.html();
-                                        var local_domain = local_url.match(reg_exp_domains)[0];
-                                        if(local_domain === domain){
-                                            rows.add(tr_dom.closest('tr'));
-                                        }
-                                    });
-                                    contextMenuConfirmMsg(rows, verdict);
-                                }
-                        }
-            }};
 
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
-                callback: function(key, options) {
-                    // if(key != 'undefined'){
-                    //     this.data('moreDisabled', !this.data('moreDisabled'));
-                    // }else{
-                    //     this.data('moreDisabled', false);
-                    // }
-                    thiz.markVerdict(key);
-                    return true;
-                },
                 events: {
                    show : function(options){
                         // // Add class to the menu
                         if(!this.hasClass('selected')){
                             this.addClass('selected');
                         }
-                        // if(!this.find('td').first().hasClass('undefined')){
-                        //    this.data('moreDisabled', true);
-                        // }else{
-                        //    this.data('moreDisabled', false);
-                        // }
                         this.addClass('menucontext-open');
-                        //
-                        // // Show an alert with the selector of the menu
-                        // if( confirm('Open menu with selector ' + options.selector + '?') === true ){
-                        //     return true;
-                        // } else {
-                        //     // Prevent the menu to be shown.
-                        //     return false;
-                        // }
-
-                       // console.log($triggerElement);
-                       // console.log(event);
                    },
                    hide : function(options) {
-                       // if (confirm('Hide menu with selector ' + options.selector + '?') === true) {
-                       //     return true;
-                       // } else {
-                       //     // Prevent the menu to be hidden.
-                       //     return false;
-                       // }
                        this.removeClass('menucontext-open');
                        this.removeClass('selected');
                    }
                 },
-                items: items_menu
+                build: function ($trigger, e){
+                    var bigData = _dt.rows(this).data()[0];
+                    var verdict = bigData[COLUMN_VERDICT];
+
+                    var ip_value = bigData[COLUMN_END_POINTS_SERVER];
+
+                    var url = bigData[COLUMN_HTTP_URL];
+
+                    var domain = url.match(REG_EXP_DOMAINS)[0];
+
+                    var rows_1 = [];
+                    var rows_2 = [];
+                    _dt.rows().nodes().each(function (dom_row,i) {
+                        var data = _dt.row(dom_row).data();
+
+                        var local_url = data[COLUMN_HTTP_URL];
+                        var local_domain = local_url.match(REG_EXP_DOMAINS)[0];
+
+                        var local_ip_value = data[COLUMN_END_POINTS_SERVER];
+
+                        if(local_domain === domain){
+                            rows_1.add(dom_row);
+                        }
+                        if(local_ip_value === ip_value){
+                            rows_2.add(dom_row);
+                        }
+                    });
+                    var items_menu = {};
+                    _verdicts.forEach(function(v){
+                        items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
+                    });
+                    items_menu['sep1'] = "-----------";
+                    items_menu['fold1'] = {
+                        name: "Mark all WBs with same: ",
+                        icon: "fa-search-plus",
+                        // disabled: function(){ return !this.data('moreDisabled'); },
+                        items: {
+                        "fold1-key1": { name: "EndPoints Server ( "+rows_2.length+" )",
+                                        icon: "fa-paint-brush",
+                                        callback: function(key, options) {
+                                            _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                            _dt.rows(rows_2).nodes().to$().addClass('selected');
+                                            thiz.markVerdict(verdict);
+                                        }
+                                    },
+                        "fold1-key2": { name: "Domain ( "+rows_1.length+" )",
+                                        icon: "fa-paint-brush",
+                                        callback: function(key, options) {
+                                            _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                            _dt.rows(rows_1).nodes().to$().addClass('selected');
+                                            thiz.markVerdict(verdict);
+                                        }
+                                }
+                    }};
+
+                    return {
+                        callback: function(key, options) {
+                            // if(key != 'undefined'){
+                            //     this.data('moreDisabled', !this.data('moreDisabled'));
+                            // }else{
+                            //     this.data('moreDisabled', false);
+                            // }
+                            thiz.markVerdict(key);
+                            return true;
+                        },
+                        items: items_menu
+
+                    }
+                }
+
 
             });
     }
