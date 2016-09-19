@@ -452,6 +452,20 @@ function AnalysisSessionLogic(){
             }
         });
     };
+    function contextMenuConfirmMsg(rows, verdict){
+        $.confirm({
+            title: 'Weblogs Affected',
+            content: "Will " + rows.length.toString() + ' weblogs change their verdicts, is ok for you? ',
+            confirm: function(){
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                _dt.rows(rows).nodes().to$().addClass('selected');
+                thiz.markVerdict(verdict);
+            },
+            cancel: function(){
+
+            }
+        });
+    }
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
             var items_menu = {};
@@ -474,10 +488,8 @@ function AnalysisSessionLogic(){
                                             rows.add(tr_dom.closest('tr'));
                                         }
                                     });
-                                    _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                    _dt.rows(rows).nodes().to$().addClass('selected');
-                                    thiz.markVerdict(verdict);
-                                    // _dt.columns(key_source_ip).search(ip_value);
+                                    contextMenuConfirmMsg(rows, verdict);
+
                                 }
                             },
                 "fold1-key2": {name: "Domain",
@@ -495,9 +507,7 @@ function AnalysisSessionLogic(){
                                         rows.add(tr_dom.closest('tr'));
                                     }
                                 });
-                                _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                _dt.rows(rows).nodes().to$().addClass('selected');
-                                thiz.markVerdict(verdict);
+                                contextMenuConfirmMsg(rows, verdict);
                             }
                         }
             }};
