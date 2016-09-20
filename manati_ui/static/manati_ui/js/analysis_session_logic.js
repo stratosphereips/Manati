@@ -32,6 +32,7 @@ var _data_updated = [];
 
 
 var _loadingPlugin;
+
 function AnalysisSessionLogic(){
     /************************************************************
                             GLOBAL ATTRIBUTES
@@ -67,6 +68,7 @@ function AnalysisSessionLogic(){
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
+
      function addRowThread(data){
         var data = data;
          //only it should affect new WBs added
@@ -177,66 +179,6 @@ function AnalysisSessionLogic(){
     }
 
 
-    // function stepFn(results, parser) {
-    //     stepped++;
-    //     if (results)
-    //     {
-    //         if (results.data){
-    //             rowCount += results.data.length;
-    //             if(stepped > 1){
-    //                 var data = results.data[0];
-    //                 Concurrent.Thread.create(addRowThread,data);
-    //             }else{
-    //                 var data = results.data;
-    //                 var columns = [];
-    //                 for(var i = 0; i< data.length ; i++){
-    //                     columns.add({title: data[i], name: data[i], class: data[i]});
-    //                 }
-    //                 _keys = columns;
-    //                 _dt = $('#weblogs-datatable').DataTable({
-    //                     columns: columns,
-    //                     columnDefs: [
-    //                         {'visible':false,"searchable": false, "targets": COLUMN_DB_ID},
-    //                         {'visible':false,"searchable": false, "targets": COLUMN_REG_STATUS},
-    //                         {'visible':false,"searchable": false, "targets": getColumnIndexesWithClass(columns, "dt_id")}
-    //                     ],
-    //                     "scrollX": true,
-    //                     "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
-    //                 //     "sDom": "Rlfrtip",
-    //                     colReorder: true,
-    //                     renderer: "bootstrap",
-    //                     responsive: true,
-    //                     buttons: ['copy', 'csv', 'excel','colvis'],
-    //                     "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-    //                         $('td', nRow).addClass(aData[11]);
-    //                     }
-    //                 });
-    //                 _dt.clear().row();
-    //                 _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-    //                 $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-    //                     $(this).toggleClass('selected');
-    //                     $('.contextMenuPlugin').remove();
-    //                 } );
-    //
-    //                 /**
-    //                 $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
-    //                     var colIdx = _dt.cell(this).index().column;
-    //                     $( _dt.cells().nodes() ).removeClass( 'highlight' );
-    //                     $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
-    //                 } );
-    //                  */
-    //                 $('#panel-datatable').show();
-    //             }
-    //
-    //         }
-    //
-    //         if (results.errors)
-    //         {
-    //             errorCount += results.errors.length;
-    //             firstError = firstError || results.errors[0];
-    //         }
-    //     }
-    // }
     this.markVerdict= function (verdict) {
         console.log(verdict);
         _dt.rows('.selected').every( function () {
@@ -467,10 +409,73 @@ function AnalysisSessionLogic(){
             }
         });
     }
+
+    /*
+    * This method is called when you want to create a menu context is running time or "on demand"
+    * It must change a hash option all the time, so that is the reason that it should be public, to be recalled
+    * in all time that it needs
+    * */
+    this.generateContextMenuItems = function(thiss){
+
+        var bigData = _dt.rows(thiss).data()[0];
+        var verdict = bigData[COLUMN_VERDICT];
+
+        var ip_value = bigData[COLUMN_END_POINTS_SERVER];
+
+        var url = bigData[COLUMN_HTTP_URL];
+
+        var domain = url.match(REG_EXP_DOMAINS)[0];
+
+        var rows_1 = [];
+        var rows_2 = [];
+        _dt.rows().nodes().each(function (dom_row,i) {
+            var data = _dt.row(dom_row).data();
+
+            var local_url = data[COLUMN_HTTP_URL];
+            var local_domain = local_url.match(REG_EXP_DOMAINS)[0];
+
+            var local_ip_value = data[COLUMN_END_POINTS_SERVER];
+
+            if(local_domain === domain){
+                rows_1.add(dom_row);
+            }
+            if(local_ip_value === ip_value){
+                rows_2.add(dom_row);
+            }
+        });
+        var items_menu = {};
+        _verdicts.forEach(function(v){
+            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
+        });
+        items_menu['sep1'] = "-----------";
+        items_menu['fold1'] = {
+            name: "Mark all WBs with same: ",
+            icon: "fa-search-plus",
+            // disabled: function(){ return !this.data('moreDisabled'); },
+            items: {
+            "fold1-key1": { name: "EndPoints Server ( "+rows_2.length+" )",
+                            icon: "fa-paint-brush",
+                            callback: function(key, options) {
+                                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                _dt.rows(rows_2).nodes().to$().addClass('selected');
+                                thiz.markVerdict(verdict);
+                            }
+                        },
+            "fold1-key2": { name: "Domain ( "+rows_1.length+" )",
+                            icon: "fa-paint-brush",
+                            callback: function(key, options) {
+                                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                                _dt.rows(rows_1).nodes().to$().addClass('selected');
+                                thiz.markVerdict(verdict);
+                            }
+                    }
+        }};
+        return items_menu;
+
+    }
+
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
-
-
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
                 events: {
@@ -487,59 +492,7 @@ function AnalysisSessionLogic(){
                    }
                 },
                 build: function ($trigger, e){
-                    var bigData = _dt.rows(this).data()[0];
-                    var verdict = bigData[COLUMN_VERDICT];
-
-                    var ip_value = bigData[COLUMN_END_POINTS_SERVER];
-
-                    var url = bigData[COLUMN_HTTP_URL];
-
-                    var domain = url.match(REG_EXP_DOMAINS)[0];
-
-                    var rows_1 = [];
-                    var rows_2 = [];
-                    _dt.rows().nodes().each(function (dom_row,i) {
-                        var data = _dt.row(dom_row).data();
-
-                        var local_url = data[COLUMN_HTTP_URL];
-                        var local_domain = local_url.match(REG_EXP_DOMAINS)[0];
-
-                        var local_ip_value = data[COLUMN_END_POINTS_SERVER];
-
-                        if(local_domain === domain){
-                            rows_1.add(dom_row);
-                        }
-                        if(local_ip_value === ip_value){
-                            rows_2.add(dom_row);
-                        }
-                    });
-                    var items_menu = {};
-                    _verdicts.forEach(function(v){
-                        items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
-                    });
-                    items_menu['sep1'] = "-----------";
-                    items_menu['fold1'] = {
-                        name: "Mark all WBs with same: ",
-                        icon: "fa-search-plus",
-                        // disabled: function(){ return !this.data('moreDisabled'); },
-                        items: {
-                        "fold1-key1": { name: "EndPoints Server ( "+rows_2.length+" )",
-                                        icon: "fa-paint-brush",
-                                        callback: function(key, options) {
-                                            _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                            _dt.rows(rows_2).nodes().to$().addClass('selected');
-                                            thiz.markVerdict(verdict);
-                                        }
-                                    },
-                        "fold1-key2": { name: "Domain ( "+rows_1.length+" )",
-                                        icon: "fa-paint-brush",
-                                        callback: function(key, options) {
-                                            _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                            _dt.rows(rows_1).nodes().to$().addClass('selected');
-                                            thiz.markVerdict(verdict);
-                                        }
-                                }
-                    }};
+                    var thiss = this;
 
                     return {
                         callback: function(key, options) {
@@ -551,7 +504,7 @@ function AnalysisSessionLogic(){
                             thiz.markVerdict(key);
                             return true;
                         },
-                        items: items_menu
+                        items: thiz.generateContextMenuItems(thiss)
 
                     }
                 }
