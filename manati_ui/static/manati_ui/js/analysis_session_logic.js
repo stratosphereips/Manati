@@ -379,7 +379,7 @@ function AnalysisSessionLogic(attributes_db){
 
     }
     this.sendWB = function(){
-        var data = {'data[]': _data_wb.slice(_init_count,_finish_count), 'analysis_session_id':_analysis_session_id};
+        var data = {'data[]': JSON.stringify(_data_wb.slice(_init_count,_finish_count)), 'analysis_session_id':_analysis_session_id};
         $.ajax({
             type:"POST",
             data: data,
@@ -437,6 +437,14 @@ function AnalysisSessionLogic(attributes_db){
             }
         });
     };
+    var findDomainOfURL = function (url){
+        var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+        var reg_exp_ip = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
+        var matching_domain = null;
+        var domain = ( (matching_domain = url.match(reg_exp_domains)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
+        domain = (domain == null)  && ((matching_domain = url.match(reg_exp_ip)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
+        return domain
+    }
     function on_ready_fn (){
         $(document).ready(function() {
             //https://notifyjs.com/
@@ -555,14 +563,13 @@ function AnalysisSessionLogic(attributes_db){
                             callback: function(key, options) {
                                 var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
                                 var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
-                                var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
-                                var domain = url.match(reg_exp_domains)[0];
+                                var domain = findDomainOfURL(url);
                                 var rows = [];
                                 _dt.column('http_url:name').nodes().each(function (v){
                                     var tr_dom = $(v);
                                     var local_url = tr_dom.html();
-                                    var local_domain = local_url.match(reg_exp_domains)[0];
-                                    if(local_domain === domain){
+                                    var local_domain = findDomainOfURL(local_url);
+                                    if(local_domain != null && local_domain === domain){
                                         rows.add(tr_dom.closest('tr'));
                                     }
                                 });
@@ -641,26 +648,22 @@ function AnalysisSessionLogic(attributes_db){
         // }
 
     };
-    this.initData = function (data) {
+    this.initData = function (data, analysis_session_id) {
+        _analysis_session_id = analysis_session_id;
         $.notify("The page is being loaded, maybe it will take time", "info");
         stepFn({data:_attributes_db}, null);
         // console.log(data);
         $.each(data, function (index, elem){
-            // var id = elem.pk;
-            // var values = _.values(elem.fields);
-            // // var row_added = _dt.row.add(values);
-            // // var row_index = row_added[0][0];
-            // // $.each(_attributes_db, function(key){
-            // //     _dt.row(row_index).column(key+':name').data(elem.fields[key]);
-            // // });
             var values_sorted = [];
+            var id = elem.pk;
             $.each(_attributes_db, function (i, att) {
                 values_sorted.push(elem.fields[att]);
             });
-            values_sorted[COLUMN_DT_ID] = 0;
-            values_sorted[COLUMN_DB_ID] = elem.pk;
+            values_sorted[COLUMN_DT_ID] = 0; //just to set it
+            values_sorted[COLUMN_DB_ID] = id;
             var row = _dt.row.add(values_sorted);
             var index = row[0];
+            _dt.row(index).nodes().to$().attr('data-dbid',id);
             _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
 
 

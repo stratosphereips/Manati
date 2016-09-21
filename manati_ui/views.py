@@ -11,6 +11,7 @@ from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
+from utils import *
 
 
 class IndexView(generic.ListView):
@@ -68,10 +69,10 @@ def add_weblogs(request):
     if request.method == 'POST':
         # json_data = json.loads(request.body)
         # data = json_data['data']
-        u_data_list = request.POST.getlist('data[]')
-        data_list = [str(x).split(',') for x in u_data_list]
+        u_data_list = json.loads(request.POST.get('data[]',''))
+        # data_list = [str(x).split(',') for x in u_data_list]
         analysis_session_id = request.POST.get('analysis_session_id', '')
-        data = AnalysisSession.objects.add_weblogs(analysis_session_id, data_list)
+        data = AnalysisSession.objects.add_weblogs(analysis_session_id, u_data_list)
         if isinstance(data, Exception):
             messages.error(request, data.message)
             return HttpResponseServerError(data.message)
@@ -114,7 +115,7 @@ def sync_db(request):
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
     except Exception as e:
-        print(e)
+        print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
 
@@ -139,6 +140,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         # Add in a QuerySet of all the books
         context['weblogs_attribute'] = Weblog.get_model_fields()
         context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
+        context['analysis_session_id'] = object.id
         return context
 
 
