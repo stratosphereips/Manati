@@ -1,5 +1,5 @@
 .dataTables_wrapper table tbody tr:not(.selected) td.malicious {
-  background-color: red;
+  background-color: #FF6961;
 }
 .dataTables_wrapper table tbody tr:not(.selected) td.legitimate {
   background-color: green;
