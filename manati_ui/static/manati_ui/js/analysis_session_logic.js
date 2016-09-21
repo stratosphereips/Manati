@@ -94,18 +94,28 @@ function AnalysisSessionLogic(){
 
     }
     function initDatatable(headers, data_init){
-        var data = data_init;
+        _countID = 0;
+        var data = _.map(data_init,function(v, i){
+            var values = _.values(v);
+            values.add('undefined');
+            values.add(-1);
+            values.add(_countID.toString());
+            values.add("DID NOT SAVE");
+            _countID++;
+            return values
+        });
         var columns = [];
         for(var i = 0; i< headers.length ; i++){
             var v = headers[i];
             columns.add({title: v, name: v, class: v});
         }
         _dt = $('#weblogs-datatable').DataTable({
+            data: data,
             columns: columns,
             columnDefs: [
-                {'visible':false,"searchable": false, "targets": headers.indexOf("db_id")},
-                {'visible':false,"searchable": false, "targets": headers.indexOf("register_status")},
-                {'visible':false,"searchable": false, "targets": headers.indexOf("dt_id")}
+                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_DB_ID_STR)},
+                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
+                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_DT_ID_STR)}
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
@@ -116,11 +126,12 @@ function AnalysisSessionLogic(){
             buttons: ['copy', 'csv', 'excel','colvis'],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
-                // $('td', nRow).addClass(aData[COLUMN_VERDICT]);
+                $('td', nRow).eq(COL_DT_ID_STR).html(iDisplayIndexFull);
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
-            }
+
+            },
         });
-        _dt.clear().row();
+        // _dt.clear().row();
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
             $(this).toggleClass('selected');
@@ -128,12 +139,7 @@ function AnalysisSessionLogic(){
         } );
         $('#panel-datatable').show();
 
-        //adding init data
-        $.each(data, function (index, objectData){
-            var objectValues = _.values(objectData);
-            Concurrent.Thread.create(addRowThread,objectValues);
-            // addRowThread(objectValues);
-        });
+
 
     }
     function initData(data, headers) {
@@ -143,6 +149,18 @@ function AnalysisSessionLogic(){
         $.each(_data_headers,function(i, v){
             _data_headers_keys[v] = i;
         });
+        // var dataSet = [];
+        console.log(data.length);
+        // $.each(data, function (index, objectData){
+        //     var temp = _.values(objectData);
+        //     temp.add('undefined');
+        //      temp.add(-1);
+        //      temp.add(0);
+        //      temp.add("DID NOT SAVE");
+        //     dataSet.add(temp );
+        //     // Concurrent.Thread.create(addRowThread,objectValues);
+        //     // // addRowThread(objectValues);
+        // });
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
         COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
@@ -171,13 +189,12 @@ function AnalysisSessionLogic(){
                 console.log("Done with all files");
                 //INIT DATA
                 rowCount = results.data.length;
+                var data = results.data;
                 var headers = results.meta.fields;
                 $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_DB_ID_STR],function (i, value){
                     headers.push(value);
                 });
-                initData(results.data,headers);
-
-
+                initData(data,headers);
             }
 
         }
