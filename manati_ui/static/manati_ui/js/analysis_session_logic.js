@@ -136,7 +136,9 @@ function AnalysisSessionLogic(){
         var tempUpdateDTColumn = function(rows){
             $.each(rows,function(v,i){
                 var index = _dt.row(v).index();
+                var id = _dt.row(v).data()[COLUMN_DB_ID];
                 _dt.cell(index,COLUMN_DT_ID).data(index);
+                _dt.row(index).nodes().to$().attr('data-dbid',id);
             });
         };
         Concurrent.Thread.create(tempUpdateDTColumn,_dt.rows()[0]);
