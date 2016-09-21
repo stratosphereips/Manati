@@ -42,7 +42,7 @@ class AnalysisSessionManager(models.Manager):
             analysis_session = AnalysisSession()
             with transaction.atomic():
                 analysis_session.name = name
-                analysis_session.full_clean()
+                analysis_session.clean()
                 analysis_session.save()
                 print(len(data))
                 for elem in data:
@@ -54,14 +54,14 @@ class AnalysisSessionManager(models.Manager):
                     wb = Weblog(**hash_attr)
                     wb.analysis_session = analysis_session
                     wb.register_status = RegisterStatus.READY
-                    wb.full_clean()
+                    wb.clean_fields()
                     wb.save()
             return analysis_session
         except ValidationError as e:
-            print(e)
+            print_exception()
             return None
         except IntegrityError as e:
-            print(e)
+            print_exception()
             return None
 
 
@@ -75,11 +75,11 @@ class AnalysisSessionManager(models.Manager):
                 delete_threading(previous_exist)
             with transaction.atomic():
                 analysis_session.name = filename
-                analysis_session.full_clean()
+                analysis_session.clean()
                 analysis_session.save()
             return analysis_session
         except Exception as e:
-            print(e)
+            print_exception()
             return None
 
 
@@ -100,15 +100,18 @@ class AnalysisSessionManager(models.Manager):
                     wb.analysis_session_id = analysis_session_id
                     wb.register_status = RegisterStatus.READY
                     wb.dt_id = elem[13]
-                    wb.full_clean()
+                    wb.clean()
                     wb.save()
                     wb_list.append(wb)
             return wb_list
         except ValidationError as e:
-            print(e)
+            print_exception()
             return e
         except IntegrityError as e:
-            print(e)
+            print_exception()
+            return e
+        except Exception as e:
+            print_exception()
             return e
 
     @transaction.atomic
@@ -188,16 +191,16 @@ class Weblog(models.Model):
     # cs_Referer = models.CharField(max_length=200)
     # cs_User_Agent = models.CharField(max_length=200)
     time = models.CharField(max_length=200, null=True)
-    http_url = models.URLField(max_length=255, null=True)
+    http_url = models.TextField(null=True)
     http_status = models.CharField(max_length=30, null=True)
     endpoints_server = models.CharField(max_length=100, null=True)
     transfer_upload = models.IntegerField(null=True)
     transfer_download = models.IntegerField(null=True)
-    time_duration = models.CharField(max_length=200, null=True)
-    http_referer = models.CharField(max_length=200, null=True)
-    http_userAgent = models.CharField(max_length=200, null=True)
-    contentType_fromHttp = models.CharField(max_length=200, null=True)
-    user_name = models.CharField(max_length=200, null=True)
+    time_duration = models.CharField(max_length=255, null=True)
+    http_referer = models.CharField(max_length=255, null=True)
+    http_userAgent = models.TextField(null=True)
+    contentType_fromHttp = models.CharField(max_length=255, null=True)
+    user_name = models.CharField(max_length=255, null=True)
     # Verdict Status Attr
     VERDICT_STATUS = Choices(('malicious','Malicious'),
                              ('legitimate','Legitimate'),
