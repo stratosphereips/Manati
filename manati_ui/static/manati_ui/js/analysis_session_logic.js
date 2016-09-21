@@ -93,14 +93,17 @@ function AnalysisSessionLogic(){
         _countID++;
 
     }
+
     function initDatatable(headers, data_init){
         _countID = 0;
         var data = _.map(data_init,function(v, i){
             var values = _.values(v);
-            values.add('undefined');
-            values.add(-1);
-            values.add(_countID.toString());
-            values.add("DID NOT SAVE");
+            if(values.length < headers.length){
+                values.add('undefined');
+                values.add(-1);
+                values.add(_countID.toString());
+                values.add("DID NOT SAVE");
+            }
             _countID++;
             return values
         });
@@ -113,9 +116,9 @@ function AnalysisSessionLogic(){
             data: data,
             columns: columns,
             columnDefs: [
-                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_DB_ID_STR)},
-                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
-                {'visible':false,"searchable": false, "targets": headers.indexOf(COL_DT_ID_STR)}
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DB_ID_STR)},
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
@@ -126,12 +129,17 @@ function AnalysisSessionLogic(){
             buttons: ['copy', 'csv', 'excel','colvis'],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
-                $('td', nRow).eq(COL_DT_ID_STR).html(iDisplayIndexFull);
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
 
             },
         });
-        // _dt.clear().row();
+        var tempUpdateDTColumn = function(rows){
+            $.each(rows,function(v,i){
+                var index = _dt.row(v).index();
+                _dt.cell(index,COLUMN_DT_ID).data(index);
+            });
+        };
+        Concurrent.Thread.create(tempUpdateDTColumn,_dt.rows()[0]);
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
             $(this).toggleClass('selected');
@@ -642,7 +650,7 @@ function AnalysisSessionLogic(){
         // }
 
     };
-    this.initData = function (weblogs, analysis_session_id) {
+    this.initDataEdit = function (weblogs, analysis_session_id) {
         _analysis_session_id = analysis_session_id;
         $.notify("The page is being loaded, maybe it will take time", "info");
         // stepFn({data:_attributes_db}, null);
