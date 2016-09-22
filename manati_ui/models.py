@@ -112,6 +112,8 @@ class AnalysisSessionManager(models.Manager):
                     wb.clean()
                     wb.save()
                     wb_list.append(wb)
+            print("Weblogs saved: ")
+            print(len(wb_list))
             return wb_list
         except ValidationError as e:
             print_exception()

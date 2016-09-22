@@ -46,10 +46,10 @@ def create_analysis_session(request):
         filename = str(request.POST.get('filename', ''))
         analysis_session = AnalysisSession.objects.create(filename)
         if not analysis_session :
-            messages.error(request, 'Analysis Session wasn\'t created .')
+            # messages.error(request, 'Analysis Session wasn\'t created .')
             return HttpResponseServerError("Error saving the data")
         else:
-            messages.success(request, 'Analysis Session was created .')
+            # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
             return JsonResponse(dict(data={'analysis_session_id': analysis_session_id}, msg='Analysis Session was created .' ))
 
@@ -71,14 +71,16 @@ def add_weblogs(request):
         u_key_list = json.loads(request.POST.get('keys[]',''))
         analysis_session_id = request.POST.get('analysis_session_id', '')
         data = AnalysisSession.objects.add_weblogs(analysis_session_id,u_key_list, u_data_list)
+
         if isinstance(data, Exception):
             messages.error(request, data.message)
             return HttpResponseServerError(data.message)
         else:
-            json_data = []
-            for elem in data:
-                json_data.append({'id': elem.id, 'register_status': elem.register_status, 'dt_id': elem.dt_id })
-            return JsonResponse(dict(data=json_data, msg='All WBs were created'))
+            # json_data = []
+            #for elem in data:
+                # json_data.append({'id': elem.id, 'register_status': elem.register_status, 'dt_id': elem.dt_id })
+
+            return JsonResponse(dict(analysissessionid=analysis_session_id, data_length=len(data), msg='All WBs were created'))
 
     else:
         messages.error(request, 'Only POST request')
@@ -116,6 +118,22 @@ def sync_db(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url="/")
+@csrf_exempt
+def get_weblogs(request):
+    try:
+        if request.method == 'GET':
+            analysis_session_id = request.GET.get('analysis_session_id', '')
+            analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+            return JsonResponse(dict(weblogs=serializers.serialize("json",analysis_session.weblog_set.all()),analysissessionid=analysis_session_id))
+        else:
+            messages.error(request, 'Only GET request')
+            return HttpResponseServerError("Only GET request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+
 
 class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
     login_url = '/'
@@ -136,8 +154,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
         # Add in a QuerySet of all the books
-        context['weblogs_attribute'] = Weblog.get_model_fields()
-        context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
+        # context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
         context['analysis_session_id'] = object.id
         return context
 
