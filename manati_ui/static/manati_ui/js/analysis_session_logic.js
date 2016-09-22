@@ -70,6 +70,7 @@ function AnalysisSessionLogic(){
                             PRIVATE FUNCTIONS
      *************************************************************/
 
+     //useless function
      function addRowThread(data){
         var data = data;
          //only it should affect new WBs added
@@ -102,7 +103,7 @@ function AnalysisSessionLogic(){
                 values.add('undefined');
                 values.add(-1);
                 values.add(_countID.toString());
-                values.add("DID NOT SAVE");
+                values.add(-1);
             }
             _countID++;
             return values
@@ -159,18 +160,7 @@ function AnalysisSessionLogic(){
         $.each(_data_headers,function(i, v){
             _data_headers_keys[v] = i;
         });
-        // var dataSet = [];
         console.log(data.length);
-        // $.each(data, function (index, objectData){
-        //     var temp = _.values(objectData);
-        //     temp.add('undefined');
-        //      temp.add(-1);
-        //      temp.add(0);
-        //      temp.add("DID NOT SAVE");
-        //     dataSet.add(temp );
-        //     // Concurrent.Thread.create(addRowThread,objectValues);
-        //     // // addRowThread(objectValues);
-        // });
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
         COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
@@ -341,13 +331,6 @@ function AnalysisSessionLogic(){
                         //send the weblogs
                     _data_wb = _dt.rows().data().toArray();
                     _total_data_wb = _data_wb.length;
-
-                    // var i = 0;
-                    // while(i < _total_data_wb){
-                    //     _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
-                    //     _data_wb[i] = _dt.rows(i).data().toArray();
-                    //     i++;
-                    // }
                     thiz.sendWB();
                 },
 
@@ -428,14 +411,7 @@ function AnalysisSessionLogic(){
             }
         });
     };
-     var findDomainOfURL = function (url){
-        var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
-        var reg_exp_ip = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
-        var matching_domain = null;
-        var domain = ( (matching_domain = url.match(reg_exp_domains)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
-        domain = (domain == null)  && ((matching_domain = url.match(reg_exp_ip)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
-        return domain
-    }
+
     function contextMenuConfirmMsg(rows, verdict){
         $.confirm({
             title: 'Weblogs Affected',
@@ -489,49 +465,33 @@ function AnalysisSessionLogic(){
         }};
         return items_menu;
 
+    };
+    function findDomainOfURL(url){
+        var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+        var reg_exp_ip = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
+        var matching_domain = null;
+        var domain = ( (matching_domain = url.match(reg_exp_domains)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
+        domain = (domain == null)  && ((matching_domain = url.match(reg_exp_ip)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
+        return domain
     }
-    /*
-var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
-                                var domain = findDomainOfURL(url);
-                                var rows = [];
-                                _dt.column('http_url:name').nodes().each(function (v){
-                                    var tr_dom = $(v);
-                                    var local_url = tr_dom.html();
-                                    var local_domain = findDomainOfURL(local_url);
-                                    if(local_domain != null && local_domain === domain){
-                                        rows.add(tr_dom.closest('tr'));
-                                    }
-                                });
-                                _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                _dt.rows(rows).nodes().to$().addClass('selected');
-                                thiz.markVerdict(verdict);*/
     function contextMenuSettings (){
         $("body").on("mouseenter mouseleave", "ul.context-menu-list.context-menu-root li.context-menu-submenu.calculate", function (){
             var thiss = $(this);
             console.log("hhh");
-            // if(thiss.hasClass("calculate")){
             var tr_active = $("tr.menucontext-open.context-menu-active");
             var bigData = _dt.rows(tr_active).data()[0];
             _bulk_verdict = bigData[COLUMN_VERDICT];
             _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = [];
             _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = [];
-
-
-            var ip_value = bigData[COLUMN_END_POINTS_SERVER];
-
+            var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
             var url = bigData[COLUMN_HTTP_URL];
-
-            var domain = url.match(REG_EXP_DOMAINS)[0];
+            var domain = findDomainOfURL(url); // getting domain
             _dt.rows().nodes().each(function (dom_row,i) {
                 var data = _dt.row(dom_row).data();
-
                 var local_url = data[COLUMN_HTTP_URL];
-                var local_domain = local_url.match(REG_EXP_DOMAINS)[0];
-
+                var local_domain = findDomainOfURL(local_url);
                 var local_ip_value = data[COLUMN_END_POINTS_SERVER];
-
-                if(local_domain === domain){
+                if(local_domain != null && local_domain === domain){
                     _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].add(dom_row);
                 }
                 if(local_ip_value === ip_value){
@@ -541,8 +501,6 @@ var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
             thiss.find("li."+CLASS_MC_END_POINTS_SERVER_STR).html("EndPoints Server ("+ _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+ ")");
             thiss.find("li."+CLASS_MC_HTTP_URL_STR).html("Domain ("+ _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+ ")");
             thiss.removeClass("calculate");
-            // }
-
        });
         //events for verdicts buttons on context popup menu
             $.contextMenu({
@@ -617,13 +575,7 @@ var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
                     {
                         console.log("ERROR Parsing:", err, file);
                         $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
-                    },
-                    // complete: function()
-                    // {
-                    //     $('#save-table').show();
-                    //     console.log("Done with all files");
-                    //
-                    // }
+                    }
                 });
             });
             $(':file').on('fileselect', function(event, numFiles, label) {
@@ -694,17 +646,6 @@ var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
                 headers = _.keys(attributes);
             }
             data.push(attributes);
-            // $.each(, function (k, v) {
-            //     values_sorted.push(elem.fields[att]);
-            // });
-            // values_sorted[COLUMN_DT_ID] = 0; //just to set it
-            // values_sorted[COLUMN_DB_ID] = id;
-            // var row = _dt.row.add(values_sorted);
-            // var index = row[0];
-            // _dt.row(index).nodes().to$().attr('data-dbid',id);
-            // _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
-
-
         });
         initData(data, headers );
         $(document).ready(function(){
