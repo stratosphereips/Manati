@@ -139,6 +139,7 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
+                $(nRow).attr("data-dbid", aData[COLUMN_DB_ID]);
 
             },
         });
@@ -498,7 +499,6 @@ function AnalysisSessionLogic(){
     function contextMenuSettings (){
         $("body").on("mouseenter mouseleave", "ul.context-menu-list.context-menu-root li.context-menu-submenu.calculate", function (){
             var thiss = $(this);
-            console.log("hhh");
             var tr_active = $("tr.menucontext-open.context-menu-active");
             var bigData = _dt.rows(tr_active).data()[0];
             _bulk_verdict = bigData[COLUMN_VERDICT];
