@@ -77,8 +77,15 @@
 .sidebar {
     width: 180px;
 }
+.navbar{
+    margin-bottom: 0;
+    background-color: white;
+}
+.page-header{
+    margin-top: 20px;
+}
 #page-wrapper{
-    margin-left: 180px;
+    margin-left: 0;
 }
 .dataTables_wrapper th, .dataTables_wrapper td {
     white-space: nowrap;
