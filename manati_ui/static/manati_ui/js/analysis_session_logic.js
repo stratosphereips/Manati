@@ -382,7 +382,7 @@ function AnalysisSessionLogic(){
                 var as_id = json['analysissessionid'];
                 setTimeout(function() {
                     window.location.assign("/manati_ui/analysis_session/"+as_id+"/edit");
-                }, 5000)
+                }, 3000)
 
 
                 // var data = json['data'];
