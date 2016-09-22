@@ -28,14 +28,10 @@
         </div>
 
     </div>
-    <style>
-
-    </style>
     <script type="text/javascript">
        var logic = new AnalysisSessionLogic();
         logic.init();
         logic.callingEditingData({{analysissession.id| safe}});
-{#        logic.initDataEdit({{weblogs |safe}}, {{analysissession.id| safe}});#}
 
     </script>
 {% endblock %}
