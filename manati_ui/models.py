@@ -44,7 +44,7 @@ class AnalysisSessionManager(models.Manager):
             analysis_session = AnalysisSession()
             with transaction.atomic():
                 analysis_session.name = name
-                analysis_session.full_clean()
+                analysis_session.clean()
                 analysis_session.save()
                 print(len(data))
                 for elem in data:
@@ -56,14 +56,14 @@ class AnalysisSessionManager(models.Manager):
                     wb = Weblog(**hash_attr)
                     wb.analysis_session = analysis_session
                     wb.register_status = RegisterStatus.READY
-                    wb.full_clean()
+                    wb.clean_fields()
                     wb.save()
             return analysis_session
         except ValidationError as e:
-            print(e)
+            print_exception()
             return None
         except IntegrityError as e:
-            print(e)
+            print_exception()
             return None
 
 
@@ -77,11 +77,11 @@ class AnalysisSessionManager(models.Manager):
                 delete_threading(previous_exist)
             with transaction.atomic():
                 analysis_session.name = filename
-                analysis_session.full_clean()
+                analysis_session.clean()
                 analysis_session.save()
             return analysis_session
         except Exception as e:
-            print(e)
+            print_exception()
             return None
 
 
@@ -109,15 +109,18 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
                     wb.attributes = json.dumps([hash_attr])
-                    wb.full_clean()
+                    wb.clean()
                     wb.save()
                     wb_list.append(wb)
             return wb_list
         except ValidationError as e:
-            print(e)
+            print_exception()
             return e
         except IntegrityError as e:
-            print(e)
+            print_exception()
+            return e
+        except Exception as e:
+            print_exception()
             return e
 
     @transaction.atomic

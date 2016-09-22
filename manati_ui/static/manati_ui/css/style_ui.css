@@ -5,8 +5,7 @@
     background-color: #FF6961;
 }
 .dataTables_wrapper table tbody tr:not(.selected).legitimate td {
-  background-color: green;
-    color: white;
+  background-color: #69c269;
 }
 .dataTables_wrapper table tbody tr:not(.selected).suspicious td {
   background-color: darkorange;

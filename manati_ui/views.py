@@ -67,14 +67,10 @@ def create_analysis_session(request):
 @csrf_exempt
 def add_weblogs(request):
     if request.method == 'POST':
-        # json_data = json.loads(request.body)
-        # data = json_data['data']
-        u_data_list = request.POST.getlist('data[]')
-        u_key_list = request.POST.getlist('keys[]')
-        data_list = [str(x).split(',') for x in u_data_list]
-        key_list = [str(x) for x in u_key_list]
+        u_data_list = json.loads(request.POST.get('data[]',''))
+        u_key_list = json.loads(request.POST.get('keys[]',''))
         analysis_session_id = request.POST.get('analysis_session_id', '')
-        data = AnalysisSession.objects.add_weblogs(analysis_session_id,key_list, data_list)
+        data = AnalysisSession.objects.add_weblogs(analysis_session_id,u_key_list, u_data_list)
         if isinstance(data, Exception):
             messages.error(request, data.message)
             return HttpResponseServerError(data.message)
