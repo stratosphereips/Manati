@@ -152,11 +152,11 @@ function AnalysisSessionLogic(){
         //     });
         // };
         console.log("Couting and upgrating DT ID column");
-        _dt.on( 'order.dt search.dt', function () {
+        // _dt.on( 'order.dt search.dt', function () {
             _dt.column(COLUMN_DT_ID, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
                 cell.innerHTML = i;
             } );
-        } ).draw();
+        // } ).draw();
         // tempUpdateDTColumn(_dt.rows()[0]);
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
