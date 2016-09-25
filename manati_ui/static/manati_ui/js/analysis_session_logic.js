@@ -20,7 +20,6 @@ var REG_STATUS = {modified: 1};
 var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
-var COL_DB_ID_STR = 'db_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
@@ -72,7 +71,6 @@ function AnalysisSessionLogic(){
             data: data,
             columns: columns,
             columnDefs: [
-                // {"searchable": false, visible: false, "targets": headers.indexOf(COL_DB_ID_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
             ],
@@ -108,7 +106,6 @@ function AnalysisSessionLogic(){
         });
         console.log(data.length);
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
-        // COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
         COL_HTTP_URL_STR = "http.url";
@@ -538,7 +535,6 @@ function AnalysisSessionLogic(){
             attributes[COL_VERDICT_STR] = elem.fields.verdict;
             attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
             attributes[COL_DT_ID_STR] = 0;
-            attributes[COL_DB_ID_STR] = id;
 
             if(headers == null){
                 headers = _.keys(attributes);
