@@ -4,7 +4,6 @@
 //Concurrent variables for loading data in datatable
 var _dt;
 var _countID =1;
-// var _attributes_db;
 var thiz;
 var _db;
 var _filename, _size_file;
@@ -12,14 +11,8 @@ var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 
 //Concurrent variables for saving on PG DB
-var SIZE_REQUEST = 1000;
-var _data_wb = [];
-var _data_rows_wb;
-var _init_count = 0;
-var _finish_count = SIZE_REQUEST;
-var _total_data_wb;
 var _analysis_session_id = -1;
-var COLUMN_DT_ID, COLUMN_DB_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
+var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
 var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
 var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var CLASS_MC_HTTP_URL_STR, CLASS_MC_END_POINTS_SERVER_STR;
@@ -31,7 +24,6 @@ var COL_DB_ID_STR = 'db_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
-var _data_updated = [];
 
 
 var _loadingPlugin;
@@ -44,58 +36,13 @@ function AnalysisSessionLogic(){
 
     var stepped = 0;
     var rowCount, firstError, errorCount = 0;
-    var _keys = [];
     var db_name = 'weblogs_db';
     thiz = this;
-    var _verdicts_weight = {
-        "malicious":2,
-        "legitimate":0,
-        "suspicious":1,
-        "false_positive":3,
-        "undefined": -1
-    };
-
-    // var myDjangoList = ((attributes_db).replace(/&(l|g|quo)t;/g, function(a,b){
-    //     return {
-    //         l   : '<',
-    //         g   : '>',
-    //         quo : '"'
-    //     }[b];
-    // }));
-    //
-    // myDjangoList = myDjangoList.replace(/u'/g, '\'');
-    // myDjangoList = myDjangoList.replace(/'/g, '\"');
-    // _attributes_db = JSON.parse( myDjangoList );
 
 
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
-
-     //useless function
-    //  function addRowThread(data){
-    //     var data = data;
-    //      //only it should affect new WBs added
-    //      if(data.length != _data_headers.length){
-    //          data.add('undefined');
-    //          data.add(-1);
-    //          data.add(_countID.toString());
-    //          data.add("DID NOT SAVE");
-    //      }
-    //
-    //     if(data.length !== _data_headers.length) {
-    //         console.log("ERROR Adding");
-    //         console.log(data);
-    //     }
-    //     else{
-    //         var row = _dt.row.add(data);
-    //         var index = row[0];
-    //         _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
-    //         _dt.row(index).nodes().to$().attr('data-dbid',data[COLUMN_DB_ID]);
-    //     }
-    //     _countID++;
-    //
-    // }
 
     function initDatatable(headers, data_init){
         _countID = 1;
@@ -148,7 +95,7 @@ function AnalysisSessionLogic(){
             $(this).toggleClass('selected');
             $('.contextMenuPlugin').remove();
         } );
-        $("#loading-img").hide();
+        hideLoading();
         $('#panel-datatable').show();
 
     }
@@ -259,7 +206,7 @@ function AnalysisSessionLogic(){
         var previous_limit = _loadingPlugin.options('').limit;
         // console.log("Limit: " + previous_limit + " Step: " + step);
         _loadingPlugin.options({limit: previous_limit + step});
-    }
+    };
     this.destroyLoading = function(){
         _loadingPlugin.destroy();
     };
@@ -313,9 +260,9 @@ function AnalysisSessionLogic(){
 
     function saveDB(){
         try{
+            showLoading();
             $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
             $('#save-table').attr('disabled',true).addClass('disabled');
-            // thiz.createLoading();
             var rows = _dt.rows();
             var data = { filename: _filename,"keys[]": JSON.stringify(_data_headers),'data[]': JSON.stringify( rows.data().toArray())};
             //send the name of the file, and the first 10 registers
@@ -339,11 +286,7 @@ function AnalysisSessionLogic(){
                     $('#save-table').hide();
                     $('#wrap-form-upload-file').hide();
                     setInterval(syncDB, 10000 );
-                        //send the weblogs
-                    // _data_rows_wb = _dt.rows();
-                    // _data_wb = _data_rows_wb.data().toArray();
-                    // _total_data_wb = _data_wb.length;
-                    // thiz.sendWB();
+                    hideLoading();
                 },
 
                 // handle a non-successful response
@@ -354,7 +297,7 @@ function AnalysisSessionLogic(){
                     $('#save-table').attr('disabled',false).removeClass('disabled');
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
 
-                    // thiz.destroyLoading();
+                    hideLoading();
                 }
             });
         }catch(e){
@@ -367,77 +310,12 @@ function AnalysisSessionLogic(){
 
 
     }
-    this.sendWB = function(){
-        $("#loading-img").show();
-        var data = {"keys[]": JSON.stringify(_data_headers),'data[]': JSON.stringify(_data_wb), 'analysis_session_id':_analysis_session_id};
-        $.ajax({
-            type:"POST",
-            data: data,
-            dataType: "json",
-            url: "/manati_ui/analysis_session/add_weblogs",
-            // handle a successful response
-            success : function(json) {
-                console.log(json); // log the returned json to the console
-                $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
-                // _dt.rows(_data_rows_wb).nodes().to$().removeClass('modified');
-
-                // $.notify("You will be redirected to a new page in few seconds", 'info', {autoHideDelay: 4000 });
-                // var as_id = json['analysissessionid'];
-                // setTimeout(function() {
-                //     window.location.assign("/manati_ui/analysis_session/"+as_id+"/edit");
-                // }, 3000)
-
-
-                // var data = json['data'];
-                // var data_length = data.length;
-                // thiz.addStepsLoading( data_length * 100 / _total_data_wb );
-                // //update state and id of all data used
-                // data.forEach(function(elem) {
-                //     console.log(elem);
-                //     var dt_id = elem['dt_id'];
-                //     var rs = elem['register_status'];
-                //     var id = elem['id'];
-                //     _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
-                //     _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
-                //     _dt.cell(dt_id,COLUMN_DT_ID).data(dt_id).draw(false);
-                //     _dt.row(dt_id).nodes().to$().removeClass('modified');
-                //     _dt.row(dt_id).nodes().to$().attr('data-dbid',id);
-                // });
-                // // continue with the loop until all file are done
-                // console.log("success sendWBLs"); // another sanity check
-                //
-                // // if(_finish_count >= _total_data_wb){ //stop to send request, all WB were saved
-                //     _init_count = 0;
-                //     _finish_count = SIZE_REQUEST;
-                //     //hide button save
-                //     $('#save-table').hide();
-                //     $('#wrap-form-upload-file').hide();
-                //     thiz.destroyLoading();
-                //     $.notify("ALL Weblogs were created successfully ", 'success');
-                //     setInterval(syncDB, 10000 );
-                //     return true;
-                // }
-                // _init_count = _finish_count;
-                // if(_finish_count + SIZE_REQUEST <= _total_data_wb){
-                //     _finish_count+= SIZE_REQUEST;
-                // }else{
-                //     _finish_count+= (_total_data_wb - _finish_count) ;
-                // }
-                //
-                // thiz.sendWB();
-
-            },
-
-            // handle a non-successful response
-            error : function(xhr,errmsg,err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                $('#save-table').attr('disabled',false).removeClass('disabled');
-                $.notify(xhr.responseText, "error");
-            }
-        });
-    };
+    function showLoading(){
+         $("#loading-img").show();
+    }
+    function hideLoading() {
+        $("#loading-img").hide();
+    }
 
     function contextMenuConfirmMsg(rows, verdict){
         $.confirm({
@@ -679,6 +557,7 @@ function AnalysisSessionLogic(){
     this.callingEditingData = function (analysis_session_id){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
+        showLoading();
         $.ajax({
                 type:"GET",
                 data: data,

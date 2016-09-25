@@ -66,30 +66,6 @@ def create_analysis_session(request):
     #     # return JsonResponse({"nothing to see": "this isn't happening"})
     #     return render_to_json(request, data)
 
-#ajax connexions
-@login_required(login_url="/")
-@csrf_exempt
-def add_weblogs(request):
-    if request.method == 'POST':
-        u_data_list = json.loads(request.POST.get('data[]',''))
-        u_key_list = json.loads(request.POST.get('keys[]',''))
-        analysis_session_id = request.POST.get('analysis_session_id', '')
-        data = AnalysisSession.objects.add_weblogs(analysis_session_id,u_key_list, u_data_list)
-
-        if isinstance(data, Exception):
-            messages.error(request, data.message)
-            return HttpResponseServerError(data.message)
-        else:
-            # json_data = []
-            #for elem in data:
-                # json_data.append({'id': elem.id, 'register_status': elem.register_status, 'dt_id': elem.dt_id })
-
-            return JsonResponse(dict(analysissessionid=analysis_session_id, data_length=len(data), msg='All WBs were created'))
-
-    else:
-        messages.error(request, 'Only POST request')
-        return HttpResponseServerError("Error with the data")
-
 
 def update_analysis_session(request):
     return JsonResponse({'foo': 'bar'})

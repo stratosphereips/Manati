@@ -9,7 +9,6 @@ urlpatterns = [
     url(r'^analysis_session/(?P<pk>[0-9]+)/edit', views.EditAnalysisSession.as_view(), name='edit_analysis_session'),
     url(r'^analysis_session/create$', views.create_analysis_session, name='create_analysis_session'),
     url(r'^analysis_session/sync_db', views.sync_db, name='sync_db_analysis_session'),
-    url(r'^analysis_session/add_weblogs', views.add_weblogs, name='add_wb_analysis_session'),
     url(r'^analysis_session/get_weblogs', views.get_weblogs, name='get_weblogs_analysis_session'),
     url(r'^analysis_sessions', views.IndexAnalysisSession.as_view(), name='index_analysis_sessions'),
 
