@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 import datetime
-from django.db import models
+from django.db import models, migrations
 from django.utils import timezone
 from django.contrib.auth.models import User
 from model_utils import Choices
+from model_utils.fields import AutoCreatedField, AutoLastModifiedField
+from django.utils.translation import ugettext_lazy as _
 from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
@@ -12,6 +14,10 @@ from threading import Thread
 from utils import *
 import json
 from jsonfield import JSONField
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+
+
 # from django.db.models.signals import post_save
 # from django.dispatch import receiver
 
@@ -35,6 +41,7 @@ def postpone(function):
 @postpone
 def delete_threading(previous_exist):
     previous_exist.delete()
+
 
 class AnalysisSessionManager(models.Manager):
 
@@ -69,9 +76,11 @@ class AnalysisSessionManager(models.Manager):
 
 
     @transaction.atomic
-    def create(self, filename):
+    def create(self, filename, key_list, weblogs, current_user):
         try:
             analysis_session = AnalysisSession()
+            analysis_sessions_users = None
+            wb_list = []
             previous_exist = AnalysisSession.objects.filter(name=filename).first()
             if isinstance(previous_exist, AnalysisSession):
                 delete_threading(previous_exist)
@@ -79,6 +88,26 @@ class AnalysisSessionManager(models.Manager):
                 analysis_session.name = filename
                 analysis_session.clean()
                 analysis_session.save()
+                analysis_sessions_users = AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
+                                                                              user_id=current_user.id,
+                                                                              columns_order=json.dumps(key_list))
+                for elem in weblogs:
+                    i = 0
+                    hash_attr = {}
+                    for k in key_list:
+                        hash_attr[k] = elem[i]
+                        i += 1
+                    verdict = hash_attr["verdict"]
+                    dt_id = hash_attr["dt_id"]
+                    hash_attr.pop("db_id", None)
+                    hash_attr.pop("register_status", None)
+                    hash_attr.pop('verdict', None)
+                    hash_attr.pop('dt_id', None)
+
+                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id, register_status=RegisterStatus.READY, id=dt_id, verdict=verdict, attributes=json.dumps(hash_attr), mod_attributes=json.dumps({}))
+                    wb.clean()
+                    wb_list.append(wb)
+
             return analysis_session
         except Exception as e:
             print_exception()
@@ -108,7 +137,7 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop("register_status", None)
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
-                    wb.attributes = json.dumps([hash_attr])
+                    wb.attributes = json.dumps(hash_attr)
                     wb.clean()
                     wb.save()
                     wb_list.append(wb)
@@ -158,16 +187,17 @@ class AnalysisSessionManager(models.Manager):
             return []
 
 
-class AnalysisSession(models.Model):
-    users = models.ManyToManyField(User)
-    name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
-    created_at = models.TimeField(auto_now_add=True)
-    updated_at = models.TimeField(auto_now=True)
+class TimeStampedModel(models.Model):
+    """
+    An abstract base class model that provides self-updating
+    ``created`` and ``modified`` fields.
 
-    objects = AnalysisSessionManager()
+    """
+    created_at = AutoCreatedField(_('created_at'))
+    updated_at = AutoLastModifiedField(_('updated_at'))
 
     class Meta:
-        db_table = 'manati_analysis_sessions'
+        abstract = True
 
 
 class RegisterStatus(enum.Enum):
@@ -178,42 +208,31 @@ class RegisterStatus(enum.Enum):
     UPGRADING_LOCK = 2
 
 
-class Weblog(models.Model):
+class AnalysisSession(TimeStampedModel):
+    users = models.ManyToManyField(User, through='AnalysisSessionUsers')
+    name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
+
+    objects = AnalysisSessionManager()
+
+    def __unicode__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'manati_analysis_sessions'
+
+
+class AnalysisSessionUsers(TimeStampedModel):
+    analysis_session = models.ForeignKey(AnalysisSession)
+    user = models.ForeignKey(User)
+    columns_order = JSONField(default='', null=True)
+
+    class Meta:
+        db_table = 'manati_analysis_sessions_users'
+
+
+class Weblog(TimeStampedModel):
+    id = models.CharField(primary_key=True, null=False, max_length=15)
     analysis_session = models.ForeignKey(AnalysisSession, on_delete=models.CASCADE, null=False)
-    # timestamp = models.CharField(max_length=200)
-    # s_port = models.IntegerField()
-    # sc_http_status = models.CharField(max_length=200)
-    # sc_bytes = models.CharField(max_length=200)
-    # sc_header_bytes = models.CharField(max_length=200)
-    # c_port = models.CharField(max_length=200)
-    # cs_bytes = models.CharField(max_length=200)
-    # cs_header_bytes = models.CharField(max_length=200)
-    # cs_method = models.CharField(max_length=50)
-    # cs_url = models.URLField(max_length=255)
-    # s_ip = models.CharField(max_length=200)
-    # c_ip = models.CharField(max_length=200)
-    # connection_time = models.CharField(max_length=200)
-    # request_time = models.CharField(max_length=200)
-    # response_time = models.CharField(max_length=200)
-    # close_time = models.CharField(max_length=200)
-    # idle_time0 = models.CharField(max_length=200)
-    # idle_time1 = models.CharField(max_length=200)
-    # cs_mime_type = models.CharField(max_length=200)
-    # cs_Referer = models.CharField(max_length=200)
-    # cs_User_Agent = models.CharField(max_length=200)
-
-    # time = models.CharField(max_length=200, null=True)
-    # http_url = models.URLField(max_length=255, null=True)
-    # http_status = models.CharField(max_length=30, null=True)
-    # endpoints_server = models.CharField(max_length=100, null=True)
-    # transfer_upload = models.IntegerField(null=True)
-    # transfer_download = models.IntegerField(null=True)
-    # time_duration = models.CharField(max_length=200, null=True)
-    # http_referer = models.CharField(max_length=200, null=True)
-    # http_userAgent = models.CharField(max_length=200, null=True)
-    # contentType_fromHttp = models.CharField(max_length=200, null=True)
-    # user_name = models.CharField(max_length=200, null=True)
-
     attributes = JSONField(default="", null=False)
     # Verdict Status Attr
     VERDICT_STATUS = Choices(('malicious','Malicious'),
@@ -232,29 +251,13 @@ class Weblog(models.Model):
                              ('undefined_suspicious', 'Undefined/Suspicious'),
                              ('undefined_false_positive', 'Undefined/False Positive'),
                              )
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.legitimate, max_length=20,null=True)
-    #attrs useful for auditing
-    created_at = models.TimeField(auto_now_add=True)
-    updated_at = models.TimeField(auto_now=True)
-    register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY,null=True)
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=20, null=True)
+    register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
+    mod_attributes = JSONField(default='', null=True)
     dt_id = -1
 
     class Meta:
         db_table = 'manati_weblogs'
-
-    @classmethod
-    def get_model_fields(model):
-        # attrs = [f.name for f in model._meta.get_fields()]
-        # attrs.remove('analysis_session')
-        # attrs.remove('created_at')
-        # attrs.remove('updated_at')
-        # return attrs
-        return ['time', 'http_url', 'http_status', 'endpoints_server', 'transfer_upload', 'transfer_download',
-                'time_duration', 'http_referer', 'http_userAgent', 'contentType_fromHttp','user_name', 'verdict',
-                'register_status']
-
-    def get_model_fields_json(self):
-        return self.get_model_fields()
 
     def set_register_status(self, status, save=False):
         self.register_status = status
@@ -293,10 +296,43 @@ class Weblog(models.Model):
             self.save()
 
 
+class WeblogHistory(TimeStampedModel):
+    weblog = models.ForeignKey(Weblog)
+    new_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    description = models.CharField(max_length=255, null=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
+    object_id = models.CharField(max_length=20)
+    content_object = GenericForeignKey('content_type', 'object_id')
 
-# # CallBacks methods
-# @receiver(post_save, sender=AnalysisSession, dispatch_uid="refresh_view")
-# def update_stock(sender, instance, **kwargs):
-#      instance.product.stock -= instance.amount
-#      instance.product.save()
+    class Meta:
+        db_table = 'manati_weblog_history'
+
+
+class Comments(TimeStampedModel):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # Weblog or AnalysisSession
+    object_id = models.CharField(max_length=20)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    text = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'manati_comments'
+
+
+class Metric(TimeStampedModel):
+    event_name = models.CharField(max_length=30)
+    params = JSONField(default='', null=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  #User or Module
+    object_id = models.CharField(max_length=20)
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        db_table = 'manati_metrics'
+
+
+#class Module(TimeStampedModel):
+# ????????
+
+
+
 

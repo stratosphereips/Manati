@@ -14,6 +14,7 @@ var _data_headers_keys = {};
 //Concurrent variables for saving on PG DB
 var SIZE_REQUEST = 1000;
 var _data_wb = [];
+var _data_rows_wb;
 var _init_count = 0;
 var _finish_count = SIZE_REQUEST;
 var _total_data_wb;
@@ -72,39 +73,38 @@ function AnalysisSessionLogic(){
      *************************************************************/
 
      //useless function
-     function addRowThread(data){
-        var data = data;
-         //only it should affect new WBs added
-         if(data.length != _data_headers.length){
-             data.add('undefined');
-             data.add(-1);
-             data.add(_countID.toString());
-             data.add("DID NOT SAVE");
-         }
-
-        if(data.length !== _data_headers.length) {
-            console.log("ERROR Adding");
-            console.log(data);
-        }
-        else{
-            var row = _dt.row.add(data);
-            var index = row[0];
-            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
-            _dt.row(index).nodes().to$().attr('data-dbid',data[COLUMN_DB_ID]);
-        }
-        _countID++;
-
-    }
+    //  function addRowThread(data){
+    //     var data = data;
+    //      //only it should affect new WBs added
+    //      if(data.length != _data_headers.length){
+    //          data.add('undefined');
+    //          data.add(-1);
+    //          data.add(_countID.toString());
+    //          data.add("DID NOT SAVE");
+    //      }
+    //
+    //     if(data.length !== _data_headers.length) {
+    //         console.log("ERROR Adding");
+    //         console.log(data);
+    //     }
+    //     else{
+    //         var row = _dt.row.add(data);
+    //         var index = row[0];
+    //         _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
+    //         _dt.row(index).nodes().to$().attr('data-dbid',data[COLUMN_DB_ID]);
+    //     }
+    //     _countID++;
+    //
+    // }
 
     function initDatatable(headers, data_init){
-        _countID = 0;
+        _countID = 1;
         var data = _.map(data_init,function(v, i){
             var values = _.values(v);
             if(values.length < headers.length){
                 values.add('undefined');
                 values.add(-1);
                 values.add(_countID.toString());
-                values.add(-1);
             }
             _countID++;
             return values
@@ -125,7 +125,7 @@ function AnalysisSessionLogic(){
             data: data,
             columns: columns,
             columnDefs: [
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DB_ID_STR)},
+                // {"searchable": false, visible: false, "targets": headers.indexOf(COL_DB_ID_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
             ],
@@ -139,25 +139,10 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
-                $(nRow).attr("data-dbid", aData[COLUMN_DB_ID]);
+                $(nRow).attr("data-dbid", aData[COLUMN_DT_ID]);
 
             },
         });
-        // var tempUpdateDTColumn = function(rows){
-        //     $.each(rows,function(v,i){
-        //         var index = _dt.row(v).index();
-        //         var id = _dt.row(v).data()[COLUMN_DB_ID];
-        //         _dt.cell(index,COLUMN_DT_ID).data(index);
-        //         _dt.row(index).nodes().to$().attr('data-dbid',id);
-        //     });
-        // };
-        console.log("Couting and upgrating DT ID column");
-        // _dt.on( 'order.dt search.dt', function () {
-            _dt.column(COLUMN_DT_ID, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
-                cell.innerHTML = i;
-            } );
-        // } ).draw();
-        // tempUpdateDTColumn(_dt.rows()[0]);
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
             $(this).toggleClass('selected');
@@ -176,7 +161,7 @@ function AnalysisSessionLogic(){
         });
         console.log(data.length);
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
-        COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
+        // COLUMN_DB_ID = _data_headers_keys[COL_DB_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
         COL_HTTP_URL_STR = "http.url";
@@ -205,7 +190,7 @@ function AnalysisSessionLogic(){
                 rowCount = results.data.length;
                 var data = results.data;
                 var headers = results.meta.fields;
-                $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_DB_ID_STR],function (i, value){
+                $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
                     headers.push(value);
                 });
                 initData(data,headers);
@@ -281,11 +266,9 @@ function AnalysisSessionLogic(){
     var syncDB = function (){
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
-        var data_pos = {};
         arr_list.each(function(elem){
             if(elem[COLUMN_REG_STATUS] != -1 ){
-                data_row[elem[COLUMN_DB_ID]]=elem[COLUMN_VERDICT];
-                data_pos[elem[COLUMN_DB_ID]]=elem[COLUMN_DT_ID];
+                data_row[_analysis_session_id+":"+elem[COLUMN_DT_ID]]=elem[COLUMN_VERDICT];
             }
         });
         var data = {'analysis_session_id': _analysis_session_id,
@@ -303,13 +286,17 @@ function AnalysisSessionLogic(){
                 console.log(data);
                 $.each(data,function (index, elem) {
                     console.log(elem);
-                    var row = _dt.rows('[data-dbid="'+elem.pk+'"]');
-                    var dt_id = row.data()[0][COLUMN_DT_ID];
-                    _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
-                    row.nodes().to$().addClass('selected-sync');
-                    thiz.markVerdict(elem.fields.verdict,'selected-sync');
-                    _dt.row(dt_id).nodes().to$().removeClass('modified');
-                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status);
+                    var dt_id = parseInt(elem.pk.split(':')[1]);
+                    var row = _dt.rows('[data-dbid="'+dt_id+'"]');
+                    var index_row = row.indexes()[0];
+                     row.nodes().to$().addClass('selected-sync');
+                     thiz.markVerdict(elem.fields.verdict,'selected-sync');
+                    row.nodes().to$().removeClass('modified');
+                    _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
+                    _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
+
+
+
                 });
                 console.log("DB Synchronized");
             },
@@ -329,7 +316,8 @@ function AnalysisSessionLogic(){
             $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
             $('#save-table').attr('disabled',true).addClass('disabled');
             // thiz.createLoading();
-            var data = { filename: _filename};
+            var rows = _dt.rows();
+            var data = { filename: _filename,"keys[]": JSON.stringify(_data_headers),'data[]': JSON.stringify( rows.data().toArray())};
             //send the name of the file, and the first 10 registers
             $.ajax({
                 type:"POST",
@@ -342,10 +330,20 @@ function AnalysisSessionLogic(){
                     console.log(json); // log the returned json to the console
                     console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
+                    _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
+                        var tr = $(cell).closest('tr');
+                        if(!tr.hasClass("modified")) cell.innerHTML = 0;
+                    } );
+
+                    $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
+                    $('#save-table').hide();
+                    $('#wrap-form-upload-file').hide();
+                    setInterval(syncDB, 10000 );
                         //send the weblogs
-                    _data_wb = _dt.rows().data().toArray();
-                    _total_data_wb = _data_wb.length;
-                    thiz.sendWB();
+                    // _data_rows_wb = _dt.rows();
+                    // _data_wb = _data_rows_wb.data().toArray();
+                    // _total_data_wb = _data_wb.length;
+                    // thiz.sendWB();
                 },
 
                 // handle a non-successful response
@@ -354,11 +352,14 @@ function AnalysisSessionLogic(){
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
-                    thiz.destroyLoading();
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+
+                    // thiz.destroyLoading();
                 }
             });
         }catch(e){
-            thiz.destroyLoading();
+            // thiz.destroyLoading();
+            $.notify(e, "error");
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
 
@@ -378,11 +379,13 @@ function AnalysisSessionLogic(){
             success : function(json) {
                 console.log(json); // log the returned json to the console
                 $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
-                $.notify("You will be redirected to a new page in few seconds", 'info', {autoHideDelay: 4000 });
-                var as_id = json['analysissessionid'];
-                setTimeout(function() {
-                    window.location.assign("/manati_ui/analysis_session/"+as_id+"/edit");
-                }, 3000)
+                // _dt.rows(_data_rows_wb).nodes().to$().removeClass('modified');
+
+                // $.notify("You will be redirected to a new page in few seconds", 'info', {autoHideDelay: 4000 });
+                // var as_id = json['analysissessionid'];
+                // setTimeout(function() {
+                //     window.location.assign("/manati_ui/analysis_session/"+as_id+"/edit");
+                // }, 3000)
 
 
                 // var data = json['data'];
@@ -630,8 +633,7 @@ function AnalysisSessionLogic(){
 
             contextMenuSettings();
             $('#save-table').on('click',function(){
-                Concurrent.Thread.create(saveDB);
-               // saveDB();
+               saveDB();
             });
         });
     };
@@ -650,13 +652,11 @@ function AnalysisSessionLogic(){
     };
     var initDataEdit = function (weblogs, analysis_session_id) {
         _analysis_session_id = analysis_session_id;
-        // stepFn({data:_attributes_db}, null);
-        // console.log(data);
         var headers = null;
         var data = [];
         $.each(weblogs, function (index, elem){
             var id = elem.pk;
-            var attributes = JSON.parse(JSON.parse(elem.fields.attributes))[0];
+            var attributes = JSON.parse(elem.fields.attributes);
             attributes[COL_VERDICT_STR] = elem.fields.verdict;
             attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
             attributes[COL_DT_ID_STR] = 0;

@@ -4,7 +4,7 @@ from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonRespons
 from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
-from .models import AnalysisSession, Weblog
+from .models import *
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
@@ -33,7 +33,7 @@ class AnalysisSessionNewView(generic.DetailView):
 def new_analysis_session_view(request):
     # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
     # output = ', '.join([q.question_text for q in lastest_question_list])
-    context = {"weblogs_attribute": Weblog.get_model_fields()}
+    context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
 #ajax connexions
@@ -43,8 +43,12 @@ def create_analysis_session(request):
     analysis_session_id = -1
     # try:
     if request.method == 'POST':
+        current_user = request.user
         filename = str(request.POST.get('filename', ''))
-        analysis_session = AnalysisSession.objects.create(filename)
+        u_data_list = json.loads(request.POST.get('data[]',''))
+        u_key_list = json.loads(request.POST.get('keys[]',''))
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user)
+
         if not analysis_session :
             # messages.error(request, 'Analysis Session wasn\'t created .')
             return HttpResponseServerError("Error saving the data")
