@@ -122,6 +122,11 @@ class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
     template_name = 'manati_ui/analysis_session/index.html'
     context_object_name = 'analysis_sessions'
 
+    def get_queryset(self):
+        #Get the analysis session created by the admin (old website) and the current user
+        user = self.request.user
+        return AnalysisSession.objects.filter(users__in=[1, user.id])
+
 
 class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     login_url = '/'
