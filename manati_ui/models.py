@@ -46,36 +46,6 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create_from_request(self, keys, data, name):
-        try:
-            analysis_session = AnalysisSession()
-            with transaction.atomic():
-                analysis_session.name = name
-                analysis_session.clean()
-                analysis_session.save()
-                print(len(data))
-                for elem in data:
-                    i = 0
-                    hash_attr = {}
-                    for k in Weblog.get_model_fields():
-                        hash_attr[k] = elem[i]
-                        i += 1
-                    wb = Weblog(**hash_attr)
-                    wb.analysis_session = analysis_session
-                    wb.register_status = RegisterStatus.READY
-                    wb.clean_fields()
-                    wb.save()
-            return analysis_session
-        except ValidationError as e:
-            print_exception()
-            return None
-        except IntegrityError as e:
-            print_exception()
-            return None
-
-
-
-    @transaction.atomic
     def create(self, filename, key_list, weblogs, current_user):
         try:
             analysis_session = AnalysisSession()
@@ -224,7 +194,7 @@ class AnalysisSession(TimeStampedModel):
 class AnalysisSessionUsers(TimeStampedModel):
     analysis_session = models.ForeignKey(AnalysisSession)
     user = models.ForeignKey(User)
-    columns_order = JSONField(default='', null=True)
+    columns_order = JSONField(default=json.dumps({}), null=True)
 
     class Meta:
         db_table = 'manati_analysis_sessions_users'
@@ -233,7 +203,7 @@ class AnalysisSessionUsers(TimeStampedModel):
 class Weblog(TimeStampedModel):
     id = models.CharField(primary_key=True, null=False, max_length=15)
     analysis_session = models.ForeignKey(AnalysisSession, on_delete=models.CASCADE, null=False)
-    attributes = JSONField(default="", null=False)
+    attributes = JSONField(default=json.dumps({}), null=False)
     # Verdict Status Attr
     VERDICT_STATUS = Choices(('malicious','Malicious'),
                              ('legitimate','Legitimate'),
@@ -253,7 +223,7 @@ class Weblog(TimeStampedModel):
                              )
     verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=20, null=True)
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
-    mod_attributes = JSONField(default='', null=True)
+    mod_attributes = JSONField(default=json.dumps({}), null=True)
     dt_id = -1
 
     class Meta:

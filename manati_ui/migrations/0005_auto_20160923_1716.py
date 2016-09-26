@@ -19,6 +19,44 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name='weblog',
+            name='id',
+            field=models.CharField(max_length=15, primary_key=True, serialize=False),
+        ),
+        migrations.AddField(
+            model_name='weblog',
+            name='attributes',
+            field=jsonfield.fields.JSONField(default=''),
+        ),
+        migrations.AddField(
+            model_name='weblog',
+            name='mod_attributes',
+            field=jsonfield.fields.JSONField(default='', null=True),
+        ),
+        migrations.RemoveField(
+            model_name='analysissession',
+            name='created_at',
+        ),
+        migrations.AddField(
+            model_name='analysissession',
+            name='created_at',
+            field=model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False,
+                                                      verbose_name='created_at'),
+        ),
+        migrations.RemoveField(
+            model_name='analysissession',
+            name='updated_at',
+        ),
+        migrations.AddField(
+            model_name='analysissession',
+            name='updated_at',
+            field=model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False,
+                                                           verbose_name='updated_at'),
+        ),
+        migrations.RunSQL("DROP TABLE IF EXISTS manati_analysis_sessions_users;"),
+        migrations.RunSQL('SET CONSTRAINTS ALL IMMEDIATE',
+                          reverse_sql=migrations.RunSQL.noop),
         migrations.CreateModel(
             name='AnalysisSessionUsers',
             fields=[
@@ -79,89 +117,13 @@ class Migration(migrations.Migration):
         ),
         migrations.RemoveField(
             model_name='weblog',
-            name='contentType_fromHttp',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='endpoints_server',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='http_referer',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='http_status',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='http_url',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='http_userAgent',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='time',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='time_duration',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='transfer_download',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='transfer_upload',
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
-            name='user_name',
-        ),
-        migrations.AddField(
-            model_name='weblog',
-            name='attributes',
-            field=jsonfield.fields.JSONField(default=''),
-        ),
-        migrations.AddField(
-            model_name='weblog',
-            name='mod_attributes',
-            field=jsonfield.fields.JSONField(default='', null=True),
-        ),
-        migrations.RemoveField(
-            model_name='analysissession',
-            name='created_at',
-        ),
-        migrations.AddField(
-            model_name='analysissession',
-            name='created_at',
-            field=model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False, verbose_name='created_at'),
-        ),
-        migrations.RemoveField(
-            model_name='analysissession',
-            name='updated_at',
-        ),
-        migrations.AddField(
-            model_name='analysissession',
-            name='updated_at',
-            field=model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False, verbose_name='updated_at'),
-        ),
-        migrations.RemoveField(
-            model_name='weblog',
             name='created_at',
         ),
         migrations.AddField(
             model_name='weblog',
             name='created_at',
-            field=model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False, verbose_name='created_at'),
-        ),
-        migrations.AlterField(
-            model_name='weblog',
-            name='id',
-            field=models.CharField(max_length=15, primary_key=True, serialize=False),
+            field=model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, editable=False,
+                                                      verbose_name='created_at'),
         ),
         migrations.RemoveField(
             model_name='weblog',
@@ -170,12 +132,41 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='weblog',
             name='updated_at',
-            field=model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False, verbose_name='updated_at'),
+            field=model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, editable=False,
+                                                           verbose_name='updated_at'),
         ),
         migrations.AlterField(
             model_name='weblog',
             name='verdict',
-            field=models.CharField(choices=[('malicious', 'Malicious'), ('legitimate', 'Legitimate'), ('suspicious', 'Suspicious'), ('undefined', 'Undefined'), ('false_positive', 'False Positive'), ('malicious_legitimate', 'Malicious/Legitimate'), ('suspicious_legitimate', 'Suspicious/Legitimate'), ('undefined_legitimate', 'Undefined/Legitimate'), ('false_positive_legitimate', 'False Positive/Legitimate'), ('undefined_malicious', 'Undefined/Malicious'), ('suspicious_malicious', 'Suspicious/Malicious'), ('false_positive_malicious', 'False Positive/Malicious'), ('false_positive_suspicious', 'False Positive/Suspicious'), ('undefined_suspicious', 'Undefined/Suspicious'), ('undefined_false_positive', 'Undefined/False Positive')], default='undefined', max_length=20, null=True),
+            field=models.CharField(
+                choices=[('malicious', 'Malicious'), ('legitimate', 'Legitimate'), ('suspicious', 'Suspicious'),
+                         ('undefined', 'Undefined'), ('false_positive', 'False Positive'),
+                         ('malicious_legitimate', 'Malicious/Legitimate'),
+                         ('suspicious_legitimate', 'Suspicious/Legitimate'),
+                         ('undefined_legitimate', 'Undefined/Legitimate'),
+                         ('false_positive_legitimate', 'False Positive/Legitimate'),
+                         ('undefined_malicious', 'Undefined/Malicious'),
+                         ('suspicious_malicious', 'Suspicious/Malicious'),
+                         ('false_positive_malicious', 'False Positive/Malicious'),
+                         ('false_positive_suspicious', 'False Positive/Suspicious'),
+                         ('undefined_suspicious', 'Undefined/Suspicious'),
+                         ('undefined_false_positive', 'Undefined/False Positive')], default='undefined', max_length=20,
+                null=True),
+        ),
+        migrations.AlterField(
+            model_name='analysissessionusers',
+            name='columns_order',
+            field=jsonfield.fields.JSONField(default=b'{}', null=True),
+        ),
+        migrations.AlterField(
+            model_name='weblog',
+            name='attributes',
+            field=jsonfield.fields.JSONField(default=b'{}'),
+        ),
+        migrations.AlterField(
+            model_name='weblog',
+            name='mod_attributes',
+            field=jsonfield.fields.JSONField(default=b'{}', null=True),
         ),
         migrations.AddField(
             model_name='webloghistory',
