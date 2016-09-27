@@ -307,7 +307,7 @@ class MetricManager(models.Manager):
 
 
 class Metric(TimeStampedModel):
-    event_name = models.CharField(max_length=30)
+    event_name = models.CharField(max_length=200)
     params = JSONField(default='', null=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  #User or Module
     object_id = models.CharField(max_length=20)
