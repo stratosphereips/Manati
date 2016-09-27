@@ -465,6 +465,7 @@ function AnalysisSessionLogic(){
                     {
                         _filename = file.name;
                         _size_file = file.size;
+                        var type = file.type;
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
                         $("#weblogfile-name").html(file.name);
