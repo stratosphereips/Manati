@@ -35,7 +35,7 @@ function EventReg(params){
         return paramenters;
     };
 }
-function Metrics(active, pass_phase ){
+function Metrics(active){
     var active = active;
     var thiz = this;
     var time = moment();
@@ -55,59 +55,59 @@ function Metrics(active, pass_phase ){
     }
 
     // save single labeling and if they/it were/was by Buttons or menucontext or hotkeys
-    var EventMultipleLabelings = function(weblogs_old, verdict, produced_by){
+    var EventMultipleLabelings = function(rows_affected, verdict, produced_by){
         if(!active) return false;
         var event_name;
         var data_wb;
-        if(weblogs_old instanceof Array){
-            event_name = "multiple_labelings";
-            data_wb = weblogs_old;
+        if(rows_affected instanceof Array && rows_affected.length > 0){
+            data_wb = rows_affected;
+            if(rows_affected.length > 1){
+                event_name = "multiple_labelings";
+            }else{
+                event_name = "single_labeling";
+            }
+            var event_reg = EventReg({  'event_name': event_name,
+                                        'weblogs_affected':data_wb,
+                                        'amount_wbls': data_wb.length,
+                                        'new_verdict': verdict,
+                                        'event_produced_by': produced_by});
+            addValue(event_reg);
+            return true;
+
         }else{
-           event_name = "single_labeling";
-            data_wb = [weblogs_old];
+            throw_error_logging("the 'weblogs_old' must be an array not empty")
         }
-        var event_reg = EventReg({  'event_name': event_name,
-                                    'weblogs_affected':data_wb,
-                                    'amount_wbls': data_wb.length,
-                                    'new_verdict': verdict,
-                                    'event_produced_by': produced_by});
-        addValue(event_reg);
-        return true;
-
-
 
     };
-    this.EventMultipleLabelingsByButtons = function(weblogs_old, verdict){
-        EventMultipleLabelings(weblogs_old,verdict, "buttons")
+    this.EventMultipleLabelingsByButtons = function(rows_affected, verdict){
+        EventMultipleLabelings(rows_affected,verdict, "buttons")
 
     };
-    this.EventMultipleLabelingsByMenuContext = function(weblogs_old, verdict){
-        EventMultipleLabelings(weblogs_old,verdict, "menucontext")
+    this.EventMultipleLabelingsByMenuContext = function(rows_affected, verdict){
+        EventMultipleLabelings(rows_affected,verdict, "menucontext")
 
     };
-    this.EventMultipleLabelingsByHotKeys = function(weblogs_old, verdict){
-        EventMultipleLabelings(weblogs_old,verdict, "hotkeys")
+    this.EventMultipleLabelingsByHotKeys = function(rows_affected, verdict){
+        EventMultipleLabelings(rows_affected,verdict, "hotkeys")
     };
 
     var EventBulkLabeling = function (weblogs_old, verdict, labeled_by){
         if(!active)return false;
         var event_name = "bulk_labeling";
         var data_wb;
-        if(weblogs_old instanceof Array){
+        if(weblogs_old instanceof Array && rows_affected.length > 0){
             data_wb = weblogs_old;
+            var event_reg = EventReg({  'event_name': event_name,
+                                        'weblogs_affected':data_wb,
+                                        'amount_wbls': data_wb.length,
+                                        'new_verdict': verdict,
+                                        'labeled_by': labeled_by});
+            addValue(event_reg);
+            return true;
         }else{
            throw_error_logging("\'weblogs_old\' must be a Array");
+            return false
         }
-        var event_reg = EventReg({  'event_name': event_name,
-                                    'weblogs_affected':data_wb,
-                                    'amount_wbls': data_wb.length,
-                                    'new_verdict': verdict,
-                                    'labeled_by': labeled_by});
-        addValue(event_reg);
-
-        return true;
-
-
     };
     this.EventBulkLabelingByDomains = function(weblogs_old, verdict){
         EventBulkLabeling(weblogs_old,verdict, "domains")
@@ -159,6 +159,21 @@ function Metrics(active, pass_phase ){
         }
 
     };
+    this.EventFileUploadingError = function(file_name_raw){
+        if(!active) return false;
+        var event_name = "file_uploading_error";
+        if(fileUploadingStarted){
+            var event_reg = EventReg({  'event_name': event_name,
+                                        'file_name_raw': file_name_raw});
+            addValue(event_reg);
+            fileUploadingStarted = false;
+            return true;
+        }else{
+            throw_error_logging("you cannot throw EventFileUploadingFinished before of EventFileUploadingStart");
+            return false;
+        }
+
+    };
     var AnalysisSessionSavingStarted = false;
     this.EventAnalysisSessionSavingStart = function(number_rows, analysis_session_name){
         if(!active) return false;
@@ -189,15 +204,28 @@ function Metrics(active, pass_phase ){
             return false;
         }
     };
+    this.EventAnalysisSessionSavingError = function (analysis_session_id) {
+        if(!active)return false;
+        var event_name = "analysis_session_saving_error";
+        if(AnalysisSessionSavingStarted){
+            var event_reg = EventReg({  'event_name': event_name,
+                                        'analysis_session_id': analysis_session_id});
+            addValue(event_reg);
+            AnalysisSessionSavingStarted = false;
+            return true;
+        }else{
+            throw_error_logging("you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
+            return false;
+        }
+    };
     var AS_loading_edit_started = false;
-    this.EventLoadingEditingStart = function(analysis_session_id, number_rows){
+    this.EventLoadingEditingStart = function(analysis_session_id){
         if(!active) return false;
         var event_name = "anal_ses_loading_edit_start";
         if(!AS_loading_edit_started){
             AS_loading_edit_started = true;
             var event_reg = EventReg({  'event_name': event_name,
-                                        'analysis_session_id': analysis_session_id,
-                                        'number_rows': number_rows});
+                                        'analysis_session_id': analysis_session_id});
             addValue(event_reg);
             return true;
         }else{
@@ -205,9 +233,24 @@ function Metrics(active, pass_phase ){
         }
 
     };
-    this.EventLoadingEditingFinished = function(analysis_session_id){
+    this.EventLoadingEditingFinished = function(analysis_session_id,number_rows){
         if(!active)return false;
         var event_name = "anal_ses_loading_edit_finished";
+        if(AS_loading_edit_started){
+            var event_reg = EventReg({  'event_name': event_name,
+                                        'analysis_session_id': analysis_session_id,
+                                        'number_rows': number_rows});
+            addValue(event_reg);
+            AS_loading_edit_started = false;
+            return true;
+        }else{
+            throw_error_logging("you cannot throw EventLoadingEditingFinished before of EventLoadingEditingStart");
+            return false;
+        }
+    };
+    this.EventLoadingEditingError = function (analysis_session_id) {
+        if(!active) return false;
+        var event_name = "anal_ses_loading_edit_error";
         if(AS_loading_edit_started){
             var event_reg = EventReg({  'event_name': event_name,
                                         'analysis_session_id': analysis_session_id});
@@ -215,7 +258,7 @@ function Metrics(active, pass_phase ){
             AS_loading_edit_started = false;
             return true;
         }else{
-            throw_error_logging("you cannot throw EventLoadingEditingFinished before of EventLoadingEditingStart");
+            throw_error_logging("you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
             return false;
         }
     };

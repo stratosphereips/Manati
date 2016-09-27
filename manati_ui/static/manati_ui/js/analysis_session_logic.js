@@ -6,7 +6,7 @@ var _dt;
 var _countID =1;
 var thiz;
 var _db;
-var _filename, _size_file;
+var _filename, _size_file,_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 
@@ -23,6 +23,8 @@ var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+
+var _m = Metrics(true);
 
 
 var _loadingPlugin;
@@ -138,6 +140,7 @@ function AnalysisSessionLogic(){
                     headers.push(value);
                 });
                 initData(data,headers);
+                _m.EventFileUploadingFinished(_filename, rowCount);
             }
 
         }
@@ -147,8 +150,10 @@ function AnalysisSessionLogic(){
     this.markVerdict= function (verdict, class_selector) {
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
         console.log(verdict);
+        var rows_affected = [];
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
+            rows_affected.add(d);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
@@ -160,53 +165,54 @@ function AnalysisSessionLogic(){
         _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts.join(" ")).addClass(verdict);
         _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
         _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
+        return rows_affected;
 
     };
-    this.loopInfiniteLoading = function (){
-      _loadingPlugin = $('#loading-circle').cprogress({
-                           percent: 1, // starting position
-                           img1: '../../static/manati_ui/images/c1.png', // background
-                           img2: '../../static/manati_ui/images/c3.png', // foreground
-                           speed: 200, // speed (timeout)
-                           PIStep : 0.1, // every step foreground area is bigger about this val
-                           limit: 100, // end value
-                           loop : true, //if true, no matter if limit is set, progressbar will be running
-                           showPercent : false //show hide percent
-                      });
-    };
-
-    this.createLoading = function(){
-        _loadingPlugin = $('#loading-circle').cprogress({
-                           percent: 1, // starting position
-                           img1: '../../static/manati_ui/images/c1.png', // background
-                           img2: '../../static/manati_ui/images/c3.png', // foreground
-                           speed: 200, // speed (timeout)
-                           PIStep : 0.1, // every step foreground area is bigger about this val
-                           limit: 1, // end value
-                           loop : false, //if true, no matter if limit is set, progressbar will be running
-                           showPercent : false //show hide percent
-                      });
-
-        // // Create
-        // options = {
-        //      img1: 'v1.png',
-        //      img2: 'v2.png',
-        //      speed: 50,
-        //      limit: 70,
-        //
-        // };
-        //
-        // myplugin = $('#p1').cprogress(options);
-
-    };
-    this.addStepsLoading= function(step){
-        var previous_limit = _loadingPlugin.options('').limit;
-        // console.log("Limit: " + previous_limit + " Step: " + step);
-        _loadingPlugin.options({limit: previous_limit + step});
-    };
-    this.destroyLoading = function(){
-        _loadingPlugin.destroy();
-    };
+    // this.loopInfiniteLoading = function (){
+    //   _loadingPlugin = $('#loading-circle').cprogress({
+    //                        percent: 1, // starting position
+    //                        img1: '../../static/manati_ui/images/c1.png', // background
+    //                        img2: '../../static/manati_ui/images/c3.png', // foreground
+    //                        speed: 200, // speed (timeout)
+    //                        PIStep : 0.1, // every step foreground area is bigger about this val
+    //                        limit: 100, // end value
+    //                        loop : true, //if true, no matter if limit is set, progressbar will be running
+    //                        showPercent : false //show hide percent
+    //                   });
+    // };
+    //
+    // this.createLoading = function(){
+    //     _loadingPlugin = $('#loading-circle').cprogress({
+    //                        percent: 1, // starting position
+    //                        img1: '../../static/manati_ui/images/c1.png', // background
+    //                        img2: '../../static/manati_ui/images/c3.png', // foreground
+    //                        speed: 200, // speed (timeout)
+    //                        PIStep : 0.1, // every step foreground area is bigger about this val
+    //                        limit: 1, // end value
+    //                        loop : false, //if true, no matter if limit is set, progressbar will be running
+    //                        showPercent : false //show hide percent
+    //                   });
+    //
+    //     // // Create
+    //     // options = {
+    //     //      img1: 'v1.png',
+    //     //      img2: 'v2.png',
+    //     //      speed: 50,
+    //     //      limit: 70,
+    //     //
+    //     // };
+    //     //
+    //     // myplugin = $('#p1').cprogress(options);
+    //
+    // };
+    // this.addStepsLoading= function(step){
+    //     var previous_limit = _loadingPlugin.options('').limit;
+    //     // console.log("Limit: " + previous_limit + " Step: " + step);
+    //     _loadingPlugin.options({limit: previous_limit + step});
+    // };
+    // this.destroyLoading = function(){
+    //     _loadingPlugin.destroy();
+    // };
     var syncDB = function (){
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
@@ -257,10 +263,12 @@ function AnalysisSessionLogic(){
 
     function saveDB(){
         try{
+
             showLoading();
             $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
             $('#save-table').attr('disabled',true).addClass('disabled');
             var rows = _dt.rows();
+            _m.EventAnalysisSessionSavingStart(rows.length, _filename);
             var data = { filename: _filename,"keys[]": JSON.stringify(_data_headers),'data[]': JSON.stringify( rows.data().toArray())};
             //send the name of the file, and the first 10 registers
             $.ajax({
@@ -278,7 +286,7 @@ function AnalysisSessionLogic(){
                         var tr = $(cell).closest('tr');
                         if(!tr.hasClass("modified")) cell.innerHTML = 0;
                     } );
-
+                    _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
                     $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
                     $('#wrap-form-upload-file').hide();
@@ -293,7 +301,8 @@ function AnalysisSessionLogic(){
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
-
+                    //NOTIFY A ERROR
+                    _m.EventAnalysisSessionSavingError(_analysis_session_id);
                     hideLoading();
                 }
             });
@@ -331,13 +340,14 @@ function AnalysisSessionLogic(){
 
     var _bulk_marks_wbs = {};
     var _bulk_verdict;
-    var generateContextMenuItems = function(){
-        var setVerdict = function (verdict, rows){
-            _dt.rows('.selected').nodes().to$().removeClass('selected');
-            _dt.rows(rows).nodes().to$().addClass('selected');
-            thiz.markVerdict(verdict);
+    var setBulkVerdict = function (verdict, rows){
+        _dt.rows('.selected').nodes().to$().removeClass('selected');
+        _dt.rows(rows).nodes().to$().addClass('selected');
+        return thiz.markVerdict(verdict);
 
-        }
+    }
+    var generateContextMenuItems = function(){
+
         var items_menu = {};
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
@@ -353,7 +363,8 @@ function AnalysisSessionLogic(){
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
-                                setVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+                                var rows_affected = setBulkVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+                                _m.EventBulkLabelingByEndServerIP(rows_affected,_bulk_verdict);
 
                             }
                         },
@@ -361,7 +372,8 @@ function AnalysisSessionLogic(){
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
-                                setVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                                var rows_affected = setBulkVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                                _m.EventBulkLabelingByDomains(rows_affected,_bulk_verdict);
                             }
                     }
         }};
@@ -425,12 +437,9 @@ function AnalysisSessionLogic(){
                 build: function ($trigger, e){
                     return {
                         callback: function(key, options) {
-                            // if(key != 'undefined'){
-                            //     this.data('moreDisabled', !this.data('moreDisabled'));
-                            // }else{
-                            //     this.data('moreDisabled', false);
-                            // }
-                            thiz.markVerdict(key);
+                            var verdict = key;
+                            var rows_affected = thiz.markVerdict(verdict);
+                            _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
                             return true;
                         },
                         items: generateContextMenuItems()
@@ -465,7 +474,9 @@ function AnalysisSessionLogic(){
                     {
                         _filename = file.name;
                         _size_file = file.size;
-                        var type = file.type;
+                        _type_file = file.type;
+                        _m.EventFileUploadingStart(_filename,_size_file,_type_file);
+
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
                         $("#weblogfile-name").html(file.name);
@@ -474,7 +485,8 @@ function AnalysisSessionLogic(){
                     error: function(err, file, inputElem, reason)
                     {
                         console.log("ERROR Parsing:", err, file);
-                        $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
+                        $.notify("ERROR Parsing:" + " " + err + " "+ file);
+                        _m.EventFileUploadingError(file.name);
                     }
                 });
             });
@@ -500,7 +512,8 @@ function AnalysisSessionLogic(){
             //events for verdict buttons
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
-                thiz.markVerdict(verdict);
+                var rows_affected = thiz.markVerdict(verdict);
+                _m.EventMultipleLabelingsByButtons(rows_affected,verdict);
             } );
             $('.unselect').on('click', function (ev){
                 ev.preventDefault();
@@ -555,6 +568,7 @@ function AnalysisSessionLogic(){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
         showLoading();
+        _m.EventLoadingEditingStart(analysis_session_id);
         $.ajax({
                 type:"GET",
                 data: data,
@@ -563,12 +577,14 @@ function AnalysisSessionLogic(){
                 success : function(json) {// handle a successful response
                     var weblogs = JSON.parse(json['weblogs']);
                     var analysis_session_id = json['analysissessionid'];
-                    initDataEdit(weblogs, analysis_session_id)
+                    initDataEdit(weblogs, analysis_session_id);
+                    _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },
 
                 error : function(xhr,errmsg,err) { // handle a non-successful response
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    _m.EventLoadingEditingError(analysis_session_id);
 
                 }
             });
