@@ -24,7 +24,7 @@ var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,}
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 
-var _m = Metrics(true);
+var _m;
 
 
 var _loadingPlugin;
@@ -39,6 +39,7 @@ function AnalysisSessionLogic(){
     var rowCount, firstError, errorCount = 0;
     var db_name = 'weblogs_db';
     thiz = this;
+    _m = new Metrics(true);
 
 
      /************************************************************
