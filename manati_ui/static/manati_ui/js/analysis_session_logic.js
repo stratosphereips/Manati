@@ -87,7 +87,13 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
-                $(nRow).attr("data-dbid", aData[COLUMN_DT_ID]);
+                var str = aData[COLUMN_DT_ID].split(":");
+                if(str.length > 1){
+                    $(nRow).attr("data-dbid", str[1]);
+                }else{
+                    $(nRow).attr("data-dbid", str[0]);
+                }
+
 
             },
         });
@@ -291,6 +297,9 @@ function AnalysisSessionLogic(){
                     $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
                     $('#wrap-form-upload-file').hide();
+                    history.pushState({},
+                        "Edit AnalysisSession "  + _analysis_session_id,
+                        "/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
                     setInterval(syncDB, 10000 );
                     hideLoading();
                 },
@@ -549,7 +558,7 @@ function AnalysisSessionLogic(){
             var attributes = JSON.parse(elem.fields.attributes);
             attributes[COL_VERDICT_STR] = elem.fields.verdict;
             attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
-            attributes[COL_DT_ID_STR] = 0;
+            attributes[COL_DT_ID_STR] = id;
 
             if(headers == null){
                 headers = _.keys(attributes);
