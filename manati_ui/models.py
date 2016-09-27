@@ -185,7 +185,7 @@ class AnalysisSession(TimeStampedModel):
     objects = AnalysisSessionManager()
 
     def __unicode__(self):
-        return self.name
+        return unicode(self.name)
 
     class Meta:
         db_table = 'manati_analysis_sessions'
