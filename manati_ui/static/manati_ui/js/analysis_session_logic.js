@@ -39,7 +39,7 @@ function AnalysisSessionLogic(){
     var rowCount, firstError, errorCount = 0;
     var db_name = 'weblogs_db';
     thiz = this;
-    _m = new Metrics(false);
+    _m = new Metrics(true);
 
 
      /************************************************************

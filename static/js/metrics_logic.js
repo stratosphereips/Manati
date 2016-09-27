@@ -55,6 +55,15 @@ function Metrics(active){
             localStorage.removeItem(obj.getKey());
         }
     }
+    function removeValueByKey(key){
+        localStorage.removeItem(key);
+    }
+    function bulkRemoveValueByKey(keys){
+        $.each(keys,function(index, v){
+            removeValueByKey(v);
+        })
+
+    }
     this.listValues = function(){
         for (var i = 0; i < localStorage.length; i++)   {
             console.log(localStorage.key(i) + "=[" + localStorage.getItem(localStorage.key(i)) + "]");
@@ -62,13 +71,16 @@ function Metrics(active){
     };
     
     this.getAllValues = function () {
-        var values = [];
+        var values = {"keys":[], "data":[]};
         for (var i = 0; i < localStorage.length; i++)   {
-            values.add(localStorage.getItem(localStorage.key(i)));
+            var key = localStorage.key(i);
+            if(key.indexOf('EVENT_') >= 0) {
+                values["keys"].add(key);
+                values["data"].add(localStorage.getItem(key));
+            }
         }
         return values;
-        
-    }
+    };
 
     // save single labeling and if they/it were/was by Buttons or menucontext or hotkeys
     var EventMultipleLabelings = function(rows_affected, verdict, produced_by){
@@ -311,4 +323,30 @@ function Metrics(active){
     this.EventMakeCommentsAnalysisSession = function(analysis_session_id){
         return EventMakeComments("analysis_session",analysis_session_id)
     }
+
+    var syncWithDB = function(){
+        var measurements = thiz.getAllValues();
+        if(measurements['data'].length > 0){
+            var data = {'measurements[]': JSON.stringify(measurements['data']), "keys[]": JSON.stringify(measurements['keys']) };
+            $.ajax({
+                    type:"POST",
+                    data: data,
+                    dataType: "json",
+                    url: "/manati_ui/analysis_session/sync_metrics",
+                    success : function(json) {// handle a successful response
+                        var keys = json.keys;
+                        // console.log("Sync Metrics DONE, " + json.measurements_length + " registers were saved");
+                        // console.log(keys);
+                        bulkRemoveValueByKey(keys);
+
+                    },
+                    error : function(xhr,errmsg,err) { // handle a non-successful response
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    }
+                });
+        }
+
+    };
+    setInterval(syncWithDB, 1000 * 60 ); //each minute start synchronization
 }
