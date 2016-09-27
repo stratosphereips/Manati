@@ -73,6 +73,9 @@ function AnalysisSessionLogic(){
         _dt = $('#weblogs-datatable').DataTable({
             data: data,
             columns: columns,
+            "search": {
+                "regex": true
+            },
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
@@ -93,9 +96,7 @@ function AnalysisSessionLogic(){
                 }else{
                     $(nRow).attr("data-dbid", str[0]);
                 }
-
-
-            },
+            }
         });
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
@@ -472,7 +473,7 @@ function AnalysisSessionLogic(){
             $('#upload').click(function (){
                  $('input[type=file]').parse({
                     config: {
-                        delimiter: ',',
+                        delimiter: "",
                         header: true,
                         complete: completeFn,
                         // step: stepFn,
