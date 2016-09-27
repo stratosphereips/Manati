@@ -100,12 +100,30 @@ def sync_db(request):
 
 @login_required(login_url="/")
 @csrf_exempt
+def sync_metrics(request):
+    try:
+        if request.method == 'POST':
+            current_user = request.user
+            u_measurements = json.loads(request.POST.get('measurements[]', ''))
+            u_keys = json.loads(request.POST.get('keys[]', ''))
+            Metric.objects.create_bulk_by_user(u_measurements, current_user)
+            json_data = json.dumps({'msg': 'Sync Metrics DONE',
+                                    'measurements_length': len(u_measurements), 'keys': u_keys})
+            return HttpResponse(json_data, content_type="application/json")
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url="/")
+@csrf_exempt
 def get_weblogs(request):
     try:
         if request.method == 'GET':
             analysis_session_id = request.GET.get('analysis_session_id', '')
             analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-            return JsonResponse(dict(weblogs=serializers.serialize("json",analysis_session.weblog_set.all()),analysissessionid=analysis_session_id))
+            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()), analysissessionid=analysis_session_id))
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")

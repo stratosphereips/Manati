@@ -16,6 +16,7 @@ import json
 from jsonfield import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericRelation
 
 
 # from django.db.models.signals import post_save
@@ -183,6 +184,7 @@ class AnalysisSession(TimeStampedModel):
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
 
     objects = AnalysisSessionManager()
+    comments = GenericRelation('Comment')
 
     def __unicode__(self):
         return unicode(self.name)
@@ -224,6 +226,7 @@ class Weblog(TimeStampedModel):
     verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=20, null=True)
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
+    comments = GenericRelation('Comment')
     dt_id = -1
 
     class Meta:
@@ -279,7 +282,7 @@ class WeblogHistory(TimeStampedModel):
         db_table = 'manati_weblog_history'
 
 
-class Comments(TimeStampedModel):
+class Comment(TimeStampedModel):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # Weblog or AnalysisSession
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -289,12 +292,27 @@ class Comments(TimeStampedModel):
         db_table = 'manati_comments'
 
 
+class MetricManager(models.Manager):
+
+    @transaction.atomic
+    def create_bulk_by_user(self, measurements, current_user):
+        with transaction.atomic():
+            for elem in measurements:
+                measure = json.loads(elem)
+                event_name = measure['event_name']
+                measure.pop('event_name', None)
+                Metric.objects.create(event_name=event_name,
+                                      params=json.dumps(measure),
+                                      content_object=current_user)
+
+
 class Metric(TimeStampedModel):
     event_name = models.CharField(max_length=30)
     params = JSONField(default='', null=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  #User or Module
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
+    objects = MetricManager()
 
     class Meta:
         db_table = 'manati_metrics'
