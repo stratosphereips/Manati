@@ -329,7 +329,6 @@ function AnalysisSessionLogic(){
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
-            className: "calculate",
             icon: "fa-search-plus",
             // disabled: function(){ return !this.data('moreDisabled'); },
             items: {
@@ -361,32 +360,6 @@ function AnalysisSessionLogic(){
         return domain
     }
     function contextMenuSettings (){
-       //  $("body").on("mouseenter mouseleave", "ul.context-menu-list.context-menu-root li.context-menu-submenu.calculate", function (){
-       //      var thiss = $(this);
-       //      var tr_active = $("tr.menucontext-open.context-menu-active");
-       //      var bigData = _dt.rows(tr_active).data()[0];
-       //      _bulk_verdict = bigData[COLUMN_VERDICT];
-       //      _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = [];
-       //      _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = [];
-       //      var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
-       //      var url = bigData[COLUMN_HTTP_URL];
-       //      var domain = findDomainOfURL(url); // getting domain
-       //      _dt.rows().nodes().each(function (dom_row,i) {
-       //          var data = _dt.row(dom_row).data();
-       //          var local_url = data[COLUMN_HTTP_URL];
-       //          var local_domain = findDomainOfURL(local_url);
-       //          var local_ip_value = data[COLUMN_END_POINTS_SERVER];
-       //          if(local_domain != null && local_domain === domain){
-       //              _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].add(dom_row);
-       //          }
-       //          if(local_ip_value === ip_value){
-       //              _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].add(dom_row);
-       //          }
-       //      });
-       //      thiss.find("li."+CLASS_MC_END_POINTS_SERVER_STR).html("EndPoints Server ("+ _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+ ")");
-       //      thiss.find("li."+CLASS_MC_HTTP_URL_STR).html("Domain ("+ _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+ ")");
-       //      thiss.removeClass("calculate");
-       // });
         //events for verdicts buttons on context popup menu
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
