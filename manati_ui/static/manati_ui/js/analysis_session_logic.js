@@ -583,7 +583,6 @@ function AnalysisSessionLogic(){
         var blobURL = window.URL.createObjectURL(blob);
 
         var worker = new Worker(blobURL);
-        // var worker = new Worker('http://127.0.0.1:8000/static/manati_ui/js/libs/worker_processing_weblogs.js');
         worker.addEventListener('message', function(e) {
             _flows_grouped = e.data;
             _helper = new FlowsProcessed(_flows_grouped);
