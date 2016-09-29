@@ -11,7 +11,7 @@ function FlowsProcessed(flows_grouped){
         if(key_flow == null || key_group == null || value == null) return false;
         if(!(flows_grouped[key_flow] instanceof Object))flows_grouped[key_flow] = {};
         if(!(flows_grouped[key_flow][key_group] instanceof Array))flows_grouped[key_flow][key_group] = [];
-        flows_grouped[key_flow][key_group].push(value.dt_id);
+        flows_grouped[key_flow][key_group].push(value);
         return true;
 
     }

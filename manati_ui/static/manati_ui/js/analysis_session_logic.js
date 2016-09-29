@@ -23,7 +23,7 @@ var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
-var _flows_grouped = {};
+var _flows_grouped;
 var _helper;
 
 var _m;
@@ -73,7 +73,6 @@ function AnalysisSessionLogic(){
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
-        //     "sDom": "Rlfrtip",
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
@@ -397,8 +396,28 @@ function AnalysisSessionLogic(){
 
             });
     }
+    var setFileName = function(file_name){
+        $("#weblogfile-name").html(file_name);
+        _filename = file_name;
+    };
     function on_ready_fn (){
         $(document).ready(function() {
+            $("#edit-input").hide();
+            $("#weblogfile-name").on('click',function(){
+                var _thiz = $(this);
+                var input = $("#edit-input");
+                input.val(_thiz.html());
+                _thiz.hide();
+                input.show();
+                input.focus();
+            });
+            $("#edit-input").on('blur',function(){
+                var _thiz = $(this);
+                var label = $("#weblogfile-name");
+                setFileName(_thiz.val());
+                _thiz.hide();
+                label.show();
+            });
             //https://notifyjs.com/
             $.notify.defaults({
               autoHide: true,
@@ -419,14 +438,12 @@ function AnalysisSessionLogic(){
                     },
                     before: function(file, inputElem)
                     {
-                        _filename = file.name;
                         _size_file = file.size;
                         _type_file = file.type;
                         _m.EventFileUploadingStart(_filename,_size_file,_type_file);
-
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
-                        $("#weblogfile-name").html(file.name);
+                        setFileName(file.name);
 
                     },
                     error: function(err, file, inputElem, reason)
@@ -493,9 +510,9 @@ function AnalysisSessionLogic(){
         $.each(weblogs, function (index, elem){
             var id = elem.pk;
             var attributes = JSON.parse(elem.fields.attributes);
-            attributes[COL_VERDICT_STR] = elem.fields.verdict;
-            attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
-            attributes[COL_DT_ID_STR] = id;
+            attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+            attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+            attributes[COL_DT_ID_STR] = id.toString();
 
             if(headers == null){
                 headers = _.keys(attributes);
@@ -524,6 +541,8 @@ function AnalysisSessionLogic(){
                 success : function(json) {// handle a successful response
                     var weblogs = JSON.parse(json['weblogs']);
                     var analysis_session_id = json['analysissessionid'];
+                    var file_name = json['name'];
+                    setFileName(file_name);
                     initDataEdit(weblogs, analysis_session_id);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },
@@ -542,11 +561,13 @@ function AnalysisSessionLogic(){
         _dt.rows('.selected').nodes().to$().removeClass('selected');
         showLoading();
          var blob = new Blob([ "onmessage = function(e) { " +
-            "var flows_labelled = e.data[0];"+
             "var verdict = e.data[1];"+
             "var rows_data = e.data[2];"+
             "var col_dt_id = e.data[3];"+
             "var col_verdict = e.data[4];"+
+            "var origin = e.data[5];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "var flows_labelled = _.map(e.data[0],function(v,i){ return v.dt_id});"+
             "for(var i = 0; i< rows_data.length; i++) {"+
                 "var row_dt_id = rows_data[i][col_dt_id]; "+
                 "var index = flows_labelled.indexOf(row_dt_id); "+
@@ -564,10 +585,11 @@ function AnalysisSessionLogic(){
             hideLoading();
 	    });
         var rows_data = _dt.rows().data().toArray();
-        worker.postMessage([flows_labelled,verdict,rows_data, COLUMN_DT_ID, COLUMN_VERDICT]);
+        worker.postMessage([flows_labelled,verdict,rows_data, COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin]);
     };
 
     var processingFlows_WORKER = function (flows) {
+        _flows_grouped = {};
         var blob = new Blob([ "onmessage = function(e) { " +
             "var flows = e.data[1];"+
             "var flows_grouped = e.data[0];"+
