@@ -16,6 +16,7 @@ function FlowsProcessed(flows_grouped){
 
     }
     function findDomainOfURL(url){
+        if (typeof url !== "string") return null;
         var matching_domain = null;
         var domain = ( (matching_domain = url.match(REG_EXP_DOMAINS)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
         domain = (domain == null)  && ((matching_domain = url.match(REG_EXP_IP)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
