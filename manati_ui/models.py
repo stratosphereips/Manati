@@ -284,7 +284,7 @@ class Weblog(TimeStampedModel):
 
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
-    weblog = models.ForeignKey(Weblog)
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
     verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
     description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
