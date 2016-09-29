@@ -23,7 +23,8 @@ function FlowsProcessed(flows_grouped){
         return domain
     }
     function findIP(url){
-        var matching_domain;
+        if (typeof url !== "string") return null;
+        var matching_domain = null;
         var ip = ((matching_domain = url.match(REG_EXP_IP)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
         return ip;
     }
