@@ -185,8 +185,9 @@ function AnalysisSessionLogic(){
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1 ){
-                data_row[_analysis_session_id+":"+elem[COLUMN_DT_ID]]=elem[COLUMN_VERDICT];
+            if(elem[COLUMN_REG_STATUS] != -1){
+                var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
+                data_row[key_id]=elem[COLUMN_VERDICT];
             }
         });
         var data = {'analysis_session_id': _analysis_session_id,
