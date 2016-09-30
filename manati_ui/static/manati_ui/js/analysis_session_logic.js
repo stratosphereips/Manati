@@ -111,6 +111,7 @@ function AnalysisSessionLogic(){
          _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
             thiz.setColumnsOrderFlat(true);
         } );
+         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
 
     }
     function initData(data, headers) {
@@ -668,6 +669,7 @@ function AnalysisSessionLogic(){
         worker.addEventListener('message', function(e) {
             _flows_grouped = e.data;
             _helper = new FlowsProcessed(_flows_grouped);
+            _helper.makeStaticalSection();
             worker.terminate();
             console.log("Worker Done");
 	    });
