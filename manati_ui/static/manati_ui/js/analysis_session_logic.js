@@ -119,6 +119,7 @@ function AnalysisSessionLogic(){
         _data_headers = headers;
         _data_headers_keys = {};
         _countID = 1;
+        $("li#statical-nav").hide();
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
@@ -146,7 +147,6 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 

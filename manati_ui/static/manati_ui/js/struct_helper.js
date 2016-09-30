@@ -95,7 +95,6 @@ function FlowsProcessed(flows_grouped){
         });
         $("#statical-section").append("<br/>");
         $("#statical-section").append(table);
-
-
+        $("li#statical-nav").show();
     };
 }
