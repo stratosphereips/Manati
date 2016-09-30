@@ -467,7 +467,11 @@ function AnalysisSessionLogic(){
             $("#edit-input").on('blur',function(){
                 var _thiz = $(this);
                 var label = $("#weblogfile-name");
-                setFileName(_thiz.val());
+                var text_name = _thiz.val();
+                if(text_name.length > 0){
+                    setFileName(text_name);
+                }
+                _thiz.val("");
                 _thiz.hide();
                 label.show();
             });
