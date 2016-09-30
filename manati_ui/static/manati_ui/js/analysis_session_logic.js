@@ -86,7 +86,14 @@ function AnalysisSessionLogic(){
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
-            buttons: ['copy', 'csv', 'excel','colvis'],
+            buttons: ['copy', 'csv', 'excel','colvis',
+                {
+                    text: 'Filter',
+                    action: function ( e, dt, node, config ) {
+                        // for now nothing
+                    }
+                }
+            ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
