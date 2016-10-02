@@ -25,6 +25,7 @@ var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 var _flows_grouped;
 var _helper;
+var _filterDataTable;
 
 var _m;
 
@@ -88,9 +89,10 @@ function AnalysisSessionLogic(){
             responsive: true,
             buttons: ['copy', 'csv', 'excel','colvis',
                 {
-                    text: 'Filter',
+                    text: 'Filter by Verdicts',
+                    className: 'filter-verdicts',
                     action: function ( e, dt, node, config ) {
-                        // for now nothing
+                        _filterDataTable.showMenuContext(dt,node.offset());
                     }
                 }
             ],
@@ -154,6 +156,7 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
