@@ -640,32 +640,45 @@ function AnalysisSessionLogic(){
     };
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
-        var data = [];
-        headers_info.sort(function(a,b) {
-            return a.order - b.order;
-        });
-        var headers = $.map(headers_info,function(v,i){
-            return v.column_name
-        });
-        $.each(weblogs, function (index, elem){
-            var id = elem.pk;
-            var attributes = JSON.parse(elem.fields.attributes);
-            attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
-            attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
-            attributes[COL_DT_ID_STR] = id.toString();
-            data.push(attributes);
-        });
-        initData(data, headers );
-        //hide or show column
-        $.each(headers_info,function(index,elem){
-            _dt.columns(index).visible(elem.visible).draw()
-        });
+        if(weblogs.length > 1){
+            var data = [];
+            $.each(weblogs, function (index, elem){
+                var id = elem.pk;
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_DT_ID_STR] = id.toString();
+                data.push(attributes);
+            });
+            var headers;
+            if(_.isEmpty(headers_info)){
+                headers_info = _.keys(data[0]);
+                thiz.setColumnsOrderFlat(true);
+                headers = headers_info;
+            }else{
+                headers_info.sort(function(a,b) {
+                    return a.order - b.order;
+                });
+                headers = $.map(headers_info,function(v,i){
+                    return v.column_name
+                });
+            }
+            initData(data, headers );
+            //hide or show column
+            $.each(headers_info,function(index,elem){
+                _dt.columns(index).visible(elem.visible).draw()
+            });
 
-        $(document).ready(function(){
-            $('#panel-datatable').show();
-            setInterval(syncDB, 10000 );
+            $(document).ready(function(){
+                $('#panel-datatable').show();
+                setInterval(syncDB, 10000 );
 
-        })
+            });
+        }else{
+            hideLoading();
+            $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
+        }
 
 
     };
