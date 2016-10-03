@@ -17,6 +17,7 @@ from jsonfield import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
+from django.core import management
 
 
 # from django.db.models.signals import post_save
@@ -344,6 +345,43 @@ class Metric(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_metrics'
+
+
+class VTConsultManager(models.Manager):
+
+    @transaction.atomic
+    def create_one_consult(self, query_node,  user, line_report):
+        with transaction.atomic():
+            info = line_report.split(";")
+            index = 0
+            info_report_obj = {}
+            for elem in info:
+                info_report_obj[VTConsult.KEYS_INFO[index]] = elem
+                index += 1
+            VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(info_report_obj))
+
+class VTConsult(TimeStampedModel):
+    KEYS_INFO = ["IP","Rating","Owner","Country_Code","Log_Line_No","Positives","Total","Malicious","Samples","Hosts"]
+    query_node = models.CharField(max_length=100, null=False)
+    info_report = JSONField(default=json.dumps({}), null=False)
+    user = models.ForeignKey(User)
+
+    objects = VTConsultManager()
+
+    @staticmethod
+    def get_query_info(query_node, user):
+        vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                             created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+        if vt_consul is None:
+            management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
+            vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                                 created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+        return vt_consul
+
+    class Meta:
+        db_table = 'manati_virustotal_consults'
+
+
 
 
 #class Module(TimeStampedModel):

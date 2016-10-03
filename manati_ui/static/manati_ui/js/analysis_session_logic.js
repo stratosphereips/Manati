@@ -396,6 +396,25 @@ function AnalysisSessionLogic(){
                     }
         }};
         items_menu['sep2'] = "-----------";
+        items_menu['fold3'] = {
+            name: "Consult to VirusTotal", icon: "fa-search",
+            items: {
+                "fold2-key1": {
+                    name: "using HTTP URL",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        consultVirusTotal(findDomainOfURL(bigData[COLUMN_HTTP_URL]));
+                    }
+                },
+                "fold2-key2": {
+                    name: "using Endpoints Server IP",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        consultVirusTotal(bigData[COLUMN_END_POINTS_SERVER]);
+                    }
+                }
+            }
+        };
         items_menu['fold2'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
@@ -415,9 +434,58 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+
+
+
         return items_menu;
 
     };
+    function buildTableInfo_VT(info_report){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
+        table += "<tbody>";
+            for(var key in info_report){
+                table += "<tr>";
+                table += "<th>"+key+"</th>";
+                table += "<td>" + info_report[key]+ "</td>" ;
+                table += "</tr>";
+            }
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function consultVirusTotal(query_node){
+        $('#vt_consult_screen').modal('show');
+        $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            $(this).find(".table-section").html('').hide();
+            $(this).find(".loading").show();
+        });
+        $('#vt_consult_screen #vt_modal_title span').html(query_node);
+        var data = {query_node: query_node};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/consult_virus_total",
+            success : function(json) {// handle a successful response
+                var info_report = JSON.parse(json['info_report']);
+                var query_node = json['query_node'];
+                var table = buildTableInfo_VT(info_report);
+                var modal_body = $('#vt_consult_screen .modal-body');
+                modal_body.find('.table-section').html(table).show();
+                modal_body.find(".loading").hide();
+
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+    }
     function findDomainOfURL(url){
         var matching_domain = null;
         var domain = ( (matching_domain = url.match(REG_EXP_DOMAINS)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
