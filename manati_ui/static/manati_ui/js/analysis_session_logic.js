@@ -43,7 +43,7 @@ function AnalysisSessionLogic(){
     var db_name = 'weblogs_db';
     this.columns_order_changed = false;
     thiz = this;
-    _m = new Metrics(false);
+    _m = new Metrics(true);
 
     this.getColumnsOrderFlat =function(){
         return this.columns_order_changed;
