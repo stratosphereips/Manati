@@ -86,7 +86,14 @@ function AnalysisSessionLogic(){
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
-            buttons: ['copy', 'csv', 'excel','colvis'],
+            buttons: ['copy', 'csv', 'excel','colvis',
+                {
+                    text: 'Filter',
+                    action: function ( e, dt, node, config ) {
+                        // for now nothing
+                    }
+                }
+            ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 $(nRow).addClass(aData[COLUMN_VERDICT]);
@@ -111,6 +118,7 @@ function AnalysisSessionLogic(){
          _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
             thiz.setColumnsOrderFlat(true);
         } );
+         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
 
     }
     function initData(data, headers) {
@@ -118,6 +126,7 @@ function AnalysisSessionLogic(){
         _data_headers = headers;
         _data_headers_keys = {};
         _countID = 1;
+        $("li#statical-nav").hide();
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
@@ -145,7 +154,6 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
@@ -466,7 +474,11 @@ function AnalysisSessionLogic(){
             $("#edit-input").on('blur',function(){
                 var _thiz = $(this);
                 var label = $("#weblogfile-name");
-                setFileName(_thiz.val());
+                var text_name = _thiz.val();
+                if(text_name.length > 0){
+                    setFileName(text_name);
+                }
+                _thiz.val("");
                 _thiz.hide();
                 label.show();
             });
@@ -668,6 +680,7 @@ function AnalysisSessionLogic(){
         worker.addEventListener('message', function(e) {
             _flows_grouped = e.data;
             _helper = new FlowsProcessed(_flows_grouped);
+            _helper.makeStaticalSection();
             worker.terminate();
             console.log("Worker Done");
 	    });

@@ -90,3 +90,7 @@
 .dataTables_wrapper th, .dataTables_wrapper td {
     white-space: nowrap;
 }
+
+#statical-section table td{
+    vertical-align: middle
+}
