@@ -95,6 +95,21 @@ def make_virus_total_consult(request):
 
 @login_required(login_url="/")
 @csrf_exempt
+def export_metrics(request):
+    try:
+        if request.method == 'GET':
+            metrics = Metric.objects.all()
+            data = serializers.serialize('json', metrics)
+            return HttpResponse(data, content_type='application/json')
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+
+@login_required(login_url="/")
+@csrf_exempt
 def get_weblog_history(request):
     try:
         if request.method == 'GET':

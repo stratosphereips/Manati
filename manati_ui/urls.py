@@ -11,6 +11,7 @@ urlpatterns = [
     url(r'^user/profile_update', views.profile_update, name='profile_update_user'),
     url(r'^analysis_session/create$', views.create_analysis_session, name='create_analysis_session'),
     url(r'^consult_virus_total$', views.make_virus_total_consult, name='make_virus_total_consult'),
+    url(r'^export_metrics', views.export_metrics, name='export_metrics'),
     url(r'^analysis_session/weblog/history$', views.get_weblog_history, name='weblog_history'),
     url(r'^analysis_session/sync_db', views.sync_db, name='sync_db_analysis_session'),
     url(r'^analysis_session/sync_metrics', views.sync_metrics, name='sync_metrics_analysis_session'),
