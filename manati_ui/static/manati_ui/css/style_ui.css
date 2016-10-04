@@ -94,3 +94,14 @@
 #statical-section table td{
     vertical-align: middle
 }
+.modal .modal-content{
+    width: 800px;
+}
+.modal .modal-body table{
+    table-layout: fixed;
+    width: 100%;
+
+}
+.modal .modal-body table td{
+    word-wrap: break-word;
+}

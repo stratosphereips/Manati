@@ -25,6 +25,7 @@ var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
 var _flows_grouped;
 var _helper;
+var _filterDataTable;
 
 var _m;
 
@@ -79,7 +80,20 @@ function AnalysisSessionLogic(){
             },
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
+                // {   "targets": headers.indexOf(COL_HTTP_URL_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //
+                //         $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // },
+                // {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //         $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // }
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
@@ -88,9 +102,10 @@ function AnalysisSessionLogic(){
             responsive: true,
             buttons: ['copy', 'csv', 'excel','colvis',
                 {
-                    text: 'Filter',
+                    text: 'Filter by Verdicts',
+                    className: 'filter-verdicts',
                     action: function ( e, dt, node, config ) {
-                        // for now nothing
+                        _filterDataTable.showMenuContext(dt,node.offset());
                     }
                 }
             ],
@@ -119,6 +134,16 @@ function AnalysisSessionLogic(){
             thiz.setColumnsOrderFlat(true);
         } );
          _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
+
+         $("#weblogs-datatable").on("click", "a.virus-total-consult",function (ev) {
+             ev.preventDefault();
+             var elem = $(this);
+             var row = elem.closest('tr');
+             var query_node = elem.data('info') == 'domain' ? findDomainOfURL(elem.text()) : elem.text() ;
+             row.removeClass('selected');
+             consultVirusTotal(query_node);
+
+        });
 
     }
     function initData(data, headers) {
@@ -154,6 +179,7 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
@@ -393,6 +419,33 @@ function AnalysisSessionLogic(){
                     }
         }};
         items_menu['sep2'] = "-----------";
+        items_menu['fold3'] = {
+            name: "Consult to VirusTotal", icon: "fa-search",
+            items: {
+                "fold2-key1": {
+                    name: "using HTTP URL",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        consultVirusTotal(findDomainOfURL(bigData[COLUMN_HTTP_URL]));
+                    }
+                },
+                "fold2-key2": {
+                    name: "using Endpoints Server IP",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        consultVirusTotal(bigData[COLUMN_END_POINTS_SERVER]);
+                    }
+                }
+            }
+        };
+        items_menu['weblog-history'] = {name: "Consult History of Weblogs", icon: "fa-search",
+            callback: function (key, options) {
+                var weblog_id = bigData[COLUMN_DT_ID].toString();
+                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                getWeblogHistory(weblog_id);
+            }
+        };
+        items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
@@ -412,9 +465,112 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+
+
+
         return items_menu;
 
     };
+    function buildTableInfo_VT(info_report){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
+        table += "<tbody>";
+            for(var key in info_report){
+                table += "<tr>";
+                table += "<th>"+key+"</th>";
+                table += "<td>" + info_report[key]+ "</td>" ;
+                table += "</tr>";
+            }
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function initModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
+        $('#vt_consult_screen').modal('show');
+        $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            $(this).find(".table-section").html('').hide();
+            $(this).find(".loading").show();
+            $(this).find("#vt_modal_title").html('');
+        });
+    }
+    function updateBodyModal(table){
+        var modal_body = $('#vt_consult_screen .modal-body');
+        modal_body.find('.table-section').html(table).show();
+        modal_body.find(".loading").hide();
+    }
+    function consultVirusTotal(query_node){
+        initModal("Virus Total Query: <span>"+query_node+"</span>");
+        var data = {query_node: query_node};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/consult_virus_total",
+            success : function(json) {// handle a successful response
+                var info_report = JSON.parse(json['info_report']);
+                var query_node = json['query_node'];
+                var table = buildTableInfo_VT(info_report);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+    }
+    function buildTableInfo_Wbl_History(weblog_history){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
+        table += "<tbody>";
+            _.each(weblog_history, function (value, index) {
+                table += "<tr>";
+                // for(var key in value){
+                //     table += "<td>" + value[key]+ "</td>" ;
+                // }
+                table += "<td>" +  "</td>";
+                table += "<td>" + value.fields.old_verdict + "</td>" ;
+                table += "<td>" + value.fields.verdict + "</td>" ;
+                table += "<td>" + value.fields.created_at + "</td>" ;
+                table += "</tr>";
+            });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getWeblogHistory(weblog_id){
+        initModal("Weblog History ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/analysis_session/weblog/history",
+            success : function(json) {// handle a successful response
+                var weblog_history = JSON.parse(json['data']);
+                var table = buildTableInfo_Wbl_History(weblog_history);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+
+    }
     function findDomainOfURL(url){
         var matching_domain = null;
         var domain = ( (matching_domain = url.match(REG_EXP_DOMAINS)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
@@ -569,32 +725,52 @@ function AnalysisSessionLogic(){
     };
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
-        var data = [];
-        headers_info.sort(function(a,b) {
-            return a.order - b.order;
-        });
-        var headers = $.map(headers_info,function(v,i){
-            return v.column_name
-        });
-        $.each(weblogs, function (index, elem){
-            var id = elem.pk;
-            var attributes = JSON.parse(elem.fields.attributes);
-            attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
-            attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
-            attributes[COL_DT_ID_STR] = id.toString();
-            data.push(attributes);
-        });
-        initData(data, headers );
-        //hide or show column
-        $.each(headers_info,function(index,elem){
-            _dt.columns(index).visible(elem.visible).draw()
-        });
+        if(weblogs.length > 1){
+            // sorting header
+            var headers;
+            if(_.isEmpty(headers_info)){
+                headers_info = _.keys(data[0]);
+                thiz.setColumnsOrderFlat(true);
+                headers = headers_info;
+            }else{
+                headers_info.sort(function(a,b) {
+                    return a.order - b.order;
+                });
+                headers = $.map(headers_info,function(v,i){
+                    return v.column_name
+                });
+            }
+            //getting data
+            var data = [];
+            $.each(weblogs, function (index, elem){
+                var id = elem.pk;
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_DT_ID_STR] = id.toString();
+                var sorted_attributes = {};
+                _.each(headers, function(value, index){
+                    sorted_attributes[value] = attributes[value];
+                });
+                data.push(sorted_attributes);
+            });
 
-        $(document).ready(function(){
-            $('#panel-datatable').show();
-            setInterval(syncDB, 10000 );
+            initData(data, headers );
+            //hide or show column
+            $.each(headers_info,function(index,elem){
+                _dt.columns(index).visible(elem.visible).draw()
+            });
 
-        })
+            $(document).ready(function(){
+                $('#panel-datatable').show();
+                setInterval(syncDB, 10000 );
+
+            });
+        }else{
+            hideLoading();
+            $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
+        }
 
 
     };

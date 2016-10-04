@@ -14,7 +14,11 @@ import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic.edit import UpdateView
+# from subprocess import Popen, PIPE
 from utils import *
+# import os
+#
+# from StringIO import StringIO
 
 
 class IndexView(generic.ListView):
@@ -22,11 +26,11 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_question_list'
 
     def get_queryset(self):
-		"""
+        """
 		Return the last five published questions (not including those set to be
 		published in the future).
 		"""
-		return ''
+        return ''
 
 class AnalysisSessionNewView(generic.DetailView):
     model = AnalysisSession
@@ -34,8 +38,7 @@ class AnalysisSessionNewView(generic.DetailView):
 
 @login_required(login_url="/")
 def new_analysis_session_view(request):
-    # lastest_question_list = Question.objects.order_by('-pub_date')[:5]
-    # output = ', '.join([q.question_text for q in lastest_question_list])
+
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
@@ -70,8 +73,40 @@ def create_analysis_session(request):
     #     return render_to_json(request, data)
 
 
-def update_analysis_session(request):
-    return JsonResponse({'foo': 'bar'})
+@login_required(login_url="/")
+@csrf_exempt
+def make_virus_total_consult(request):
+    # script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # p = Popen(["/Users/raulbeniteznetto/proyectos/master_tesis/project_manati/venv/bin/python", script_dir+"/modules_extra/vt-checker-hosts.py", "-ff", "216.176.200.22", "--nocsv", "--nocache"], cwd=script_dir, stdout=PIPE, stderr=PIPE)
+    # out, err = p.communicate()
+    # print(out)"
+    # print(err)
+    try:
+        if request.method == 'GET':
+            current_user = request.user
+            query_node = str(request.GET.get('query_node', ''))
+            vtc_query_set = VTConsult.get_query_info(query_node, current_user)
+            return JsonResponse(dict(query_node=query_node, info_report=vtc_query_set.info_report, msg='VT Consult Done' ))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url="/")
+@csrf_exempt
+def get_weblog_history(request):
+    try:
+        if request.method == 'GET':
+            # current_user = request.user
+            weblog_id = str(request.GET.get('weblog_id', ''))
+            webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
+            return JsonResponse(dict(data=serializers.serialize("json", webh_query_set), msg='WeblogHistory Consulst DONE'))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
 
 
 def convert(data):

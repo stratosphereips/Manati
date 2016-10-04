@@ -17,6 +17,7 @@ from jsonfield import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
+from django.core import management
 
 
 # from django.db.models.signals import post_save
@@ -243,13 +244,21 @@ class Weblog(TimeStampedModel):
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
-    def save(self, *args, **kwargs):
-        super(Weblog, self).save(*args, **kwargs)
-        # save summary history
-        weblog_histoy = self.weblogs_history()
-        if not weblog_histoy or self.verdict != weblog_histoy[0].verdict:
-            newWeblogHistoy = WeblogHistory(weblog=self, verdict=self.verdict, content_object= self.analysis_session.users.first())
-            newWeblogHistoy.save()
+    @transaction.atomic
+    def save_with_history(self, *args, **kwargs):
+        with transaction.atomic():
+            old_wbl = Weblog.objects.get(id=self.id)
+            weblog_history = self.weblogs_history()
+            if not weblog_history or self.verdict != weblog_history[0].verdict:
+                newWeblogHistoy = WeblogHistory(weblog=self,
+                                                old_verdict=old_wbl.verdict,
+                                                verdict=self.verdict,
+                                                content_object=self.analysis_session.users.first())
+                newWeblogHistoy.save()
+
+            super(Weblog, self).save(*args, **kwargs)
+        # # save summary history
+
 
     def set_register_status(self, status, save=False):
         self.register_status = status
@@ -287,13 +296,14 @@ class Weblog(TimeStampedModel):
             raise ValidationError
 
         if save:
-            self.save()
+            self.save_with_history()
 
 
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
     weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
     verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
     description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
     object_id = models.CharField(max_length=20)
@@ -344,6 +354,43 @@ class Metric(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_metrics'
+
+
+class VTConsultManager(models.Manager):
+
+    @transaction.atomic
+    def create_one_consult(self, query_node,  user, line_report):
+        with transaction.atomic():
+            info = line_report.split(";")
+            index = 0
+            info_report_obj = {}
+            for elem in info:
+                info_report_obj[VTConsult.KEYS_INFO[index]] = elem
+                index += 1
+            VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(info_report_obj))
+
+class VTConsult(TimeStampedModel):
+    KEYS_INFO = ["IP","Rating","Owner","Country_Code","Log_Line_No","Positives","Total","Malicious","Samples","Hosts"]
+    query_node = models.CharField(max_length=100, null=False)
+    info_report = JSONField(default=json.dumps({}), null=False)
+    user = models.ForeignKey(User)
+
+    objects = VTConsultManager()
+
+    @staticmethod
+    def get_query_info(query_node, user):
+        vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                             created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+        if vt_consul is None:
+            management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
+            vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                                 created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+        return vt_consul
+
+    class Meta:
+        db_table = 'manati_virustotal_consults'
+
+
 
 
 #class Module(TimeStampedModel):
