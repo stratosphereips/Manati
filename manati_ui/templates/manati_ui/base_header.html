@@ -40,7 +40,7 @@
                     <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-user">
-                    <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
+                    <li><a href="{% url 'manati_ui:profie_view_user' %}"><i class="fa fa-user fa-fw"></i> User Profile</a>
                     </li>
                     <li class="divider"></li>
                     <li><a href="{% url 'django.contrib.auth.views.logout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a>

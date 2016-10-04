@@ -5,12 +5,15 @@ from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
 from .models import *
+from manati_ui.forms import UserProfileForm
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic.edit import UpdateView
 from utils import *
 
 
@@ -164,13 +167,44 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     template_name = 'manati_ui/analysis_session/edit.html'
 
     def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
-        # Add in a QuerySet of all the books
-        # context['weblogs'] = serializers.serialize("json",object.weblog_set.all())
         context['analysis_session_id'] = object.id
         return context
+
+@login_required(login_url="/")
+@csrf_exempt
+def profile_view(request):
+    user = request.user
+    form = UserProfileForm(initial={'first_name': user.first_name,
+                                    'last_name': user.last_name,
+                                    'email': user.email,
+                                    'username': user.username})
+    context = {"form": form}
+    return render(request, 'manati_ui/user/edit.html', context)
+
+
+def profile_update(request):
+    try:
+        if request.method == 'POST':
+            user = request.user
+            form = UserProfileForm(request.POST or None)
+            if form.is_valid():
+                user.first_name = request.POST['first_name']
+                user.last_name = request.POST['last_name']
+                user.username = request.POST['username']
+                user.email = request.POST['email']
+                user.save()
+            context = {
+                "form": form
+            }
+            return HttpResponseRedirect(redirect_to='/')
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
 
 
 
