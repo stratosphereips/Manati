@@ -23,6 +23,8 @@ var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+var _flows_grouped;
+var _helper;
 
 var _m;
 
@@ -46,18 +48,7 @@ function AnalysisSessionLogic(){
                             PRIVATE FUNCTIONS
      *************************************************************/
 
-    function initDatatable(headers, data_init){
-        _countID = 1;
-        var data = _.map(data_init,function(v, i){
-            var values = _.values(v);
-            if(values.length < headers.length){
-                values.add('undefined');
-                values.add(-1);
-                values.add(_countID.toString());
-            }
-            _countID++;
-            return values
-        });
+    function initDatatable(headers, data){
         var columns = [];
         for(var i = 0; i< headers.length ; i++){
             var v = headers[i];
@@ -82,7 +73,6 @@ function AnalysisSessionLogic(){
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
-        //     "sDom": "Rlfrtip",
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
@@ -111,6 +101,21 @@ function AnalysisSessionLogic(){
         _data_uploaded = data;
         _data_headers = headers;
         _data_headers_keys = {};
+        _countID = 1;
+        var data_processed = _.map(_data_uploaded,function(v, i){
+                                var values = _.values(v);
+                                if(values.length < _data_headers.length){
+                                    values.add('undefined');
+                                    values.add(-1);
+                                    values.add(_countID.toString());
+                                    _data_uploaded[i][COL_VERDICT_STR] = "undefined";
+                                    _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
+                                    _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
+                                 }
+                                _countID++;
+                                return values
+                            });
+        processingFlows_WORKER(_data_uploaded);
         $.each(_data_headers,function(i, v){
             _data_headers_keys[v] = i;
         });
@@ -125,7 +130,7 @@ function AnalysisSessionLogic(){
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
 
-        initDatatable(_data_headers, _data_uploaded);
+        initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
     }
@@ -157,7 +162,7 @@ function AnalysisSessionLogic(){
 
     this.markVerdict= function (verdict, class_selector) {
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
-        console.log(verdict);
+        // console.log(verdict);
         var rows_affected = [];
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
@@ -176,57 +181,13 @@ function AnalysisSessionLogic(){
         return rows_affected;
 
     };
-    // this.loopInfiniteLoading = function (){
-    //   _loadingPlugin = $('#loading-circle').cprogress({
-    //                        percent: 1, // starting position
-    //                        img1: '../../static/manati_ui/images/c1.png', // background
-    //                        img2: '../../static/manati_ui/images/c3.png', // foreground
-    //                        speed: 200, // speed (timeout)
-    //                        PIStep : 0.1, // every step foreground area is bigger about this val
-    //                        limit: 100, // end value
-    //                        loop : true, //if true, no matter if limit is set, progressbar will be running
-    //                        showPercent : false //show hide percent
-    //                   });
-    // };
-    //
-    // this.createLoading = function(){
-    //     _loadingPlugin = $('#loading-circle').cprogress({
-    //                        percent: 1, // starting position
-    //                        img1: '../../static/manati_ui/images/c1.png', // background
-    //                        img2: '../../static/manati_ui/images/c3.png', // foreground
-    //                        speed: 200, // speed (timeout)
-    //                        PIStep : 0.1, // every step foreground area is bigger about this val
-    //                        limit: 1, // end value
-    //                        loop : false, //if true, no matter if limit is set, progressbar will be running
-    //                        showPercent : false //show hide percent
-    //                   });
-    //
-    //     // // Create
-    //     // options = {
-    //     //      img1: 'v1.png',
-    //     //      img2: 'v2.png',
-    //     //      speed: 50,
-    //     //      limit: 70,
-    //     //
-    //     // };
-    //     //
-    //     // myplugin = $('#p1').cprogress(options);
-    //
-    // };
-    // this.addStepsLoading= function(step){
-    //     var previous_limit = _loadingPlugin.options('').limit;
-    //     // console.log("Limit: " + previous_limit + " Step: " + step);
-    //     _loadingPlugin.options({limit: previous_limit + step});
-    // };
-    // this.destroyLoading = function(){
-    //     _loadingPlugin.destroy();
-    // };
     var syncDB = function (){
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1 ){
-                data_row[_analysis_session_id+":"+elem[COLUMN_DT_ID]]=elem[COLUMN_VERDICT];
+            if(elem[COLUMN_REG_STATUS] != -1){
+                var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
+                data_row[key_id]=elem[COLUMN_VERDICT];
             }
         });
         var data = {'analysis_session_id': _analysis_session_id,
@@ -351,39 +312,40 @@ function AnalysisSessionLogic(){
 
     var _bulk_marks_wbs = {};
     var _bulk_verdict;
-    var setBulkVerdict = function (verdict, rows){
-        _dt.rows('.selected').nodes().to$().removeClass('selected');
-        _dt.rows(rows).nodes().to$().addClass('selected');
-        return thiz.markVerdict(verdict);
 
-    }
-    var generateContextMenuItems = function(){
-
+    var generateContextMenuItems = function(tr_dom){
+        // var tr_active = $("tr.menucontext-open.context-menu-active");
+        var bigData = _dt.rows(tr_dom).data()[0];
+        var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
+        var url = bigData[COLUMN_HTTP_URL];
+        var domain = findDomainOfURL(url); // getting domain
         var items_menu = {};
+        _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value);
+        _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain);
+        _bulk_verdict = bigData[COLUMN_VERDICT];
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
         });
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
-            className: "calculate",
             icon: "fa-search-plus",
             // disabled: function(){ return !this.data('moreDisabled'); },
             items: {
-            "fold1-key1": { name: "EndPoints Server",
+            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+"...)",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
-                                var rows_affected = setBulkVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+                                var rows_affected = setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
                                 _m.EventBulkLabelingByEndServerIP(rows_affected,_bulk_verdict);
 
                             }
                         },
-            "fold1-key2": { name: "Domain",
+            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+"...)",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
-                                var rows_affected = setBulkVerdict(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                                var rows_affected = setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
                                 _m.EventBulkLabelingByDomains(rows_affected,_bulk_verdict);
                             }
                     }
@@ -398,32 +360,6 @@ function AnalysisSessionLogic(){
         return domain
     }
     function contextMenuSettings (){
-        $("body").on("mouseenter mouseleave", "ul.context-menu-list.context-menu-root li.context-menu-submenu.calculate", function (){
-            var thiss = $(this);
-            var tr_active = $("tr.menucontext-open.context-menu-active");
-            var bigData = _dt.rows(tr_active).data()[0];
-            _bulk_verdict = bigData[COLUMN_VERDICT];
-            _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = [];
-            _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = [];
-            var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
-            var url = bigData[COLUMN_HTTP_URL];
-            var domain = findDomainOfURL(url); // getting domain
-            _dt.rows().nodes().each(function (dom_row,i) {
-                var data = _dt.row(dom_row).data();
-                var local_url = data[COLUMN_HTTP_URL];
-                var local_domain = findDomainOfURL(local_url);
-                var local_ip_value = data[COLUMN_END_POINTS_SERVER];
-                if(local_domain != null && local_domain === domain){
-                    _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].add(dom_row);
-                }
-                if(local_ip_value === ip_value){
-                    _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].add(dom_row);
-                }
-            });
-            thiss.find("li."+CLASS_MC_END_POINTS_SERVER_STR).html("EndPoints Server ("+ _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+ ")");
-            thiss.find("li."+CLASS_MC_HTTP_URL_STR).html("Domain ("+ _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+ ")");
-            thiss.removeClass("calculate");
-       });
         //events for verdicts buttons on context popup menu
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
@@ -453,7 +389,7 @@ function AnalysisSessionLogic(){
                             _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
                             return true;
                         },
-                        items: generateContextMenuItems()
+                        items: generateContextMenuItems($trigger)
 
                     }
                 }
@@ -461,8 +397,28 @@ function AnalysisSessionLogic(){
 
             });
     }
+    var setFileName = function(file_name){
+        $("#weblogfile-name").html(file_name);
+        _filename = file_name;
+    };
     function on_ready_fn (){
         $(document).ready(function() {
+            $("#edit-input").hide();
+            $("#weblogfile-name").on('click',function(){
+                var _thiz = $(this);
+                var input = $("#edit-input");
+                input.val(_thiz.html());
+                _thiz.hide();
+                input.show();
+                input.focus();
+            });
+            $("#edit-input").on('blur',function(){
+                var _thiz = $(this);
+                var label = $("#weblogfile-name");
+                setFileName(_thiz.val());
+                _thiz.hide();
+                label.show();
+            });
             //https://notifyjs.com/
             $.notify.defaults({
               autoHide: true,
@@ -483,14 +439,12 @@ function AnalysisSessionLogic(){
                     },
                     before: function(file, inputElem)
                     {
-                        _filename = file.name;
                         _size_file = file.size;
                         _type_file = file.type;
                         _m.EventFileUploadingStart(_filename,_size_file,_type_file);
-
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
-                        $("#weblogfile-name").html(file.name);
+                        setFileName(file.name);
 
                     },
                     error: function(err, file, inputElem, reason)
@@ -557,9 +511,9 @@ function AnalysisSessionLogic(){
         $.each(weblogs, function (index, elem){
             var id = elem.pk;
             var attributes = JSON.parse(elem.fields.attributes);
-            attributes[COL_VERDICT_STR] = elem.fields.verdict;
-            attributes[COL_REG_STATUS_STR] = elem.fields.register_status;
-            attributes[COL_DT_ID_STR] = id;
+            attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+            attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+            attributes[COL_DT_ID_STR] = id.toString();
 
             if(headers == null){
                 headers = _.keys(attributes);
@@ -574,7 +528,7 @@ function AnalysisSessionLogic(){
         })
 
 
-    }
+    };
     this.callingEditingData = function (analysis_session_id){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
@@ -588,6 +542,8 @@ function AnalysisSessionLogic(){
                 success : function(json) {// handle a successful response
                     var weblogs = JSON.parse(json['weblogs']);
                     var analysis_session_id = json['analysissessionid'];
+                    var file_name = json['name'];
+                    setFileName(file_name);
                     initDataEdit(weblogs, analysis_session_id);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },
@@ -600,7 +556,67 @@ function AnalysisSessionLogic(){
                 }
             });
 
-    }
+    };
+
+    var setBulkVerdict_WORKER = function (verdict, flows_labelled){
+        _dt.rows('.selected').nodes().to$().removeClass('selected');
+        showLoading();
+         var blob = new Blob([ "onmessage = function(e) { " +
+            "var verdict = e.data[1];"+
+            "var rows_data = e.data[2];"+
+            "var col_dt_id = e.data[3];"+
+            "var col_verdict = e.data[4];"+
+            "var origin = e.data[5];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "var flows_labelled = _.map(e.data[0],function(v,i){ return v.dt_id});"+
+            "for(var i = 0; i< rows_data.length; i++) {"+
+                "var row_dt_id = rows_data[i][col_dt_id]; "+
+                "var index = flows_labelled.indexOf(row_dt_id); "+
+                "if(index >=0){"+
+                   "rows_data[i][col_verdict] = verdict ;"+
+                "}"+
+             "};" +
+             "self.postMessage(rows_data)"+
+        "}"]);
+        var blobURL = window.URL.createObjectURL(blob);
+        var worker = new Worker(blobURL);
+        worker.addEventListener('message', function(e) {
+            var rows_data = e.data;
+            _dt.clear().rows.add(rows_data).draw();
+            hideLoading();
+	    });
+        var rows_data = _dt.rows().data().toArray();
+        worker.postMessage([flows_labelled,verdict,rows_data, COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin]);
+    };
+
+    var processingFlows_WORKER = function (flows) {
+        _flows_grouped = {};
+        var blob = new Blob([ "onmessage = function(e) { " +
+            "var flows = e.data[1];"+
+            "var flows_grouped = e.data[0];"+
+            "var origin = e.data[2];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "self.importScripts(origin+'/static/manati_ui/js/struct_helper.js');"+
+            "var helper = new FlowsProcessed(flows_grouped);"+
+            "for(var i = 0; i< flows.length; i++) helper.addFlows(flows[i]);"+
+            "self.postMessage(helper.getFlowsGrouped());" +
+        "}"]);
+
+        // Obtain a blob URL reference to our worker 'file'.
+        var blobURL = window.URL.createObjectURL(blob);
+
+        var worker = new Worker(blobURL);
+        worker.addEventListener('message', function(e) {
+            _flows_grouped = e.data;
+            _helper = new FlowsProcessed(_flows_grouped);
+            worker.terminate();
+            console.log("Worker Done");
+	    });
+        worker.postMessage([_flows_grouped,flows,document.location.origin]);
+
+    };
+
+
 
 
 

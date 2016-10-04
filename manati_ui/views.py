@@ -123,7 +123,7 @@ def get_weblogs(request):
         if request.method == 'GET':
             analysis_session_id = request.GET.get('analysis_session_id', '')
             analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()), analysissessionid=analysis_session_id))
+            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()), analysissessionid=analysis_session_id, name=analysis_session.name))
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")

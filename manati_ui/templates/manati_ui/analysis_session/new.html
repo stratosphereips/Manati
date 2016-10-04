@@ -1,6 +1,6 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    New Analysis Session - <span id="weblogfile-name"></span>
+    New Analysis Session - <span id="weblogfile-name"></span><input type="text" id="edit-input" />
 {% endblock %}
 {% block content %}
     <div class="row" id="analysis-session-page">
@@ -56,7 +56,10 @@
 
     </div>
     <style>
+    #weblogfile-name:hover{
+        cursor: pointer;
 
+    }
     </style>
     <script type="text/javascript">
        var logic = new AnalysisSessionLogic("{{weblogs_attribute |safe}}");
