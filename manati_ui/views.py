@@ -100,7 +100,9 @@ def export_metrics(request):
         if request.method == 'GET':
             metrics = Metric.objects.all()
             data = serializers.serialize('json', metrics)
-            return HttpResponse(data, content_type='application/json')
+            response = HttpResponse(data, content_type='application/json')
+            response['Content-Disposition'] = 'attachment; filename=metrics.json'
+            return response
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
