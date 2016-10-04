@@ -154,9 +154,6 @@ function AnalysisSessionLogic(){
         $("li#statical-nav").hide();
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
-                                //  _.each(_data_headers,function(dh, index){
-                                //     values.add(v[dh]);
-                                // });
                                 if(values.length < _data_headers.length){
                                     values.add('undefined');
                                     values.add(-1);
@@ -729,16 +726,7 @@ function AnalysisSessionLogic(){
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
         if(weblogs.length > 1){
-            var data = [];
-            $.each(weblogs, function (index, elem){
-                var id = elem.pk;
-                var attributes = JSON.parse(elem.fields.attributes);
-                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
-                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
-                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
-                attributes[COL_DT_ID_STR] = id.toString();
-                data.push(attributes);
-            });
+            // sorting header
             var headers;
             if(_.isEmpty(headers_info)){
                 headers_info = _.keys(data[0]);
@@ -752,6 +740,22 @@ function AnalysisSessionLogic(){
                     return v.column_name
                 });
             }
+            //getting data
+            var data = [];
+            $.each(weblogs, function (index, elem){
+                var id = elem.pk;
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_DT_ID_STR] = id.toString();
+                var sorted_attributes = {};
+                _.each(headers, function(value, index){
+                    sorted_attributes[value] = attributes[value];
+                });
+                data.push(sorted_attributes);
+            });
+
             initData(data, headers );
             //hide or show column
             $.each(headers_info,function(index,elem){
