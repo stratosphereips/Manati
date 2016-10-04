@@ -232,13 +232,26 @@ class Weblog(TimeStampedModel):
     class Meta:
         db_table = 'manati_weblogs'
 
+    def weblogs_history(self):
+        return WeblogHistory.objects.filter(weblog=self).order_by('-version')
+
+    def save(self, *args, **kwargs):
+        super(Weblog, self).save(*args, **kwargs)
+        # save summary history
+        weblog_histoy = self.weblogs_history()
+        if not weblog_histoy or self.verdict != weblog_histoy[0].verdict:
+            newWeblogHistoy = WeblogHistory(weblog=self, verdict=self.verdict, content_object= self.analysis_session.users.first())
+            newWeblogHistoy.save()
+
     def set_register_status(self, status, save=False):
         self.register_status = status
         if save:
             self.save()
+
     def set_verdict_from_module(self, verdict, save=False):
         #method that modules have to use for changing the verdict
         pass
+
     def set_verdict(self, verdict, save=False):
         #ADDING LOCK
         #check if verdict exist
@@ -270,16 +283,23 @@ class Weblog(TimeStampedModel):
 
 
 class WeblogHistory(TimeStampedModel):
-    weblog = models.ForeignKey(Weblog)
-    new_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
-    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
-    description = models.CharField(max_length=255, null=True)
+    version = models.IntegerField(editable=False, default=0)
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
+    verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         db_table = 'manati_weblog_history'
+        unique_together = ('version', 'weblog')
+
+    def save(self, *args, **kwargs):
+        # start with version 1 and increment it for each book
+        current_version = WeblogHistory.objects.filter(weblog=self.weblog).order_by('-version')[:1]
+        self.version = current_version[0].version + 1 if current_version else 1
+        super(WeblogHistory, self).save(*args, **kwargs)
 
 
 class Comment(TimeStampedModel):
