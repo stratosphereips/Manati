@@ -80,7 +80,20 @@ function AnalysisSessionLogic(){
             },
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)}
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
+                {   "targets": headers.indexOf(COL_HTTP_URL_STR),
+                    "createdCell": function (td, cellData, rowData, row, col) {
+
+                        $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
+
+                    }
+                },
+                {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
+                    "createdCell": function (td, cellData, rowData, row, col) {
+                        $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
+
+                    }
+                }
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
@@ -121,6 +134,16 @@ function AnalysisSessionLogic(){
             thiz.setColumnsOrderFlat(true);
         } );
          _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
+
+         $("#weblogs-datatable").on("click", "a.virus-total-consult",function (ev) {
+             ev.preventDefault();
+             var elem = $(this);
+             var row = elem.closest('tr');
+             var query_node = elem.data('info') == 'domain' ? findDomainOfURL(elem.text()) : elem.text() ;
+             row.removeClass('selected');
+             consultVirusTotal(query_node);
+
+        });
 
     }
     function initData(data, headers) {
