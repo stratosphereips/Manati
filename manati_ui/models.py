@@ -66,7 +66,7 @@ class AnalysisSessionManager(models.Manager):
                     i = 0
                     hash_attr = {}
                     for k in key_list:
-                        hash_attr[k] = elem[i]
+                        hash_attr[k['column_name']] = elem[i]
                         i += 1
                     verdict = hash_attr["verdict"]
                     dt_id = hash_attr["dt_id"]
@@ -188,6 +188,14 @@ class AnalysisSession(TimeStampedModel):
 
     def __unicode__(self):
         return unicode(self.name)
+
+    def get_columns_order_by(self, user):
+        return json.loads(AnalysisSessionUsers.objects.get(analysis_session_id=self.id, user_id=user.id).columns_order)
+
+    def set_columns_order_by(self,user,columns_order):
+        asu = AnalysisSessionUsers.objects.get(analysis_session=self,user_id=user.id)
+        asu.columns_order = json.dumps(columns_order)
+        asu.save()
 
     class Meta:
         db_table = 'manati_analysis_sessions'

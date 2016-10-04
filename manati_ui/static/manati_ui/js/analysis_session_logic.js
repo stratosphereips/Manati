@@ -40,10 +40,16 @@ function AnalysisSessionLogic(){
     var stepped = 0;
     var rowCount, firstError, errorCount = 0;
     var db_name = 'weblogs_db';
+    this.columns_order_changed = false;
     thiz = this;
     _m = new Metrics(false);
 
-
+    this.getColumnsOrderFlat =function(){
+        return this.columns_order_changed;
+    };
+    this.setColumnsOrderFlat =function (v) {
+        this.columns_order_changed = v;
+    };
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
@@ -64,6 +70,10 @@ function AnalysisSessionLogic(){
         _dt = $('#weblogs-datatable').DataTable({
             data: data,
             columns: columns,
+            fixedHeader: {
+                header: true
+            },
+            columnReorder: true,
             "search": {
                 "regex": true
             },
@@ -95,6 +105,12 @@ function AnalysisSessionLogic(){
         } );
         hideLoading();
         $('#panel-datatable').show();
+         _dt.on( 'column-reorder', function ( e, settings, details ) {
+            thiz.setColumnsOrderFlat(true);
+         });
+         _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
+            thiz.setColumnsOrderFlat(true);
+        } );
 
     }
     function initData(data, headers) {
@@ -192,6 +208,10 @@ function AnalysisSessionLogic(){
         });
         var data = {'analysis_session_id': _analysis_session_id,
                         'data': data_row };
+        if(thiz.getColumnsOrderFlat()){
+            data['headers[]']=JSON.stringify(get_headers_info());
+            thiz.setColumnsOrderFlat(false);
+        }
         $.ajax({
             type:"POST",
             data: JSON.stringify(data),
@@ -209,6 +229,7 @@ function AnalysisSessionLogic(){
                     var row = _dt.rows('[data-dbid="'+dt_id+'"]');
                     var index_row = row.indexes()[0];
                      row.nodes().to$().addClass('selected-sync');
+                    thiz.setColumnsOrderFlat(false);
                      thiz.markVerdict(elem.fields.verdict,'selected-sync');
                     row.nodes().to$().removeClass('modified');
                     _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
@@ -229,7 +250,15 @@ function AnalysisSessionLogic(){
 
         });
     };
-
+    function get_headers_info(){
+        // _data_headers
+        var column_visibles = _dt.columns().visible();
+        var headers = $.map(_dt.columns().header(),function (v,i) {
+            return {order: i, column_name: v.innerHTML, visible: column_visibles[i] };
+        });
+        
+        return headers;
+    }
     function saveDB(){
         try{
 
@@ -238,7 +267,11 @@ function AnalysisSessionLogic(){
             $('#save-table').attr('disabled',true).addClass('disabled');
             var rows = _dt.rows();
             _m.EventAnalysisSessionSavingStart(rows.length, _filename);
-            var data = { filename: _filename,"keys[]": JSON.stringify(_data_headers),'data[]': JSON.stringify( rows.data().toArray())};
+            var data = {
+                filename: _filename,
+                "headers[]": JSON.stringify(get_headers_info()),
+                'data[]': JSON.stringify(rows.data().toArray())
+            };
             //send the name of the file, and the first 10 registers
             $.ajax({
                 type:"POST",
@@ -264,6 +297,7 @@ function AnalysisSessionLogic(){
                         "/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
                     setInterval(syncDB, 10000 );
                     hideLoading();
+                    columns_order_changed = false;
                 },
 
                 // handle a non-successful response
@@ -350,6 +384,26 @@ function AnalysisSessionLogic(){
                             }
                     }
         }};
+        items_menu['sep2'] = "-----------";
+        items_menu['fold2'] = {
+            name: "Copy to clipboard", icon: "fa-files-o",
+            items: {
+                "fold2-key1": {
+                    name: "HTTP URL",
+                    icon: "fa-file-o",
+                    callback: function (key, options) {
+                        copyTextToClipboard(bigData[COLUMN_HTTP_URL]);
+                    }
+                },
+                "fold2-key2": {
+                    name: "Endpoints Server IP",
+                    icon: "fa-file-o",
+                    callback: function (key, options) {
+                        copyTextToClipboard(bigData[COLUMN_END_POINTS_SERVER]);
+                    }
+                }
+            }
+        };
         return items_menu;
 
     };
@@ -370,9 +424,6 @@ function AnalysisSessionLogic(){
                             this.addClass('selected');
                         }
                         this.addClass('menucontext-open');
-
-
-
                    },
                    hide : function(options) {
                        this.removeClass('menucontext-open');
@@ -504,23 +555,29 @@ function AnalysisSessionLogic(){
         // }
 
     };
-    var initDataEdit = function (weblogs, analysis_session_id) {
+    var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
-        var headers = null;
         var data = [];
+        headers_info.sort(function(a,b) {
+            return a.order - b.order;
+        });
+        var headers = $.map(headers_info,function(v,i){
+            return v.column_name
+        });
         $.each(weblogs, function (index, elem){
             var id = elem.pk;
             var attributes = JSON.parse(elem.fields.attributes);
             attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
             attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
             attributes[COL_DT_ID_STR] = id.toString();
-
-            if(headers == null){
-                headers = _.keys(attributes);
-            }
             data.push(attributes);
         });
         initData(data, headers );
+        //hide or show column
+        $.each(headers_info,function(index,elem){
+            _dt.columns(index).visible(elem.visible).draw()
+        });
+
         $(document).ready(function(){
             $('#panel-datatable').show();
             setInterval(syncDB, 10000 );
@@ -543,8 +600,10 @@ function AnalysisSessionLogic(){
                     var weblogs = JSON.parse(json['weblogs']);
                     var analysis_session_id = json['analysissessionid'];
                     var file_name = json['name'];
+                    var headers = JSON.parse(json['headers']);
                     setFileName(file_name);
-                    initDataEdit(weblogs, analysis_session_id);
+
+                    initDataEdit(weblogs, analysis_session_id,headers);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },
 
@@ -615,6 +674,64 @@ function AnalysisSessionLogic(){
         worker.postMessage([_flows_grouped,flows,document.location.origin]);
 
     };
+
+    var copyTextToClipboard = function(text) {
+      var textArea = document.createElement("textarea");
+
+      //
+      // *** This styling is an extra step which is likely not required. ***
+      //
+      // Why is it here? To ensure:
+      // 1. the element is able to have focus and selection.
+      // 2. if element was to flash render it has minimal visual impact.
+      // 3. less flakyness with selection and copying which **might** occur if
+      //    the textarea element is not visible.
+      //
+      // The likelihood is the element won't even render, not even a flash,
+      // so some of these are just precautions. However in IE the element
+      // is visible whilst the popup box asking the user for permission for
+      // the web page to copy to the clipboard.
+      //
+
+      // Place in top-left corner of screen regardless of scroll position.
+      textArea.style.position = 'fixed';
+      textArea.style.top = 0;
+      textArea.style.left = 0;
+
+      // Ensure it has a small width and height. Setting to 1px / 1em
+      // doesn't work as this gives a negative w/h on some browsers.
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+
+      // We don't need padding, reducing the size if it does flash render.
+      textArea.style.padding = 0;
+
+      // Clean up any borders.
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+
+      // Avoid flash of white box if rendered for any reason.
+      textArea.style.background = 'transparent';
+
+
+      textArea.value = text;
+
+      document.body.appendChild(textArea);
+
+      textArea.select();
+
+      try {
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'successful' : 'unsuccessful';
+        console.log('Copying text command was ' + msg);
+      } catch (err) {
+        console.log('Oops, unable to copy');
+      }
+
+      document.body.removeChild(textArea);
+    }
+
 
 
 

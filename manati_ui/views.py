@@ -46,7 +46,7 @@ def create_analysis_session(request):
         current_user = request.user
         filename = str(request.POST.get('filename', ''))
         u_data_list = json.loads(request.POST.get('data[]',''))
-        u_key_list = json.loads(request.POST.get('keys[]',''))
+        u_key_list = json.loads(request.POST.get('headers[]',''))
         analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user)
 
         if not analysis_session :
@@ -70,6 +70,7 @@ def create_analysis_session(request):
 def update_analysis_session(request):
     return JsonResponse({'foo': 'bar'})
 
+
 def convert(data):
     if isinstance(data, basestring):
         return str(data)
@@ -87,6 +88,11 @@ def sync_db(request):
         if request.method == 'POST':
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
+            if "headers[]" in received_json_data:
+                headers = json.loads(received_json_data['headers[]'])
+                analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+                analysis_session.set_columns_order_by(request.user, headers)
+                print("Headers Updated")
             data = convert(received_json_data['data'])
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
@@ -121,9 +127,14 @@ def sync_metrics(request):
 def get_weblogs(request):
     try:
         if request.method == 'GET':
+            user = request.user
             analysis_session_id = request.GET.get('analysis_session_id', '')
             analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()), analysissessionid=analysis_session_id, name=analysis_session.name))
+            headers = convert(analysis_session.get_columns_order_by(user))
+            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()),
+                                     analysissessionid=analysis_session_id,
+                                     name=analysis_session.name,
+                                     headers=json.dumps(headers)))
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")
