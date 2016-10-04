@@ -81,19 +81,19 @@ function AnalysisSessionLogic(){
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
-                {   "targets": headers.indexOf(COL_HTTP_URL_STR),
-                    "createdCell": function (td, cellData, rowData, row, col) {
-
-                        $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
-
-                    }
-                },
-                {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
-                    "createdCell": function (td, cellData, rowData, row, col) {
-                        $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
-
-                    }
-                }
+                // {   "targets": headers.indexOf(COL_HTTP_URL_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //
+                //         $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // },
+                // {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //         $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // }
             ],
             "scrollX": true,
             "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
@@ -154,6 +154,9 @@ function AnalysisSessionLogic(){
         $("li#statical-nav").hide();
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
+                                //  _.each(_data_headers,function(dh, index){
+                                //     values.add(v[dh]);
+                                // });
                                 if(values.length < _data_headers.length){
                                     values.add('undefined');
                                     values.add(-1);
@@ -438,6 +441,14 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+        items_menu['weblog-history'] = {name: "Consult History of Weblogs", icon: "fa-search",
+            callback: function (key, options) {
+                var weblog_id = bigData[COLUMN_DT_ID].toString();
+                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                getWeblogHistory(weblog_id);
+            }
+        };
+        items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
@@ -479,13 +490,22 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function consultVirusTotal(query_node){
+    function initModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
+            $(this).find("#vt_modal_title").html('');
         });
-        $('#vt_consult_screen #vt_modal_title span').html(query_node);
+    }
+    function updateBodyModal(table){
+        var modal_body = $('#vt_consult_screen .modal-body');
+        modal_body.find('.table-section').html(table).show();
+        modal_body.find(".loading").hide();
+    }
+    function consultVirusTotal(query_node){
+        initModal("Virus Total Query: <span>"+query_node+"</span>");
         var data = {query_node: query_node};
         $.ajax({
             type:"GET",
@@ -496,10 +516,7 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
-                var modal_body = $('#vt_consult_screen .modal-body');
-                modal_body.find('.table-section').html(table).show();
-                modal_body.find(".loading").hide();
-
+                updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -508,6 +525,54 @@ function AnalysisSessionLogic(){
             }
 
         })
+    }
+    function buildTableInfo_Wbl_History(weblog_history){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
+        table += "<tbody>";
+            _.each(weblog_history, function (value, index) {
+                table += "<tr>";
+                // for(var key in value){
+                //     table += "<td>" + value[key]+ "</td>" ;
+                // }
+                table += "<td>" +  "</td>";
+                table += "<td>" + value.fields.old_verdict + "</td>" ;
+                table += "<td>" + value.fields.verdict + "</td>" ;
+                table += "<td>" + value.fields.created_at + "</td>" ;
+                table += "</tr>";
+            });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getWeblogHistory(weblog_id){
+        initModal("Weblog History ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/analysis_session/weblog/history",
+            success : function(json) {// handle a successful response
+                var weblog_history = JSON.parse(json['data']);
+                var table = buildTableInfo_Wbl_History(weblog_history);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+
     }
     function findDomainOfURL(url){
         var matching_domain = null;

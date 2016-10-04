@@ -93,6 +93,21 @@ def make_virus_total_consult(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url="/")
+@csrf_exempt
+def get_weblog_history(request):
+    try:
+        if request.method == 'GET':
+            # current_user = request.user
+            weblog_id = str(request.GET.get('weblog_id', ''))
+            webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
+            return JsonResponse(dict(data=serializers.serialize("json", webh_query_set), msg='WeblogHistory Consulst DONE'))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
 
 def convert(data):
     if isinstance(data, basestring):
