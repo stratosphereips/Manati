@@ -347,7 +347,7 @@ function AnalysisSessionLogic(){
                     $('#save-table').attr('disabled',false).removeClass('disabled');
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
                     //NOTIFY A ERROR
-                    _m.EventAnalysisSessionSavingError(_analysis_session_id);
+                    _m.EventAnalysisSessionSavingError(_filename);
                     hideLoading();
                 }
             });
@@ -410,7 +410,7 @@ function AnalysisSessionLogic(){
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
                                 setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
-                                _m.EventBulkLabelingByEndServerIP(_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR],_bulk_verdict);
+                                _m.EventBulkLabelingByEndServerIP(_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR],_bulk_verdict, ip_value);
 
                             }
                         },
@@ -419,7 +419,7 @@ function AnalysisSessionLogic(){
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
                                 setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
-                                _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict);
+                                _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
                             }
                     }
         }};

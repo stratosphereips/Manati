@@ -44,6 +44,34 @@ function EventReg(params){
 function Metrics(active){
     var active = active;
     var thiz = this;
+    this.blobURL = null;
+
+    function init() {
+        var blob = new Blob([ "onmessage = function(e) { " +
+                "var rows_affected = e.data[0];"+
+                "var rows_affected_new = [rows_affected.length];"+
+                "var origin = e.data[1];"+
+                "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+                "self.importScripts(origin+'/static/manati_ui/js/libs/cryptico.min.js');"+
+                "self.importScripts(origin+'/static/js/utils.js');"+
+                "for(var i = 0; i< rows_affected.length; i++) {" +
+                    "var row = rows_affected[i];"+
+                    "var r = {};"+
+                    "for(var key in row){"+
+                        "var d = findDomainOfURL(row[key]);"+
+                        "if(d!=null)r[key] = SHA256(d);"+
+                    "};"+
+                    "r['dt_id']=row['dt_id'];"+
+                    "rows_affected_new[i] = r;"+
+                "};"+
+                "self.postMessage(rows_affected_new);" +
+            "}"]);
+
+            // Obtain a blob URL reference to our worker 'file'.
+        thiz.blobURL = window.URL.createObjectURL(blob);
+
+    }
+    init();
 
     function addValue(obj){
         if(obj instanceof EventReg){
@@ -85,26 +113,29 @@ function Metrics(active){
     // save single labeling and if they/it were/was by Buttons or menucontext or hotkeys
     var EventMultipleLabelings = function(rows_affected, verdict, produced_by){
         if(!active) return false;
-        var event_name;
-        var data_wb;
         if(rows_affected instanceof Array){
             if(rows_affected.length <= 0) return;
-            data_wb = rows_affected;
-            if(rows_affected.length > 1){
-                event_name = "multiple_labelings";
-            }else{
-                event_name = "single_labeling";
-            }
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'weblogs_affected':data_wb,
-                                        'amount_wbls': data_wb.length,
-                                        'new_verdict': verdict,
-                                        'event_produced_by': produced_by});
-            addValue(event_reg);
+            var worker = new Worker(thiz.blobURL);
+            worker.addEventListener('message', function(e) {
+                var event_name;
+                var data_wb = e.data;
+                if(data_wb.length > 1){
+                    event_name = "multiple_labelings";
+                }else{
+                    event_name = "single_labeling";
+                }
+                var event_reg = new EventReg({  'event_name': event_name,
+                                            'weblogs_affected':data_wb,
+                                            'amount_wbls': data_wb.length,
+                                            'new_verdict': verdict,
+                                            'event_produced_by': produced_by});
+                addValue(event_reg);
+            });
+            worker.postMessage([rows_affected,document.location.origin]);
             return true;
-
         }else{
-            throw_error_logging("the 'weblogs_old' must be an array")
+            throw_error_logging("the 'weblogs_old' must be an array");
+            return false;
         }
 
     };
@@ -120,37 +151,46 @@ function Metrics(active){
         EventMultipleLabelings(rows_affected,verdict, "hotkeys")
     };
 
-    var EventBulkLabeling = function (weblogs_old, verdict, labeled_by){
+    var EventBulkLabeling = function (rows_affected, verdict, labeled_by, filter_by){
         if(!active)return false;
-        var event_name = "bulk_labeling";
-        var data_wb;
-        if(weblogs_old instanceof Array && weblogs_old.length > 0){
-            data_wb = weblogs_old;
-            var event_reg = new EventReg({  'event_name': event_name,
+        if(rows_affected instanceof Array){
+            if(rows_affected.length <= 0) return;
+            var worker = new Worker(thiz.blobURL);
+            worker.addEventListener('message', function(e) {
+                var event_name = "bulk_labeling";
+                var data_wb = e.data;
+                var event_reg = new EventReg({  'event_name': event_name,
                                         'weblogs_affected':data_wb,
+                                        'filter_by': SHA256(filter_by),
                                         'amount_wbls': data_wb.length,
                                         'new_verdict': verdict,
                                         'labeled_by': labeled_by});
-            addValue(event_reg);
+                addValue(event_reg);
+            });
+            worker.postMessage([rows_affected,document.location.origin]);
             return true;
         }else{
-           throw_error_logging("\'weblogs_old\' must be a Array");
+            throw_error_logging("the 'weblogs_old' must be an array");
             return false
         }
-    };
-    this.EventBulkLabelingByDomains = function(weblogs_old, verdict){
-        EventBulkLabeling(weblogs_old,verdict, "domains")
+
+
+
 
     };
-    this.EventBulkLabelingByEndServerIP = function(weblogs_old, verdict){
-        EventBulkLabeling(weblogs_old,verdict, "domains")
+    this.EventBulkLabelingByDomains = function(weblogs_old, verdict,domain){
+        EventBulkLabeling(weblogs_old,verdict, "domains", domain)
+
+    };
+    this.EventBulkLabelingByEndServerIP = function(weblogs_old, verdict, ip){
+        EventBulkLabeling(weblogs_old,verdict, "ip", ip)
     };
 
     this.EventSearching = function(amount_wbls_affected){
         if(!active)return false;
         var event_name = "searching";
-        var event_reg = new EventReg({  'event_name': event_name,
-                                    'amount_wbls': amount_wbls_affected});
+        var event_reg = new EventReg({event_name: event_name,
+                                    amount_wbls: amount_wbls_affected});
         addValue(event_reg);
         return true;
     };
@@ -161,10 +201,10 @@ function Metrics(active){
         var event_name = "file_uploading_start";
         if(!fileUploadingStarted){
             fileUploadingStarted = true;
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'file_name_raw': file_name_raw,
-                                        'file_type': type,
-                                        'file_size': size});
+            var event_reg = new EventReg({ event_name: event_name,
+                                        file_name_raw: SHA256(file_name_raw),
+                                        file_type: type,
+                                        file_size: size});
             addValue(event_reg);
             return true;
         }else{
@@ -176,9 +216,9 @@ function Metrics(active){
         if(!active)return false;
         var event_name = "file_uploading_finished";
         if(fileUploadingStarted){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'file_name_raw': file_name_raw,
-                                        'number_rows': number_rows});
+            var event_reg = new EventReg({ event_name: event_name,
+                                        file_name_raw: SHA256(file_name_raw),
+                                        number_rows: number_rows});
             addValue(event_reg);
             fileUploadingStarted = false;
             return true;
@@ -192,8 +232,8 @@ function Metrics(active){
         if(!active) return false;
         var event_name = "file_uploading_error";
         if(fileUploadingStarted){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'file_name_raw': file_name_raw});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        file_name_raw: SHA256(file_name_raw)});
             addValue(event_reg);
             fileUploadingStarted = false;
             return true;
@@ -209,9 +249,9 @@ function Metrics(active){
         var event_name = "analysis_session_saving_start";
         if(!AnalysisSessionSavingStarted){
             AnalysisSessionSavingStarted = true;
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_name': analysis_session_name,
-                                        'number_rows': number_rows});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        analysis_session_name: SHA256(analysis_session_name),
+                                        number_rows: number_rows});
             addValue(event_reg);
             return true;
         }else{
@@ -222,9 +262,9 @@ function Metrics(active){
         if(!active)return false;
         var event_name = "analysis_session_saving_finished";
         if(AnalysisSessionSavingStarted){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_name': analysis_session_name,
-                                        'analysis_session_id': analysis_session_id});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        analysis_session_name: SHA256(analysis_session_name),
+                                        analysis_session_id: analysis_session_id});
             addValue(event_reg);
             AnalysisSessionSavingStarted = false;
             return true;
@@ -233,12 +273,12 @@ function Metrics(active){
             return false;
         }
     };
-    this.EventAnalysisSessionSavingError = function (analysis_session_id) {
+    this.EventAnalysisSessionSavingError = function (analysis_session_name, analysis_session_id) {
         if(!active)return false;
         var event_name = "analysis_session_saving_error";
         if(AnalysisSessionSavingStarted){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_id': analysis_session_id});
+            var event_reg = new EventReg({ event_name: event_name,
+                                        analysis_session_name: SHA256(analysis_session_name)});
             addValue(event_reg);
             AnalysisSessionSavingStarted = false;
             return true;
@@ -253,8 +293,8 @@ function Metrics(active){
         var event_name = "anal_ses_loading_edit_start";
         if(!AS_loading_edit_started){
             AS_loading_edit_started = true;
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_id': analysis_session_id});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        analysis_session_id: analysis_session_id});
             addValue(event_reg);
             return true;
         }else{
@@ -266,9 +306,9 @@ function Metrics(active){
         if(!active)return false;
         var event_name = "anal_ses_loading_edit_finished";
         if(AS_loading_edit_started){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_id': analysis_session_id,
-                                        'number_rows': number_rows});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        analysis_session_id: analysis_session_id,
+                                        number_rows: number_rows});
             addValue(event_reg);
             AS_loading_edit_started = false;
             return true;
@@ -281,8 +321,8 @@ function Metrics(active){
         if(!active) return false;
         var event_name = "anal_ses_loading_edit_error";
         if(AS_loading_edit_started){
-            var event_reg = new EventReg({  'event_name': event_name,
-                                        'analysis_session_id': analysis_session_id});
+            var event_reg = new EventReg({  event_name: event_name,
+                                        analysis_session_id: analysis_session_id});
             addValue(event_reg);
             AS_loading_edit_started = false;
             return true;
@@ -294,27 +334,28 @@ function Metrics(active){
     this.EventExportingTable = function(number_rows, exporting_type){
         if(!active)return false;
         var event_name = "exporting";
-        var event_reg = new EventReg({  'event_name': event_name,
-                                    'number_rows': number_rows,
-                                    'exporting_type': exporting_type});
+        var event_reg = new EventReg({  event_name: event_name,
+                                    number_rows: number_rows,
+                                    exporting_type: exporting_type});
         addValue(event_reg);
         return true;
     };
     this.EventMerging = function(rows_affected, verdict_merged){
         if(!active)return false;
         var event_name = "merging_detected";
-        var event_reg = new EventReg({  'event_name': event_name,
-                                    'rows_affected': rows_affected,
-                                    'verdict_merged': verdict_merged});
+        var event_reg = new EventReg({  event_name: event_name,
+                                    rows_affected: rows_affected,
+                                    verdict_merged: verdict_merged});
         addValue(event_reg);
         return true;
     };
     var EventMakeComments = function (type_comments, object_id){
+        //yet no implemented, add Worker to 'hash' it
         if(!active)return false;
         var event_name = "merging_detected";
-        var event_reg = new EventReg({  'event_name': event_name,
-                                    'rows_affected': rows_affected,
-                                    'verdict_merged': verdict_merged});
+        var event_reg = new EventReg({  event_name: event_name,
+                                    rows_affected: rows_affected,
+                                    verdict_merged: verdict_merged});
         addValue(event_reg);
         return true;
     };
