@@ -87,7 +87,8 @@ function Metrics(active){
         if(!active) return false;
         var event_name;
         var data_wb;
-        if(rows_affected instanceof Array && rows_affected.length > 0){
+        if(rows_affected instanceof Array){
+            if(rows_affected.length <= 0) return;
             data_wb = rows_affected;
             if(rows_affected.length > 1){
                 event_name = "multiple_labelings";
@@ -103,7 +104,7 @@ function Metrics(active){
             return true;
 
         }else{
-            throw_error_logging("the 'weblogs_old' must be an array not empty")
+            throw_error_logging("the 'weblogs_old' must be an array")
         }
 
     };

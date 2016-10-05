@@ -45,8 +45,10 @@ function FlowsProcessed(flows_grouped){
     this.addFlows = function(flow){
         _.each(flow, function (v,k){
             var d;
-            if((d = findDomainOfURL(v)) != null) groupingFlow(k,d,flow);
-            if((d = findIP(v)) != null) groupingFlow(k,d,flow);
+            if((d = findDomainOfURL(v)) != null){
+                groupingFlow(k,d,flow);
+            }
+            // if((d = findIP(v)) != null) groupingFlow(k,d,flow); d == null;
         });
 
     };
