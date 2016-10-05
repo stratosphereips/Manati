@@ -20,7 +20,7 @@ Manati is a django project with a postgres database and it works in Linux and Ma
 3. virtualenv vmanati
 4. source vmanati/bin/activate
 5. sudo apt-get install postgresql-server-dev-all
-6. sudo pip install -r requirements.txt
+6. pip install -r requirements.txt
 7. Start postgresql
 
     /etc/init.d/postgresql start
