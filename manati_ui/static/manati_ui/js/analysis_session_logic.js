@@ -43,7 +43,7 @@ function AnalysisSessionLogic(){
     var db_name = 'weblogs_db';
     this.columns_order_changed = false;
     thiz = this;
-    _m = new Metrics(true);
+    _m = new Metrics(true,this);
 
     this.getColumnsOrderFlat =function(){
         return this.columns_order_changed;
@@ -51,6 +51,13 @@ function AnalysisSessionLogic(){
     this.setColumnsOrderFlat =function (v) {
         this.columns_order_changed = v;
     };
+    this.getAnalysisSessionId = function () {
+        return _analysis_session_id;
+    };
+    this.getAnalysisSessionName = function () {
+        return _filename;
+    };
+
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
@@ -621,6 +628,9 @@ function AnalysisSessionLogic(){
         $("#weblogfile-name").html(file_name);
         _filename = file_name;
     };
+    var getFileName = function (){
+        return _filename;
+    }
     function on_ready_fn (){
         $(document).ready(function() {
             $("#edit-input").hide();

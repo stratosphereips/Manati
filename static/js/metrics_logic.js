@@ -21,8 +21,9 @@ function getTimeNow(){
     return time.format(DATETIME_FORMAT);
 }
 
-function EventReg(params){
+function EventReg(params, as_logic){
     var key;
+    var as_logic = as_logic;
     var paramenters = params;
     var init = function () {
         var unique_d = new Date().valueOf();
@@ -31,6 +32,8 @@ function EventReg(params){
             paramenters = {};
         }
         paramenters['created_at'] = getTimeNow();
+        paramenters['analysis_session_id'] = as_logic.getAnalysisSessionId();
+        paramenters['analysis_session_name'] = SHA256(as_logic.getAnalysisSessionName());
     };
     init();
 
@@ -41,9 +44,10 @@ function EventReg(params){
         return paramenters;
     };
 }
-function Metrics(active){
+function Metrics(active, analysis_session_logic){
     var active = active;
     var thiz = this;
+    this.as_logic = analysis_session_logic;
     this.blobURL = null;
 
     function init() {
@@ -128,7 +132,7 @@ function Metrics(active){
                                             'weblogs_affected':data_wb,
                                             'amount_wbls': data_wb.length,
                                             'new_verdict': verdict,
-                                            'event_produced_by': produced_by});
+                                            'event_produced_by': produced_by}, thiz.as_logic);
                 addValue(event_reg);
             });
             worker.postMessage([rows_affected,document.location.origin]);
@@ -164,7 +168,7 @@ function Metrics(active){
                                         'filter_by': SHA256(filter_by),
                                         'amount_wbls': data_wb.length,
                                         'new_verdict': verdict,
-                                        'labeled_by': labeled_by});
+                                        'labeled_by': labeled_by},thiz.as_logic);
                 addValue(event_reg);
             });
             worker.postMessage([rows_affected,document.location.origin]);
@@ -204,7 +208,7 @@ function Metrics(active){
             var event_reg = new EventReg({ event_name: event_name,
                                         file_name_raw: SHA256(file_name_raw),
                                         file_type: type,
-                                        file_size: size});
+                                        file_size: size},thiz.as_logic);
             addValue(event_reg);
             return true;
         }else{
@@ -218,7 +222,7 @@ function Metrics(active){
         if(fileUploadingStarted){
             var event_reg = new EventReg({ event_name: event_name,
                                         file_name_raw: SHA256(file_name_raw),
-                                        number_rows: number_rows});
+                                        number_rows: number_rows},thiz.as_logic);
             addValue(event_reg);
             fileUploadingStarted = false;
             return true;
@@ -233,7 +237,7 @@ function Metrics(active){
         var event_name = "file_uploading_error";
         if(fileUploadingStarted){
             var event_reg = new EventReg({  event_name: event_name,
-                                        file_name_raw: SHA256(file_name_raw)});
+                                        file_name_raw: SHA256(file_name_raw)},thiz.as_logic);
             addValue(event_reg);
             fileUploadingStarted = false;
             return true;
@@ -251,7 +255,7 @@ function Metrics(active){
             AnalysisSessionSavingStarted = true;
             var event_reg = new EventReg({  event_name: event_name,
                                         analysis_session_name: SHA256(analysis_session_name),
-                                        number_rows: number_rows});
+                                        number_rows: number_rows},thiz.as_logic);
             addValue(event_reg);
             return true;
         }else{
@@ -264,7 +268,7 @@ function Metrics(active){
         if(AnalysisSessionSavingStarted){
             var event_reg = new EventReg({  event_name: event_name,
                                         analysis_session_name: SHA256(analysis_session_name),
-                                        analysis_session_id: analysis_session_id});
+                                        analysis_session_id: analysis_session_id},thiz.as_logic);
             addValue(event_reg);
             AnalysisSessionSavingStarted = false;
             return true;
@@ -278,7 +282,7 @@ function Metrics(active){
         var event_name = "analysis_session_saving_error";
         if(AnalysisSessionSavingStarted){
             var event_reg = new EventReg({ event_name: event_name,
-                                        analysis_session_name: SHA256(analysis_session_name)});
+                                        analysis_session_name: SHA256(analysis_session_name)},thiz.as_logic);
             addValue(event_reg);
             AnalysisSessionSavingStarted = false;
             return true;
@@ -294,7 +298,7 @@ function Metrics(active){
         if(!AS_loading_edit_started){
             AS_loading_edit_started = true;
             var event_reg = new EventReg({  event_name: event_name,
-                                        analysis_session_id: analysis_session_id});
+                                        analysis_session_id: analysis_session_id},thiz.as_logic);
             addValue(event_reg);
             return true;
         }else{
@@ -308,7 +312,7 @@ function Metrics(active){
         if(AS_loading_edit_started){
             var event_reg = new EventReg({  event_name: event_name,
                                         analysis_session_id: analysis_session_id,
-                                        number_rows: number_rows});
+                                        number_rows: number_rows},thiz.as_logic);
             addValue(event_reg);
             AS_loading_edit_started = false;
             return true;
@@ -322,7 +326,7 @@ function Metrics(active){
         var event_name = "anal_ses_loading_edit_error";
         if(AS_loading_edit_started){
             var event_reg = new EventReg({  event_name: event_name,
-                                        analysis_session_id: analysis_session_id});
+                                        analysis_session_id: analysis_session_id},thiz.as_logic);
             addValue(event_reg);
             AS_loading_edit_started = false;
             return true;
@@ -336,7 +340,7 @@ function Metrics(active){
         var event_name = "exporting";
         var event_reg = new EventReg({  event_name: event_name,
                                     number_rows: number_rows,
-                                    exporting_type: exporting_type});
+                                    exporting_type: exporting_type},thiz.as_logic);
         addValue(event_reg);
         return true;
     };
@@ -345,7 +349,7 @@ function Metrics(active){
         var event_name = "merging_detected";
         var event_reg = new EventReg({  event_name: event_name,
                                     rows_affected: rows_affected,
-                                    verdict_merged: verdict_merged});
+                                    verdict_merged: verdict_merged},thiz.as_logic);
         addValue(event_reg);
         return true;
     };
@@ -355,7 +359,7 @@ function Metrics(active){
         var event_name = "merging_detected";
         var event_reg = new EventReg({  event_name: event_name,
                                     rows_affected: rows_affected,
-                                    verdict_merged: verdict_merged});
+                                    verdict_merged: verdict_merged},thiz.as_logic);
         addValue(event_reg);
         return true;
     };
