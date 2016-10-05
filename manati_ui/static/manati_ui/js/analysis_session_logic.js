@@ -6,7 +6,8 @@ var _dt;
 var _countID =1;
 var thiz;
 var _db;
-var _filename, _size_file,_type_file;
+var _filename = '';
+var _size_file,_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 

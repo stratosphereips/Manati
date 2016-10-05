@@ -55,7 +55,7 @@ function FlowsProcessed(flows_grouped){
 
     this.makeStaticalSection= function () {
         var table = document.createElement('table');
-        table.classList = ["table"]
+        table.classList = ["table"];
         var thead = document.createElement('thead');
         var tr = document.createElement('tr');
         var th1 = document.createElement('th');
