@@ -263,7 +263,7 @@ class Weblog(TimeStampedModel):
     def set_register_status(self, status, save=False):
         self.register_status = status
         if save:
-            self.save()
+            self.save_with_history()
 
     def set_verdict_from_module(self, verdict, save=False):
         #method that modules have to use for changing the verdict

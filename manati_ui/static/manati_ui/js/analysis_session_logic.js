@@ -111,12 +111,17 @@ function AnalysisSessionLogic(){
             ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
-                $(nRow).addClass(aData[COLUMN_VERDICT]);
+                var row = $(nRow);
+                row.addClass(aData[COLUMN_VERDICT]);
                 var str = aData[COLUMN_DT_ID].split(":");
+
+                if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
+                    if(!row.hasClass('modified')) row.addClass('modified');
+                }
                 if(str.length > 1){
-                    $(nRow).attr("data-dbid", str[1]);
+                    row.attr("data-dbid", str[1]);
                 }else{
-                    $(nRow).attr("data-dbid", str[0]);
+                    row.attr("data-dbid", str[0]);
                 }
             }
         });
@@ -814,6 +819,8 @@ function AnalysisSessionLogic(){
             "var col_dt_id = e.data[3];"+
             "var col_verdict = e.data[4];"+
             "var origin = e.data[5];"+
+            "var col_reg_status = e.data[6];"+
+            "var reg_status = e.data[7];"+
             "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
             "var flows_labelled = _.map(e.data[0],function(v,i){ return v.dt_id});"+
             "for(var i = 0; i< rows_data.length; i++) {"+
@@ -821,6 +828,7 @@ function AnalysisSessionLogic(){
                 "var index = flows_labelled.indexOf(row_dt_id); "+
                 "if(index >=0){"+
                    "rows_data[i][col_verdict] = verdict ;"+
+                   "rows_data[i][col_reg_status] = reg_status.modified ;"+
                 "}"+
              "};" +
              "self.postMessage(rows_data)"+
@@ -833,7 +841,8 @@ function AnalysisSessionLogic(){
             hideLoading();
 	    });
         var rows_data = _dt.rows().data().toArray();
-        worker.postMessage([flows_labelled,verdict,rows_data, COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin]);
+        worker.postMessage([flows_labelled,verdict,rows_data,
+            COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin, COLUMN_REG_STATUS, REG_STATUS]);
     };
 
     var processingFlows_WORKER = function (flows) {
