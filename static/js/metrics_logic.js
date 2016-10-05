@@ -273,7 +273,7 @@ function Metrics(active){
             return false;
         }
     };
-    this.EventAnalysisSessionSavingError = function (analysis_session_name, analysis_session_id) {
+    this.EventAnalysisSessionSavingError = function (analysis_session_name) {
         if(!active)return false;
         var event_name = "analysis_session_saving_error";
         if(AnalysisSessionSavingStarted){
