@@ -20,7 +20,7 @@ Manati is a django project with a postgres database and it works in Linux and Ma
 3. virtualenv vmanati
 4. source vmanati/bin/activate
 5. sudo apt-get install postgresql-server-dev-all
-6. sudo pip install -r requirements.txt
+6. pip install -r requirements.txt
 7. Start postgresql
 
     /etc/init.d/postgresql start
@@ -54,14 +54,11 @@ After putting the password you should be logged in in the postgres.
 
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
 
-## Make migrations files 
-11. python ./manage.py makemigrations
-
 ## Run migrate files
-12. python ./manage.py migrate
+11. python ./manage.py migrate
 
 ## Create super user for login in the web system
-13. python manage.py createsuperuser
+12. python manage.py createsuperuser
 
 ## How to run it
 It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:
