@@ -665,10 +665,11 @@ function AnalysisSessionLogic(){
                     {
                         _size_file = file.size;
                         _type_file = file.type;
-                        _m.EventFileUploadingStart(_filename,_size_file,_type_file);
+                        setFileName(file.name);
+                        _m.EventFileUploadingStart(file.name,_size_file,_type_file);
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
-                        setFileName(file.name);
+
 
                     },
                     error: function(err, file, inputElem, reason)
