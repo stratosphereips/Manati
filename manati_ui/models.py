@@ -390,6 +390,9 @@ class VTConsult(TimeStampedModel):
     class Meta:
         db_table = 'manati_virustotal_consults'
 
+    def __unicode__(self):
+        return unicode(self.info_report) or u''
+
 
 
 
