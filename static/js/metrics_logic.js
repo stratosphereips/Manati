@@ -123,7 +123,7 @@ function Metrics(active){
         if(!active)return false;
         var event_name = "bulk_labeling";
         var data_wb;
-        if(weblogs_old instanceof Array && rows_affected.length > 0){
+        if(weblogs_old instanceof Array && weblogs_old.length > 0){
             data_wb = weblogs_old;
             var event_reg = new EventReg({  'event_name': event_name,
                                         'weblogs_affected':data_wb,

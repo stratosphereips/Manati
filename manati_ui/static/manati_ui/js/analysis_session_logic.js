@@ -409,8 +409,8 @@ function AnalysisSessionLogic(){
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
-                                var rows_affected = setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
-                                _m.EventBulkLabelingByEndServerIP(rows_affected,_bulk_verdict);
+                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+                                _m.EventBulkLabelingByEndServerIP(_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR],_bulk_verdict);
 
                             }
                         },
@@ -418,8 +418,8 @@ function AnalysisSessionLogic(){
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
-                                var rows_affected = setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
-                                _m.EventBulkLabelingByDomains(rows_affected,_bulk_verdict);
+                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                                _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict);
                             }
                     }
         }};
