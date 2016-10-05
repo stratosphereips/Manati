@@ -370,7 +370,7 @@ class VTConsultManager(models.Manager):
             VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(info_report_obj))
 
 class VTConsult(TimeStampedModel):
-    KEYS_INFO = ["IP","Rating","Owner","Country_Code","Log_Line_No","Positives","Total","Malicious","Samples","Hosts"]
+    KEYS_INFO = ["IP","Rating","Owner","Country Code","Log Line No","Positives","Total","Malicious Samples","Hosts"]
     query_node = models.CharField(max_length=100, null=False)
     info_report = JSONField(default=json.dumps({}), null=False)
     user = models.ForeignKey(User)
