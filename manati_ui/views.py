@@ -161,6 +161,12 @@ def sync_db(request):
 
 @login_required(login_url="/")
 @csrf_exempt
+def delete_analysis_session(request, id):
+    AnalysisSession.objects.filter(id=id).delete()
+    return HttpResponseRedirect("/manati_ui/analysis_sessions")
+
+@login_required(login_url="/")
+@csrf_exempt
 def sync_metrics(request):
     try:
         if request.method == 'POST':

@@ -7,6 +7,7 @@ urlpatterns = [
     url(r'^$', views.IndexView.as_view(), name='index'),
     url(r'^analysis_session/new$', views.new_analysis_session_view, name='new_analysis_session'),
     url(r'^analysis_session/(?P<pk>[0-9]+)/edit', views.EditAnalysisSession.as_view(), name='edit_analysis_session'),
+    url(r'^analysis_session/(?P<id>[0-9]+)/delete', views.delete_analysis_session, name='delete_analysis_session'),
     url(r'^user/edit', views.profile_view, name='profie_view_user'),
     url(r'^user/profile_update', views.profile_update, name='profile_update_user'),
     url(r'^analysis_session/create$', views.create_analysis_session, name='create_analysis_session'),
