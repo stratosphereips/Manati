@@ -405,7 +405,7 @@ function AnalysisSessionLogic(){
             icon: "fa-search-plus",
             // disabled: function(){ return !this.data('moreDisabled'); },
             items: {
-            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+"...)",
+            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
@@ -414,7 +414,7 @@ function AnalysisSessionLogic(){
 
                             }
                         },
-            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+"...)",
+            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
