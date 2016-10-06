@@ -216,6 +216,7 @@ function AnalysisSessionLogic(){
                     headers.push(value);
                 });
                 initData(data,headers);
+                hideLoading();
                 _m.EventFileUploadingFinished(_filename, rowCount);
             }
 
@@ -451,13 +452,16 @@ function AnalysisSessionLogic(){
                 }
             }
         };
-        items_menu['weblog-history'] = {name: "Consult History of Weblogs", icon: "fa-search",
-            callback: function (key, options) {
-                var weblog_id = bigData[COLUMN_DT_ID].toString();
-                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                getWeblogHistory(weblog_id);
-            }
-        };
+        if(thiz.getAnalysisSessionId() != -1) {
+            items_menu['weblog-history'] = {
+                name: "Consult History of Weblogs", icon: "fa-search",
+                callback: function (key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getWeblogHistory(weblog_id);
+                }
+            };
+        }
         items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
@@ -677,6 +681,7 @@ function AnalysisSessionLogic(){
                         _size_file = file.size;
                         _type_file = file.type;
                         setFileName(file.name);
+                        showLoading();
                         _m.EventFileUploadingStart(file.name,_size_file,_type_file);
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
