@@ -541,8 +541,8 @@ function AnalysisSessionLogic(){
         modal_body.find(".loading").hide();
     }
     function consultVirusTotal(query_node, query_type){
-        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(qn);
-        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(qn);
+        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
+        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
         else{
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }
