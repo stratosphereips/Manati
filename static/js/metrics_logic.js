@@ -366,10 +366,28 @@ function Metrics(active, analysis_session_logic){
     };
     this.EventMakeCommentsWeblog = function(weblog_id){
         return EventMakeComments("weblog",weblog_id)
-    }
+    };
     this.EventMakeCommentsAnalysisSession = function(analysis_session_id){
         return EventMakeComments("analysis_session",analysis_session_id)
-    }
+    };
+
+    var EventVirusTotalConsultation = function (query_node, query_type){
+        if(!active)return false;
+        var event_name = "virustotal_consultation";
+        var event_reg = new EventReg({ event_name: event_name,
+                                    query_type: query_type,
+                                    query_node: SHA256(query_node)},
+                                    thiz.as_logic);
+        addValue(event_reg);
+        return true;
+
+    };
+    this.EventVirusTotalConsultationByIp = function(query_node){
+        EventVirusTotalConsultation(query_node, "ip");
+    };
+    this.EventVirusTotalConsultationByDomian = function(query_node){
+        EventVirusTotalConsultation(query_node, "domain");
+    };
 
     var syncWithDB = function(){
         var measurements = thiz.getAllValues();

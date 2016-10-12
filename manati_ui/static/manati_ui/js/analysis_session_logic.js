@@ -363,6 +363,8 @@ function AnalysisSessionLogic(){
                     setInterval(syncDB, 10000 );
                     hideLoading();
                     columns_order_changed = false;
+                    $("#weblogfile-name").off('click');
+                    $("#weblogfile-name").css('cursor','auto');
                 },
 
                 // handle a non-successful response
@@ -457,14 +459,17 @@ function AnalysisSessionLogic(){
                     name: "using HTTP URL",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        consultVirusTotal(findDomainOfURL(bigData[COLUMN_HTTP_URL]));
+                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        consultVirusTotal(qn, "domain");
+
                     }
                 },
                 "fold2-key2": {
                     name: "using Endpoints Server IP",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        consultVirusTotal(bigData[COLUMN_END_POINTS_SERVER]);
+                        var qn = bigData[COLUMN_END_POINTS_SERVER];
+                        consultVirusTotal(qn, "ip");
                     }
                 }
             }
@@ -535,7 +540,12 @@ function AnalysisSessionLogic(){
         modal_body.find('.table-section').html(table).show();
         modal_body.find(".loading").hide();
     }
-    function consultVirusTotal(query_node){
+    function consultVirusTotal(query_node, query_type){
+        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(qn);
+        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(qn);
+        else{
+            console.error("Error query_type for ConsultVirusTotal is incorrect")
+        }
         initModal("Virus Total Query: <span>"+query_node+"</span>");
         var data = {query_node: query_node};
         $.ajax({
