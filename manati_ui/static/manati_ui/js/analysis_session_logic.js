@@ -4,30 +4,38 @@
 //Concurrent variables for loading data in datatable
 var _dt;
 var _countID =1;
-var _attributes_db;
 var thiz;
 var _db;
-var _filename;
+var _filename = '';
+var _size_file,_type_file;
+var _data_uploaded,_data_headers;
+var _data_headers_keys = {};
 
 //Concurrent variables for saving on PG DB
-var SIZE_REQUEST = 30;
-var _data_wb = [];
-var _init_count = 0;
-var _finish_count = SIZE_REQUEST;
-var _total_data_wb;
 var _analysis_session_id = -1;
-var COLUMN_DT_ID = 13;
-var COLUMN_DB_ID = 14;
-var COLUMN_REG_STATUS = 12;
-var COLUMN_VERDICT = 11;
-var COLUMN_END_POINTS_SERVER = 3;
-var COLUMN_HTTP_URL = 1;
+var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
+var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
+var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
+var CLASS_MC_HTTP_URL_STR, CLASS_MC_END_POINTS_SERVER_STR;
 var REG_STATUS = {modified: 1};
-var _data_updated = [];
+var COL_VERDICT_STR = 'verdict';
+var COL_REG_STATUS_STR = 'register_status';
+var COL_DT_ID_STR = 'dt_id';
+var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
+var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
+var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+var NAMES_HTTP_URL = ["http.url", "http_url"];
+var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server"];
+var _flows_grouped;
+var _helper;
+var _filterDataTable;
+
+var _m;
 
 
 var _loadingPlugin;
-function AnalysisSessionLogic(attributes_db){
+
+function AnalysisSessionLogic(){
     /************************************************************
                             GLOBAL ATTRIBUTES
      *************************************************************/
@@ -35,70 +43,176 @@ function AnalysisSessionLogic(attributes_db){
 
     var stepped = 0;
     var rowCount, firstError, errorCount = 0;
-    var _keys = [];
     var db_name = 'weblogs_db';
+    this.columns_order_changed = false;
     thiz = this;
-    var _verdicts_weight = {
-        "malicious":2,
-        "legitimate":0,
-        "suspicious":1,
-        "false_positive":3,
-        "undefined": -1
-    };
-    var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
-    var myDjangoList = ((attributes_db).replace(/&(l|g|quo)t;/g, function(a,b){
-        return {
-            l   : '<',
-            g   : '>',
-            quo : '"'
-        }[b];
-    }));
+    _m = new Metrics(true,this);
 
-    myDjangoList = myDjangoList.replace(/u'/g, '\'');
-    myDjangoList = myDjangoList.replace(/'/g, '\"');
-    _attributes_db = JSON.parse( myDjangoList );
-    _attributes_db.push('dt_id');
-    _attributes_db.push('db_id');
+    this.getColumnsOrderFlat =function(){
+        return this.columns_order_changed;
+    };
+    this.setColumnsOrderFlat =function (v) {
+        this.columns_order_changed = v;
+    };
+    this.getAnalysisSessionId = function () {
+        return _analysis_session_id;
+    };
+    this.getAnalysisSessionName = function () {
+        return _filename;
+    };
 
      /************************************************************
                             PRIVATE FUNCTIONS
      *************************************************************/
-     this.addWeblog = function (weblog) {
-/**
-          var todo = {
 
-            _id: new Date().toISOString(),
-            title: text,
-            completed: false
-          }; */
-           // weblog['_id'] =  _countID; //new Date().toISOString()
-          _db.put(weblog, function callback(err, result) {
-            if (!err) {
-              console.log('Successfully save a weblog!');
-            }else{
-                console.log('ERROR saving');
-                console.log(err);
-            }
-          });
-          //  _countID++;
-     };
-    function updateWeblog(weblog){
-        _db.put(weblog, function callback(err, result) {
-        if (!err) {
-          console.log('Successfully updated a weblog!');
-        }else{
-            console.log('ERROR updating');
-            console.log(err);
+    function initDatatable(headers, data){
+        var columns = [];
+        for(var i = 0; i< headers.length ; i++){
+            var v = headers[i];
+            columns.add({title: v, name: v, class: v});
         }
-      });
+        //verifying if already exist a table, in that case, destroy it
+        if(_dt != null || _dt != undefined) {
+            _dt.clear().draw();
+            _dt.destroy();
+            _dt = null;
+        }
+        // create or init datatable
+        _dt = $('#weblogs-datatable').DataTable({
+            data: data,
+            columns: columns,
+            fixedHeader: {
+                header: true
+            },
+            columnReorder: true,
+            "search": {
+                "regex": true
+            },
+            columnDefs: [
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
+                // {   "targets": headers.indexOf(COL_HTTP_URL_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //
+                //         $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // },
+                // {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
+                //     "createdCell": function (td, cellData, rowData, row, col) {
+                //         $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
+                //
+                //     }
+                // }
+            ],
+            "scrollX": true,
+            "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
+            colReorder: true,
+            renderer: "bootstrap",
+            responsive: true,
+            buttons: ['copy', 'csv', 'excel','colvis',
+                {
+                    text: 'Filter by Verdicts',
+                    className: 'filter-verdicts',
+                    action: function ( e, dt, node, config ) {
+                        _filterDataTable.showMenuContext(dt,node.offset());
+                    }
+                }
+            ],
+            "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+                //when you change the verdict, the color is updated
+                var row = $(nRow);
+                row.addClass(aData[COLUMN_VERDICT]);
+                var str = aData[COLUMN_DT_ID].split(":");
+
+                if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
+                    if(!row.hasClass('modified')) row.addClass('modified');
+                }
+                if(str.length > 1){
+                    row.attr("data-dbid", str[1]);
+                }else{
+                    row.attr("data-dbid", str[0]);
+                }
+            }
+        });
+        _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
+            $(this).toggleClass('selected');
+            $('.contextMenuPlugin').remove();
+        } );
+        hideLoading();
+        $('#panel-datatable').show();
+         _dt.on( 'column-reorder', function ( e, settings, details ) {
+            thiz.setColumnsOrderFlat(true);
+         });
+         _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
+            thiz.setColumnsOrderFlat(true);
+        } );
+         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
+
+         $("#weblogs-datatable").on("click", "a.virus-total-consult",function (ev) {
+             ev.preventDefault();
+             var elem = $(this);
+             var row = elem.closest('tr');
+             var query_node = elem.data('info') == 'domain' ? findDomainOfURL(elem.text()) : elem.text() ;
+             row.removeClass('selected');
+             consultVirusTotal(query_node);
+
+        });
 
     }
-    function showAllWeblogs() {
-      _db.allDocs({include_docs: true, descending: true}, function(err, doc) {
-        for(var i = 0 ; i < doc.rows.length ; i++){
-            console.log(doc.rows[i]);
+    function initData(data, headers) {
+        _data_uploaded = data;
+        _data_headers = headers;
+        _data_headers_keys = {};
+        _countID = 1;
+        $("li#statical-nav").hide();
+        var data_processed = _.map(_data_uploaded,function(v, i){
+                                var values = _.values(v);
+                                if(values.length < _data_headers.length){
+                                    values.add('undefined');
+                                    values.add(-1);
+                                    values.add(_countID.toString());
+                                    _data_uploaded[i][COL_VERDICT_STR] = "undefined";
+                                    _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
+                                    _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
+                                 }
+                                _countID++;
+                                return values
+                            });
+        processingFlows_WORKER(_data_uploaded);
+        $.each(_data_headers,function(i, v){
+            _data_headers_keys[v] = i;
+        });
+        console.log(data.length);
+        COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
+        COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
+        COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
+
+        for(var index = 0; index < NAMES_HTTP_URL.length; index++){
+            var key = NAMES_HTTP_URL[index];
+            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+                COL_HTTP_URL_STR = key;
+                break;
+            }
         }
-      });
+        for(var index = 0; index < NAMES_END_POINTS_SERVER.length; index++){
+            var key = NAMES_END_POINTS_SERVER[index];
+            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+                COL_END_POINTS_SERVER_STR = key;
+                break;
+            }
+        }
+        // COL_HTTP_URL_STR = "http.url";
+        // COL_END_POINTS_SERVER_STR = "endpoints.server";
+        COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
+        COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
+        CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
+        CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
+        initDatatable(_data_headers, data_processed);
+        $('#save-table').show();
+
     }
     function completeFn(results,file){
         if (results && results.errors)
@@ -108,193 +222,63 @@ function AnalysisSessionLogic(attributes_db){
                 errorCount = results.errors.length;
                 firstError = results.errors[0];
             }
-            if (results.data && results.data.length > 0)
+            if (results.data && results.data.length > 0){
+
+                console.log("Done with all files");
+                //INIT DATA
                 rowCount = results.data.length;
-        }
-    }
-
-    function addRowThread(data){
-        var data = data;
-        data.add('undefined');
-        data.add(-1);
-        data.add(_countID.toString());
-        data.add("NOT SAVE");
-        if(data.length !== _attributes_db.length) {
-            console.log("ERROR");
-            console.log(data);
-        }
-        else{
-            var row = _dt.row.add(data);
-            var index = row[0];
-            _dt.cell(index, COLUMN_DT_ID).data(index).draw(false);
-            // add to local DB
-            // var weblog = {};
-            // for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-            //     var attr = _attributes_db[i_attr];
-            //     weblog[attr] = data[i_attr];
-            // }
-            // thiz.addWeblog(weblog);
-        }
-        _countID++;
-
-    }
-    function stepFn(results, parser) {
-        stepped++;
-        if (results)
-        {
-            if (results.data){
-                rowCount += results.data.length;
-                var data = results.data[0];
-                if(stepped > 1){
-                    Concurrent.Thread.create(addRowThread,data);
-                }else{
-                    var columns = [];
-                    for(var i = 0; i< _attributes_db.length ; i++){
-                        columns.add({title: _attributes_db[i], name: _attributes_db[i]});
-                    }
-                    _keys = _attributes_db;
-                    _dt = $('#weblogs-datatable').DataTable({
-                        columns: columns,
-                        columnDefs: [
-                            {'visible':false,"searchable": false, "targets": COLUMN_DB_ID},
-                            {'visible':false,"searchable": false, "targets": COLUMN_REG_STATUS},
-                            {'visible':false,"searchable": false, "targets": COLUMN_DT_ID}
-                        ],
-                        "scrollX": true,
-                        "aLengthMenu": [[25, 50, 100, -1], [25, 50, 100, "All"]],
-                    //     "sDom": "Rlfrtip",
-                        colReorder: true,
-                        renderer: "bootstrap",
-                        responsive: true,
-                        buttons: ['copy', 'csv', 'excel','colvis'],
-                        "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-                            $('td', nRow).addClass(aData[11]);
-                        }
-                    });
-                    _dt.clear().row();
-                    _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-                    $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-                        $(this).toggleClass('selected');
-                        $('.contextMenuPlugin').remove();
-                    } );
-
-                    /**
-                    $('#weblogs-datatable tbody').on( 'mouseenter', 'td', function () {
-                        var colIdx = _dt.cell(this).index().column;
-                        $( _dt.cells().nodes() ).removeClass( 'highlight' );
-                        $( _dt.column( colIdx ).nodes() ).addClass( 'highlight' );
-                    } );
-                     */
-                    $('#panel-datatable').show();
-                }
-
+                var data = results.data;
+                var headers = results.meta.fields;
+                $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
+                    headers.push(value);
+                });
+                initData(data,headers);
+                hideLoading();
+                _m.EventFileUploadingFinished(_filename, rowCount);
             }
 
-            if (results.errors)
-            {
-                errorCount += results.errors.length;
-                firstError = firstError || results.errors[0];
-            }
         }
     }
-    this.markVerdict= function (verdict) {
-        console.log(verdict);
-        _dt.rows('.selected').every( function () {
+
+
+    this.markVerdict= function (verdict, class_selector) {
+        if(class_selector === null || class_selector === undefined) class_selector = "selected";
+        // console.log(verdict);
+        var rows_affected = [];
+        _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
-            var size_d = d.length;
-            /**
-            var new_w = _verdicts_weight[verdict];
-            var old_w = _verdicts_weight[d[size_d - 2]];
-            if(new_w >= old_w){
-            */
+            rows_affected.add(d);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
-            /**
-                    var weblog = {};
-                    for(var i_attr = 0; i_attr < _attributes_db.length; i_attr++ ){
-                        var attr = _attributes_db[i_attr];
-                        if(attr === 'verdict'){
-                            weblog[attr] = verdict;
-                        }else {
-                            weblog[attr] = d[i_attr];
-                        }
-
-                    }
-                    updateWeblog(weblog);
-            **/
-                this.invalidate(); // invalidate the data DataTables has cached for this row
-            /**
-            }else{
-                alert("You cannot assign a verdict lower than the previous one Ex: False Positive > Legitimate");
-            }
-             **/
+            this.invalidate(); // invalidate the data DataTables has cached for this row
 
         } );
         // Draw once all updates are done
         _dt.draw(false);
-        _dt.rows('.selected').nodes().to$().find('td').removeClass().addClass(verdict);
-        _dt.rows('.selected').nodes().to$().addClass('modified');
-        _dt.rows('.selected').nodes().to$().removeClass('selected');
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts.join(" ")).addClass(verdict);
+        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
+        return rows_affected;
 
     };
-    this.loopInfiniteLoading = function (){
-      _loadingPlugin = $('#loading-circle').cprogress({
-                           percent: 1, // starting position
-                           img1: '../../static/manati_ui/images/c1.png', // background
-                           img2: '../../static/manati_ui/images/c3.png', // foreground
-                           speed: 200, // speed (timeout)
-                           PIStep : 0.1, // every step foreground area is bigger about this val
-                           limit: 100, // end value
-                           loop : true, //if true, no matter if limit is set, progressbar will be running
-                           showPercent : false //show hide percent
-                      });
-    };
-
-    this.createLoading = function(){
-        _loadingPlugin = $('#loading-circle').cprogress({
-                           percent: 1, // starting position
-                           img1: '../../static/manati_ui/images/c1.png', // background
-                           img2: '../../static/manati_ui/images/c3.png', // foreground
-                           speed: 200, // speed (timeout)
-                           PIStep : 0.1, // every step foreground area is bigger about this val
-                           limit: 1, // end value
-                           loop : false, //if true, no matter if limit is set, progressbar will be running
-                           showPercent : false //show hide percent
-                      });
-
-        // // Create
-        // options = {
-        //      img1: 'v1.png',
-        //      img2: 'v2.png',
-        //      speed: 50,
-        //      limit: 70,
-        //
-        // };
-        //
-        // myplugin = $('#p1').cprogress(options);
-
-    };
-    this.addStepsLoading= function(step){
-        var previous_limit = _loadingPlugin.options('').limit;
-        // console.log("Limit: " + previous_limit + " Step: " + step);
-        _loadingPlugin.options({limit: previous_limit + step});
-    }
-    this.destroyLoading = function(){
-        _loadingPlugin.destroy();
-    };
-    var syncDB = function (){
+    var syncDB = function (show_loading){
+        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading) showLoading();
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
-        var data_pos = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1 ){
-                data_row[elem[COLUMN_DB_ID]]=elem[COLUMN_VERDICT];
-                data_pos[elem[COLUMN_DB_ID]]=elem[COLUMN_DT_ID];
+            if(elem[COLUMN_REG_STATUS] != -1){
+                var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
+                data_row[key_id]=elem[COLUMN_VERDICT];
             }
         });
         var data = {'analysis_session_id': _analysis_session_id,
                         'data': data_row };
+        if(thiz.getColumnsOrderFlat()){
+            data['headers[]']=JSON.stringify(get_headers_info());
+            thiz.setColumnsOrderFlat(false);
+        }
         $.ajax({
             type:"POST",
             data: JSON.stringify(data),
@@ -308,15 +292,21 @@ function AnalysisSessionLogic(attributes_db){
                 console.log(data);
                 $.each(data,function (index, elem) {
                     console.log(elem);
-                    var row = _dt.rows('[data-dbid="'+elem.pk+'"]');
-                    var dt_id = row.data()[0][COLUMN_DT_ID];
-                    _dt.cell(dt_id, COLUMN_VERDICT).data(elem.fields.verdict);
-                    row.nodes().to$().addClass('selected');
-                    thiz.markVerdict(elem.fields.verdict);
-                    _dt.row(dt_id).nodes().to$().removeClass('modified');
-                    _dt.cell(dt_id, COLUMN_REG_STATUS).data(elem.fields.register_status);
+                    var dt_id = parseInt(elem.pk.split(':')[1]);
+                    var row = _dt.rows('[data-dbid="'+dt_id+'"]');
+                    var index_row = row.indexes()[0];
+                     row.nodes().to$().addClass('selected-sync');
+                    thiz.setColumnsOrderFlat(false);
+                     thiz.markVerdict(elem.fields.verdict,'selected-sync');
+                    row.nodes().to$().removeClass('modified');
+                    _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
+                    _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
+
+
+
                 });
                 console.log("DB Synchronized");
+                if(show_loading) hideLoading();
             },
 
             // handle a non-successful response
@@ -324,17 +314,33 @@ function AnalysisSessionLogic(attributes_db){
                 $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
                     " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                 console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                hideLoading();
             }
 
         });
     };
-
+    function get_headers_info(){
+        // _data_headers
+        var column_visibles = _dt.columns().visible();
+        var headers = $.map(_dt.columns().header(),function (v,i) {
+            return {order: i, column_name: v.innerHTML, visible: column_visibles[i] };
+        });
+        
+        return headers;
+    }
     function saveDB(){
         try{
+
+            showLoading();
             $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
             $('#save-table').attr('disabled',true).addClass('disabled');
-            thiz.createLoading();
-            var data = { filename: _filename};
+            var rows = _dt.rows();
+            _m.EventAnalysisSessionSavingStart(rows.length, _filename);
+            var data = {
+                filename: _filename,
+                "headers[]": JSON.stringify(get_headers_info()),
+                'data[]': JSON.stringify(rows.data().toArray())
+            };
             //send the name of the file, and the first 10 registers
             $.ajax({
                 type:"POST",
@@ -347,17 +353,23 @@ function AnalysisSessionLogic(attributes_db){
                     console.log(json); // log the returned json to the console
                     console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
-                        //send the weblogs
-                    _data_wb = _dt.rows().data().toArray();
-                    _total_data_wb = _data_wb.length;
-
-                    // var i = 0;
-                    // while(i < _total_data_wb){
-                    //     _dt.cell(i,COLUMN_DT_ID).data(i).draw(false); // updating _id column with the correct id of the datatable;
-                    //     _data_wb[i] = _dt.rows(i).data().toArray();
-                    //     i++;
-                    // }
-                    thiz.sendWB();
+                    _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
+                        var tr = $(cell).closest('tr');
+                        if(!tr.hasClass("modified")) cell.innerHTML = 0;
+                    } );
+                    _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
+                    $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
+                    $('#save-table').hide();
+                    $('#wrap-form-upload-file').hide();
+                    history.pushState({},
+                        "Edit AnalysisSession "  + _analysis_session_id,
+                        "/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
+                    setInterval(syncDB, 10000 );
+                    hideLoading();
+                    columns_order_changed = false;
+                    $("#weblogfile-name").off('click');
+                    $("#weblogfile-name").css('cursor','auto');
+                    $("#sync-db-btn").show();
                 },
 
                 // handle a non-successful response
@@ -366,11 +378,15 @@ function AnalysisSessionLogic(attributes_db){
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
-                    thiz.destroyLoading();
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    //NOTIFY A ERROR
+                    _m.EventAnalysisSessionSavingError(_filename);
+                    hideLoading();
                 }
             });
         }catch(e){
-            thiz.destroyLoading();
+            // thiz.destroyLoading();
+            $.notify(e, "error");
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
 
@@ -378,67 +394,302 @@ function AnalysisSessionLogic(attributes_db){
 
 
     }
-    this.sendWB = function(){
-        var data = {'data[]': _data_wb.slice(_init_count,_finish_count), 'analysis_session_id':_analysis_session_id};
-        $.ajax({
-            type:"POST",
-            data: data,
-            dataType: "json",
-            url: "/manati_ui/analysis_session/add_weblogs",
-            // handle a successful response
-            success : function(json) {
-                console.log(json); // log the returned json to the console
-                var data = json['data'];
-                var data_length = data.length;
-                thiz.addStepsLoading( data_length * 100 / _total_data_wb );
-                //update state and id of all data used
-                data.forEach(function(elem) {
-                    var dt_id = elem['dt_id'];
-                    var rs = elem['register_status'];
-                    var id = elem['id'];
-                    _dt.cell(dt_id,COLUMN_REG_STATUS).data(rs).draw(false);
-                    _dt.cell(dt_id,COLUMN_DB_ID).data(id).draw(false);
-                    _dt.cell(dt_id,COLUMN_DT_ID).data(dt_id).draw(false);
-                    _dt.row(dt_id).nodes().to$().removeClass('modified');
-                    _dt.row(dt_id).nodes().to$().attr('data-dbid',id);
-                });
-                // continue with the loop until all file are done
-                console.log("success"); // another sanity check
+    function showLoading(){
+         $("#loading-img").show();
+    }
+    function hideLoading() {
+        $("#loading-img").hide();
+    }
 
-                if(_finish_count >= _total_data_wb){ //stop to send request, all WB were saved
-                    _init_count = 0;
-                    _finish_count = SIZE_REQUEST;
-                    //hide button save
-                    $('#save-table').hide();
-                    $('#wrap-form-upload-file').hide();
-                    thiz.destroyLoading();
-                    $.notify("ALL Weblogs were created successfully ", 'success');
-                    setInterval(syncDB, 10000 );
-                    return true;
-                }
-                _init_count = _finish_count;
-                if(_finish_count + SIZE_REQUEST <= _total_data_wb){
-                    _finish_count+= SIZE_REQUEST;
-                }else{
-                    _finish_count+= (_total_data_wb - _finish_count) ;
-                }
-
-                thiz.sendWB();
-
+    function contextMenuConfirmMsg(rows, verdict){
+        $.confirm({
+            title: 'Weblogs Affected',
+            content: "Will " + rows.length.toString() + ' weblogs change their verdicts, is ok for you? ',
+            confirm: function(){
+                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                _dt.rows(rows).nodes().to$().addClass('selected');
+                thiz.markVerdict(verdict);
             },
+            cancel: function(){
 
-            // handle a non-successful response
-            error : function(xhr,errmsg,err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                $('#save-table').attr('disabled',false).removeClass('disabled');
-                $.notify(xhr.responseText, "error");
             }
         });
+    }
+
+    var _bulk_marks_wbs = {};
+    var _bulk_verdict;
+
+    var generateContextMenuItems = function(tr_dom){
+        // var tr_active = $("tr.menucontext-open.context-menu-active");
+        var bigData = _dt.rows(tr_dom).data()[0];
+        var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
+        var url = bigData[COLUMN_HTTP_URL];
+        var domain = findDomainOfURL(url); // getting domain
+        var items_menu = {};
+        _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value);
+        _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain);
+        _bulk_verdict = bigData[COLUMN_VERDICT];
+        _verdicts.forEach(function(v){
+            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
+        });
+        items_menu['sep1'] = "-----------";
+        items_menu['fold1'] = {
+            name: "Mark all WBs with same: ",
+            icon: "fa-search-plus",
+            // disabled: function(){ return !this.data('moreDisabled'); },
+            items: {
+            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
+                            icon: "fa-paint-brush",
+                            className: CLASS_MC_END_POINTS_SERVER_STR,
+                            callback: function(key, options) {
+                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+                                _m.EventBulkLabelingByEndServerIP(_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR],_bulk_verdict, ip_value);
+
+                            }
+                        },
+            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
+                            icon: "fa-paint-brush",
+                            className: CLASS_MC_HTTP_URL_STR,
+                            callback: function(key, options) {
+                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                                _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
+                            }
+                    }
+        }};
+        items_menu['sep2'] = "-----------";
+        items_menu['fold3'] = {
+            name: "Consult to VirusTotal", icon: "fa-search",
+            items: {
+                "fold2-key1": {
+                    name: "using HTTP URL",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        consultVirusTotal(qn, "domain");
+
+                    }
+                },
+                "fold2-key2": {
+                    name: "using Endpoints Server IP",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = bigData[COLUMN_END_POINTS_SERVER];
+                        consultVirusTotal(qn, "ip");
+                    }
+                }
+            }
+        };
+        if(thiz.getAnalysisSessionId() != -1) {
+            items_menu['weblog-history'] = {
+                name: "Consult History of Weblogs", icon: "fa-search",
+                callback: function (key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getWeblogHistory(weblog_id);
+                }
+            };
+        }
+        items_menu['sep3'] = "-----------";
+        items_menu['fold2'] = {
+            name: "Copy to clipboard", icon: "fa-files-o",
+            items: {
+                "fold2-key1": {
+                    name: "HTTP URL",
+                    icon: "fa-file-o",
+                    callback: function (key, options) {
+                        copyTextToClipboard(bigData[COLUMN_HTTP_URL]);
+                    }
+                },
+                "fold2-key2": {
+                    name: "Endpoints Server IP",
+                    icon: "fa-file-o",
+                    callback: function (key, options) {
+                        copyTextToClipboard(bigData[COLUMN_END_POINTS_SERVER]);
+                    }
+                }
+            }
+        };
+
+
+
+        return items_menu;
+
     };
+    function buildTableInfo_VT(info_report){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
+        table += "<tbody>";
+            for(var key in info_report){
+                table += "<tr>";
+                table += "<th>"+key+"</th>";
+                table += "<td>" + info_report[key]+ "</td>" ;
+                table += "</tr>";
+            }
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function initModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
+        $('#vt_consult_screen').modal('show');
+        $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            $(this).find(".table-section").html('').hide();
+            $(this).find(".loading").show();
+            $(this).find("#vt_modal_title").html('');
+        });
+    }
+    function updateBodyModal(table){
+        var modal_body = $('#vt_consult_screen .modal-body');
+        modal_body.find('.table-section').html(table).show();
+        modal_body.find(".loading").hide();
+    }
+    function consultVirusTotal(query_node, query_type){
+        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
+        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
+        else{
+            console.error("Error query_type for ConsultVirusTotal is incorrect")
+        }
+        initModal("Virus Total Query: <span>"+query_node+"</span>");
+        var data = {query_node: query_node};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/consult_virus_total",
+            success : function(json) {// handle a successful response
+                var info_report = JSON.parse(json['info_report']);
+                var query_node = json['query_node'];
+                var table = buildTableInfo_VT(info_report);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+    }
+    function buildTableInfo_Wbl_History(weblog_history){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
+        table += "<tbody>";
+            _.each(weblog_history, function (value, index) {
+                table += "<tr>";
+                // for(var key in value){
+                //     table += "<td>" + value[key]+ "</td>" ;
+                // }
+                table += "<td>" +  "</td>";
+                table += "<td>" + value.fields.old_verdict + "</td>" ;
+                table += "<td>" + value.fields.verdict + "</td>" ;
+                table += "<td>" + value.fields.created_at + "</td>" ;
+                table += "</tr>";
+            });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getWeblogHistory(weblog_id){
+        initModal("Weblog History ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_ui/analysis_session/weblog/history",
+            success : function(json) {// handle a successful response
+                var weblog_history = JSON.parse(json['data']);
+                var table = buildTableInfo_Wbl_History(weblog_history);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+
+    }
+    function findDomainOfURL(url){
+        var matching_domain = null;
+        var domain = ( (matching_domain = url.match(REG_EXP_DOMAINS)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
+        domain = (domain == null)  && ((matching_domain = url.match(REG_EXP_IP)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
+        return domain
+    }
+    function contextMenuSettings (){
+        //events for verdicts buttons on context popup menu
+            $.contextMenu({
+                selector: '.weblogs-datatable tr',
+                events: {
+                   show : function(options){
+                        // // Add class to the menu
+                        if(!this.hasClass('selected')){
+                            this.addClass('selected');
+                        }
+                        this.addClass('menucontext-open');
+                   },
+                   hide : function(options) {
+                       this.removeClass('menucontext-open');
+                       this.removeClass('selected');
+                       _bulk_marks_wbs = {};
+                       _bulk_verdict = null;
+                   }
+                },
+                build: function ($trigger, e){
+                    return {
+                        callback: function(key, options) {
+                            var verdict = key;
+                            var rows_affected = thiz.markVerdict(verdict);
+                            _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
+                            return true;
+                        },
+                        items: generateContextMenuItems($trigger)
+
+                    }
+                }
+
+
+            });
+    }
+    var setFileName = function(file_name){
+        $("#weblogfile-name").html(file_name);
+        _filename = file_name;
+    };
+    var getFileName = function (){
+        return _filename;
+    }
     function on_ready_fn (){
         $(document).ready(function() {
+            $("#edit-input").hide();
+            $("#weblogfile-name").on('click',function(){
+                var _thiz = $(this);
+                var input = $("#edit-input");
+                input.val(_thiz.html());
+                _thiz.hide();
+                input.show();
+                input.focus();
+            });
+            $("#edit-input").on('blur',function(){
+                var _thiz = $(this);
+                var label = $("#weblogfile-name");
+                var text_name = _thiz.val();
+                if(text_name.length > 0){
+                    setFileName(text_name);
+                }
+                _thiz.val("");
+                _thiz.hide();
+                label.show();
+            });
             //https://notifyjs.com/
             $.notify.defaults({
               autoHide: true,
@@ -449,49 +700,31 @@ function AnalysisSessionLogic(attributes_db){
             $('#upload').click(function (){
                  $('input[type=file]').parse({
                     config: {
-                        delimiter: ',',
+                        delimiter: "",
+                        header: true,
                         complete: completeFn,
-                        step: stepFn
+                        // step: stepFn,
+                        worker: true,
+                        skipEmptyLines: true
                         // base config to use for each file
                     },
                     before: function(file, inputElem)
                     {
-                        // if(_db == undefined || _db == null) {
-                        //     _db =  new PouchDB(db_name);
-                        // }
-                        // else{
-                        //     _db.destroy().then(function () {
-                        //       _db =  new PouchDB(db_name);
-                        //     }).catch(function (err) {
-                        //         // error occurred
-                        //     });
-                        // }
-                        // var changes = _db.changes({
-                        //   since: 'now',
-                        //   live: true,
-                        //   include_docs: true
-                        // }).on('change', function(change) {
-                        //   console.log(change);
-                        // }).on('complete', function(info) {
-                        //   // changes() was canceled
-                        // }).on('error', function (err) {
-                        //   console.log(err);
-                        // });
-                        _filename = file.name;
+                        _size_file = file.size;
+                        _type_file = file.type;
+                        setFileName(file.name);
+                        showLoading();
+                        _m.EventFileUploadingStart(file.name,_size_file,_type_file);
                         console.log("Parsing file...", file);
                         $.notify("Parsing file...", "info");
-                        $("#weblogfile-name").html(file.name)
+
+
                     },
                     error: function(err, file, inputElem, reason)
                     {
-                        console.log("ERROR:", err, file);
-                    },
-                    complete: function()
-                    {
-                        console.log("Done with all files");
-                        $('#save-table').show();
-
-
+                        console.log("ERROR Parsing:", err, file);
+                        $.notify("ERROR Parsing:" + " " + err + " "+ file);
+                        _m.EventFileUploadingError(file.name);
                     }
                 });
             });
@@ -517,114 +750,23 @@ function AnalysisSessionLogic(attributes_db){
             //events for verdict buttons
             $('.btn.verdict').click( function () {
                 var verdict = $(this).data('verdict');
-                thiz.markVerdict(verdict);
+                var rows_affected = thiz.markVerdict(verdict);
+                _m.EventMultipleLabelingsByButtons(rows_affected,verdict);
             } );
             $('.unselect').on('click', function (ev){
                 ev.preventDefault();
                 _dt.rows('.selected').nodes().to$().removeClass('selected');
             });
 
-            //events for verdicts buttons on context popup menu
-            var items_menu = {}
-            _verdicts.forEach(function(v){
-                items_menu[v] = {name: v, icon: v }
-            });
-            items_menu['sep1'] = "-----------";
-            items_menu['fold1'] = {
-                name: "Mark all WB with same: ",
-                disabled: function(){ return !this.data('moreDisabled'); },
-                items: {
-                "fold1-key1": {name: "EndPoints Server",
-                                callback: function(key, options) {
-                                    var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                    var ip_value = _dt.rows('.menucontext-open').data()[0][COLUMN_END_POINTS_SERVER];
-                                    var rows = [];
-                                    _dt.column('endpoints_server:name').nodes().each(function (v){
-                                        var tr_dom = $(v);
-                                        if(tr_dom.html() === ip_value){
-                                            rows.add(tr_dom.closest('tr'));
-                                        }
-                                    });
-                                    _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                    _dt.rows(rows).nodes().to$().addClass('selected');
-                                    thiz.markVerdict(verdict);
-                                    // _dt.columns(key_source_ip).search(ip_value);
-                                }
-                            },
-                "fold1-key2": {name: "Domain",
-                            callback: function(key, options) {
-                                var verdict = _dt.rows(this).data()[0][COLUMN_VERDICT];
-                                var url = _dt.rows('.menucontext-open').data()[0][COLUMN_HTTP_URL];
-                                var reg_exp_domains = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
-                                var domain = url.match(reg_exp_domains)[0];
-                                var rows = [];
-                                _dt.column('http_url:name').nodes().each(function (v){
-                                    var tr_dom = $(v);
-                                    var local_url = tr_dom.html();
-                                    var local_domain = local_url.match(reg_exp_domains)[0];
-                                    if(local_domain === domain){
-                                        rows.add(tr_dom.closest('tr'));
-                                    }
-                                });
-                                _dt.rows('.selected').nodes().to$().removeClass('selected');
-                                _dt.rows(rows).nodes().to$().addClass('selected');
-                                thiz.markVerdict(verdict);
-                            }
-                        }
-            }};
-
-            $.contextMenu({
-                selector: '.weblogs-datatable tr',
-                callback: function(key, options) {
-                    // if(key != 'undefined'){
-                    //     this.data('moreDisabled', !this.data('moreDisabled'));
-                    // }else{
-                    //     this.data('moreDisabled', false);
-                    // }
-                    thiz.markVerdict(key);
-                    return true;
-                },
-                events: {
-                   show : function(options){
-                        // // Add class to the menu
-                        if(!this.hasClass('selected')){
-                            this.addClass('selected');
-                        }
-                        if(!this.find('td').first().hasClass('undefined')){
-                           this.data('moreDisabled', true);
-                        }else{
-                           this.data('moreDisabled', false);
-                        }
-                        this.addClass('menucontext-open');
-                        //
-                        // // Show an alert with the selector of the menu
-                        // if( confirm('Open menu with selector ' + options.selector + '?') === true ){
-                        //     return true;
-                        // } else {
-                        //     // Prevent the menu to be shown.
-                        //     return false;
-                        // }
-
-                       // console.log($triggerElement);
-                       // console.log(event);
-                   },
-                   hide : function(options) {
-                       // if (confirm('Hide menu with selector ' + options.selector + '?') === true) {
-                       //     return true;
-                       // } else {
-                       //     // Prevent the menu to be hidden.
-                       //     return false;
-                       // }
-                       this.removeClass('menucontext-open');
-                       this.removeClass('selected');
-                   }
-                },
-                items: items_menu
-
-            });
+            contextMenuSettings();
             $('#save-table').on('click',function(){
-                Concurrent.Thread.create(saveDB);
-               // saveDB();
+               saveDB();
+            });
+
+            //event for sync button
+            $('#sync-db-btn').on('click',function (ev) {
+               ev.preventDefault();
+               syncDB(true);
             });
         });
     };
@@ -641,6 +783,217 @@ function AnalysisSessionLogic(attributes_db){
         // }
 
     };
+    var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
+        _analysis_session_id = analysis_session_id;
+        if(weblogs.length > 1){
+            // sorting header
+            var headers;
+            if(_.isEmpty(headers_info)){
+                var elem = weblogs[0];
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                headers_info = _.keys(attributes);
+                headers_info.push(COL_VERDICT_STR);
+                headers_info.push(COL_REG_STATUS_STR);
+                headers_info.push(COL_DT_ID_STR);
+                thiz.setColumnsOrderFlat(true);
+                headers = headers_info;
+            }else{
+                headers_info.sort(function(a,b) {
+                    return a.order - b.order;
+                });
+                headers = $.map(headers_info,function(v,i){
+                    return v.column_name
+                });
+            }
+            //getting data
+            var data = [];
+            $.each(weblogs, function (index, elem){
+                var id = elem.pk;
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_DT_ID_STR] = id.toString();
+                var sorted_attributes = {};
+                _.each(headers, function(value, index){
+                    sorted_attributes[value] = attributes[value];
+                });
+                data.push(sorted_attributes);
+            });
+
+            initData(data, headers );
+            //hide or show column
+            $.each(headers_info,function(index,elem){
+                _dt.columns(index).visible(elem.visible).draw()
+            });
+
+            $(document).ready(function(){
+                $('#panel-datatable').show();
+                setInterval(syncDB, 10000 );
+
+            });
+        }else{
+            hideLoading();
+            $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
+        }
+
+
+    };
+    this.callingEditingData = function (analysis_session_id){
+        var data = {'analysis_session_id':analysis_session_id};
+        $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
+        showLoading();
+        _m.EventLoadingEditingStart(analysis_session_id);
+        $.ajax({
+                type:"GET",
+                data: data,
+                dataType: "json",
+                url: "/manati_ui/analysis_session/get_weblogs",
+                success : function(json) {// handle a successful response
+                    var weblogs = JSON.parse(json['weblogs']);
+                    var analysis_session_id = json['analysissessionid'];
+                    var file_name = json['name'];
+                    var headers = JSON.parse(json['headers']);
+                    setFileName(file_name);
+
+                    initDataEdit(weblogs, analysis_session_id,headers);
+                    _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
+                },
+
+                error : function(xhr,errmsg,err) { // handle a non-successful response
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    _m.EventLoadingEditingError(analysis_session_id);
+
+                }
+            });
+
+    };
+
+    var setBulkVerdict_WORKER = function (verdict, flows_labelled){
+        _dt.rows('.selected').nodes().to$().removeClass('selected');
+        showLoading();
+         var blob = new Blob([ "onmessage = function(e) { " +
+            "var verdict = e.data[1];"+
+            "var rows_data = e.data[2];"+
+            "var col_dt_id = e.data[3];"+
+            "var col_verdict = e.data[4];"+
+            "var origin = e.data[5];"+
+            "var col_reg_status = e.data[6];"+
+            "var reg_status = e.data[7];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "var flows_labelled = _.map(e.data[0],function(v,i){ return v.dt_id});"+
+            "for(var i = 0; i< rows_data.length; i++) {"+
+                "var row_dt_id = rows_data[i][col_dt_id]; "+
+                "var index = flows_labelled.indexOf(row_dt_id); "+
+                "if(index >=0){"+
+                   "rows_data[i][col_verdict] = verdict ;"+
+                   "rows_data[i][col_reg_status] = reg_status.modified ;"+
+                "}"+
+             "};" +
+             "self.postMessage(rows_data)"+
+        "}"]);
+        var blobURL = window.URL.createObjectURL(blob);
+        var worker = new Worker(blobURL);
+        worker.addEventListener('message', function(e) {
+            var rows_data = e.data;
+            _dt.clear().rows.add(rows_data).draw();
+            hideLoading();
+	    });
+        var rows_data = _dt.rows().data().toArray();
+        worker.postMessage([flows_labelled,verdict,rows_data,
+            COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin, COLUMN_REG_STATUS, REG_STATUS]);
+    };
+
+    var processingFlows_WORKER = function (flows) {
+        _flows_grouped = {};
+        var blob = new Blob([ "onmessage = function(e) { " +
+            "var flows = e.data[1];"+
+            "var flows_grouped = e.data[0];"+
+            "var origin = e.data[2];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "self.importScripts(origin+'/static/manati_ui/js/struct_helper.js');"+
+            "var helper = new FlowsProcessed(flows_grouped);"+
+            "for(var i = 0; i< flows.length; i++) helper.addFlows(flows[i]);"+
+            "self.postMessage(helper.getFlowsGrouped());" +
+        "}"]);
+
+        // Obtain a blob URL reference to our worker 'file'.
+        var blobURL = window.URL.createObjectURL(blob);
+
+        var worker = new Worker(blobURL);
+        worker.addEventListener('message', function(e) {
+            _flows_grouped = e.data;
+            _helper = new FlowsProcessed(_flows_grouped);
+            _helper.makeStaticalSection();
+            worker.terminate();
+            console.log("Worker Done");
+	    });
+        worker.postMessage([_flows_grouped,flows,document.location.origin]);
+
+    };
+
+    var copyTextToClipboard = function(text) {
+      var textArea = document.createElement("textarea");
+
+      //
+      // *** This styling is an extra step which is likely not required. ***
+      //
+      // Why is it here? To ensure:
+      // 1. the element is able to have focus and selection.
+      // 2. if element was to flash render it has minimal visual impact.
+      // 3. less flakyness with selection and copying which **might** occur if
+      //    the textarea element is not visible.
+      //
+      // The likelihood is the element won't even render, not even a flash,
+      // so some of these are just precautions. However in IE the element
+      // is visible whilst the popup box asking the user for permission for
+      // the web page to copy to the clipboard.
+      //
+
+      // Place in top-left corner of screen regardless of scroll position.
+      textArea.style.position = 'fixed';
+      textArea.style.top = 0;
+      textArea.style.left = 0;
+
+      // Ensure it has a small width and height. Setting to 1px / 1em
+      // doesn't work as this gives a negative w/h on some browsers.
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+
+      // We don't need padding, reducing the size if it does flash render.
+      textArea.style.padding = 0;
+
+      // Clean up any borders.
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+
+      // Avoid flash of white box if rendered for any reason.
+      textArea.style.background = 'transparent';
+
+
+      textArea.value = text;
+
+      document.body.appendChild(textArea);
+
+      textArea.select();
+
+      try {
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'successful' : 'unsuccessful';
+        console.log('Copying text command was ' + msg);
+      } catch (err) {
+        console.log('Oops, unable to copy');
+      }
+
+      document.body.removeChild(textArea);
+    }
+
+
+
+
 
 
 }

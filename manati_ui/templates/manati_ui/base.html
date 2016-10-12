@@ -8,57 +8,43 @@
     <meta name="description" content="">
     <meta name="author" content="Raul B. Netto">
     {% load staticfiles %}
-    {% load manati_ui_extras %}
     {% load bootstrap3 %}
     <link href="{% static 'manati_ui/images/favicon.ico' %}" rel="icon" type="image/x-icon" />
-
+    {% load manati_ui_extras %}
 
     {# Load CSS and JavaScript #}
     <script src="{% static 'manati_ui/js/libs/Concurrent.Thread.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/jquery.min.js' %}" type="text/javascript"></script>
     <!-- Bootstrap Core CSS -->
-    {% bootstrap_css %}
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/bootstrap.min.css' %}" />
     <!-- Bootstrap Core JS -->
-    {% bootstrap_javascript %}
+   <script src="{% static 'manati_ui/js/libs/bootstrap.min.js' %}" type="text/javascript"></script>
 
     <!-- Custom CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/timeline.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/sb-admin-2.css' %}" />
 
 
-
-    <script src="{% static 'manati_ui/js/sb-admin-2.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/metisMenu.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/sb-admin-2.js' %}" type="text/javascript"></script>
+
 
     {% comment %}Libraris for datatable{% endcomment %}
     {% comment %}CSS{% endcomment %}
-    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/dataTables.bootstrap.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/buttons.bootstrap.min.css' %}" />
-    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/colReorder.bootstrap.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/datatables.min.css' %}" />
+{#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/dataTables.bootstrap.css' %}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/buttons.bootstrap.min.css' %}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/colReorder.bootstrap.min.css' %}" />#}
 {#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery.dataTables.min.css' %}"/>#}
     {% comment %}JS{% endcomment %}
-    <script src="{% static 'manati_ui/js/libs/jquery.dataTables.min.js' %}" type="text/javascript"></script>
-    <script src="{% static 'manati_ui/js/libs/dataTables.bootstrap.min.js' %}" type="text/javascript"></script>
-    <script src="https://cdn.datatables.net/buttons/1.2.2/js/dataTables.buttons.min.js" type="text/javascript"></script>
-    <script src="https://cdn.datatables.net/buttons/1.2.2/js/buttons.bootstrap.min.js" type="text/javascript"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js" type="text/javascript"></script>
-    <script src="http://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js" type="text/javascript"></script>
-    <script src="http://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js" type="text/javascript"></script>
-    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.html5.min.js" type="text/javascript"></script>
-    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.print.min.js" type="text/javascript"></script>
-    <script src="http://cdn.datatables.net/buttons/1.2.1/js/buttons.colVis.min.js" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/datatables.min.js' %}" type="text/javascript"></script>
+{#    <script src="{% static 'manati_ui/js/libs/jquery.dataTables.min.js' %}" type="text/javascript"></script>#}
+{#    <script src="{% static 'manati_ui/js/libs/dataTables.bootstrap.min.js' %}" type="text/javascript"></script>#}
 
-    <script src="{% static 'manati_ui/js/libs/dataTables.colReorder.min.js' %}" type="text/javascript"></script>
+{#    <script src="{% static 'manati_ui/js/libs/dataTables.colReorder.min.js' %}" type="text/javascript"></script>#}
     <script src="{% static 'manati_ui/js/libs/jCProgress-1.0.3.js' %}" type="text/javascript"></script>
-
-{#    <script src="{% static 'manati_ui/js/libs/ColReorderWithResize.js' %}" type="text/javascript"></script>#}
-
-
-{#    <script src="{% static 'manati_ui/js/libs/buttons.colVis.min.js' %}" type="text/javascript"></script>#}
-{#    <script src="{% static 'manati_ui/js/libs/pouchdb-5.4.4.min.js' %}" type="text/javascript"></script>#}
-
-
-
+    <script src="{% static 'manati_ui/js/libs/moment.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/moment-timezone-with-data.min.js' %}" type="text/javascript"></script>
 
 
 
@@ -78,13 +64,20 @@
     <script src="{% static 'manati_ui/js/libs/jquery.ui.position.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/jquery.contextMenu2.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/humanize.min.js' %}" type="text/javascript"></script>
-    <script src="{% static 'manati_ui/js/alert_message_helper.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/libs/notify.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/underscore-min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/jquery-confirm.min.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/libs/cryptico.min.js' %}" type="text/javascript"></script>
 {#    <script src="{% static 'manati_ui/js/libs/jquery.contextMenu.min.js.map' %}" type="text/javascript"></script>#}
 
 {#    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery.contextmenu.css' %}" />#}
     <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery.contextMenu2.min.css' %}" />
+    <link rel="stylesheet" type="text/css" href="{% static 'manati_ui/css/libs/jquery-confirm.min.css' %}" />
 
+
+    <script src="{% static 'js/metrics_logic.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/struct_helper.js' %}" type="text/javascript"></script>
+    <script src="{% static 'manati_ui/js/filtering_datatable.js' %}" type="text/javascript"></script>
     <script src="{% static 'manati_ui/js/analysis_session_logic.js' %}" type="text/javascript"></script>
     <link href="{% static 'manati_ui/css/style_ui.css' %}" rel="stylesheet" type="text/css" />
 
@@ -96,14 +89,14 @@
 
         <div id="page-wrapper">
             <div class="col-lg-12">
-                    <h3 class="page-header">{% block title %}{% endblock %}</h3>
-                </div>
+                <h3 class="page-header">{% block title %}{% endblock %}</h3>
+            </div>
             <div class="row">
-                <div class="container-fluid">
-                    <div class="col-lg-4">
-                        {% include "manati_ui/messages.html" %}
-                    </div>
-                </div>
+{#                <div class="container-fluid">#}
+{#                    <div class="col-lg-4">#}
+{#                        {% include "manati_ui/messages.html" %}#}
+{#                    </div>#}
+{#                </div>#}
 
                 {% block content %}{% endblock %}
             </div>

@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
     'bootstrap3',
     'sass_processor',
     'django_extensions',
@@ -158,3 +159,5 @@ SASS_PRECISION = 8
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+
+READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')

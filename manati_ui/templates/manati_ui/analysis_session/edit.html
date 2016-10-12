@@ -1,42 +1,14 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    New Analysis Session - <span id="weblogfile-name"></span><input type="text" maxlength="60" id="edit-input" />
-    <a id="sync-db-btn" style="display: none;" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i></a>
+    Analysis Session - {{ analysissession.name }}
+    <a id="sync-db-btn" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i></a>
     {% load staticfiles %}
-    <img id="loading-img" width="33" style="display: none;" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
+    <img id="loading-img" width="33" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
 {% endblock %}
 {% block content %}
-    <div class="row" id="analysis-session-page">
-        <div class="col-md-9 col-md-offset-3" id="wrap-form-upload-file">
-            <form enctype="multipart/form-data" role="form" class="form-inline">
-                <div class="form-group">
-                   <h4>Add Weblogs file</h4>
-
-                </div>
-                <div class="form-group">
-                    <div class="input-group">
-                        <label class="input-group-btn">
-                            <span class="btn btn-success">
-                                Browse&hellip; <input type="file" style="display: none;" multiple>
-                            </span>
-                        </label>
-                        <input type="text" class="form-control" readonly>
-                    </div>
-                    <input type="button" id="upload" class="btn btn-default" value="Upload File"/>
-                    <input type="button" id="save-table" class="btn btn-primary" value="Save!" />
-
-
-{#                    <progress></progress>#}
-
-                </div>
-                <div class="form-group">
-                    <div id="loading-circle" style="margin-bottom: 39px"></div>
-                </div>
-
-            </form>
-        </div>
+    <div class="row" id="analysis-session-page" >
         <div class="col-md-12">
-            <div class="panel panel-default" id="panel-datatable">
+            <div class="panel panel-default" id="panel-datatable" style="display: none;">
                 <div class="panel-body">
                     <ul class="nav nav-tabs">
                         <li class="active"><a href="#home" data-toggle="tab">Home</a>
@@ -61,7 +33,6 @@
                         </div>
                         <div class="tab-pane fade" id="statical-section"></div>
                     </div>
-
                 </div>
 
             </div>
@@ -70,16 +41,12 @@
 
     </div>
     {% include 'manati_ui/analysis_session/modal_vt.html' %}
-    <style>
-    #weblogfile-name:hover{
-        cursor: pointer;
-
-    }
-    </style>
     <script type="text/javascript">
         VERSION_APP = '{% version_app %}';
-        var logic = new AnalysisSessionLogic("{{weblogs_attribute |safe}}");
+        var logic = new AnalysisSessionLogic();
         logic.init();
+        logic.callingEditingData({{analysissession.id| safe}});
+
 
     </script>
 {% endblock %}

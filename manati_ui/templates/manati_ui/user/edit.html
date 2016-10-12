@@ -1,0 +1,30 @@
+{% extends 'manati_ui/base.html' %}
+{% block title %}
+    User Profile - {{ user.username }}
+{% endblock %}
+{% block content %}
+    <div class="row" >
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="col-lg-4">
+                        <form  method="POST" action="/manati_ui/user/profile_update" class="form" method="post" role="form">
+                            {% csrf_token %}
+                            {% for field in form %}
+                                <div class="form-group">
+                                    <label for="{{ field.id_for_label }}"> {{ field.label }}</label>
+                                    {{ field.errors }}
+                                    <input class="form-control"  maxlength="{{ field.field.max_length  }}" type="text" name="{{ field.html_name }}" value="{{ field.value }}"/>
+                                </div>
+                            {% endfor %}
+                            <input type="submit" class="btn btn-success" value="Update" />
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+{% endblock %}

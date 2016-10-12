@@ -1,0 +1,1 @@
+default_app_config = 'manati_ui.apps.ManatiUiConfig'

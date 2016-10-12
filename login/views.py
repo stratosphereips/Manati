@@ -9,5 +9,5 @@ from manati_ui.models import Weblog
 @login_required(login_url="login/")
 def home(request):
     # return render(request,"home.html")
-    context = {"weblogs_attribute": Weblog.get_model_fields()}
+    context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)

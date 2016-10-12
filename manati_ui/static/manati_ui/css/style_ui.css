@@ -1,51 +1,53 @@
-.dataTables_wrapper table tbody tr:not(.selected) td.malicious {
-  background-color: red;
+.dataTables_wrapper table tbody tr:not(.selected).malicious td {
+  background-color: #FF6961;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.legitimate {
-  background-color: green;
-    color: white;
+#analysis-session-page .btn-danger{
+    background-color: #FF6961;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.suspicious {
+.dataTables_wrapper table tbody tr:not(.selected).legitimate td {
+  background-color: #69c269;
+}
+.dataTables_wrapper table tbody tr:not(.selected).suspicious td {
   background-color: darkorange;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.false_positive {
+.dataTables_wrapper table tbody tr:not(.selected).false_positive td {
   background-color: lightskyblue;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.undefined {
+.dataTables_wrapper table tbody tr:not(.selected).undefined td. {
   background-color: whitesmoke;
 }
 
-.dataTables_wrapper table tbody tr:not(.selected) td.malicious_legitimate {
+.dataTables_wrapper table tbody tr:not(.selected).malicious_legitimate td {
     background-color: #863C00;
     /*color: white;*/
     /*background: -webkit-repeating-linear-gradient(145deg, red, red 10px, green 10px, green 20px);*/
     /*background: repeating-linear-gradient(-55deg, #222, #222 10px, #333 10px, #333 20px);*/
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.suspicious_legitimate {
+.dataTables_wrapper table tbody tr:not(.selected).suspicious_legitimate td {
   background-color: #928300;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.undefined_legitimate {
+.dataTables_wrapper table tbody tr:not(.selected).undefined_legitimate td {
   background-color: #81B67A;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_legitimate {
+.dataTables_wrapper table tbody tr:not(.selected).false_positive_legitimate td {
   background-color: #50A78A;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.undefined_malicious {
+.dataTables_wrapper table tbody tr:not(.selected).undefined_malicious  td{
   background-color: #FA8787;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.suspicious_malicious{
+.dataTables_wrapper table tbody tr:not(.selected).suspicious_malicious td{
   background-color: #BD718A;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_malicious {
+.dataTables_wrapper table tbody tr:not(.selected).false_positive_malicious td {
   background-color: #BD718A;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.false_positive_suspicious {
+.dataTables_wrapper table tbody tr:not(.selected).false_positive_suspicious td {
   background-color: #BDB08A;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.undefined_suspicious {
+.dataTables_wrapper table tbody tr:not(.selected).undefined_suspicious td {
   background-color: #FAC687;
 }
-.dataTables_wrapper table tbody tr:not(.selected) td.undefined_false_positive {
+.dataTables_wrapper table tbody tr:not(.selected).undefined_false_positive  td{
   background-color: #C4E3F7;
 }
 .dataTables_wrapper table tbody tr.selected td {
@@ -75,9 +77,31 @@
 .sidebar {
     width: 180px;
 }
+.navbar{
+    margin-bottom: 0;
+    background-color: white;
+}
+.page-header{
+    margin-top: 20px;
+}
 #page-wrapper{
-    margin-left: 180px;
+    margin-left: 0;
 }
 .dataTables_wrapper th, .dataTables_wrapper td {
     white-space: nowrap;
+}
+
+#statical-section table td{
+    vertical-align: middle
+}
+.modal .modal-content{
+    width: 800px;
+}
+.modal .modal-body table{
+    table-layout: fixed;
+    width: 100%;
+
+}
+.modal .modal-body table td{
+    word-wrap: break-word;
 }
