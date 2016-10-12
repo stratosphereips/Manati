@@ -34,6 +34,7 @@ function EventReg(params, as_logic){
         paramenters['created_at'] = getTimeNow();
         paramenters['analysis_session_id'] = as_logic.getAnalysisSessionId();
         paramenters['analysis_session_name'] = SHA256(as_logic.getAnalysisSessionName());
+        paramenters['version_app'] = VERSION_APP;
     };
     init();
 
