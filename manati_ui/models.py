@@ -191,10 +191,16 @@ class AnalysisSession(TimeStampedModel):
         return unicode(self.name)
 
     def get_columns_order_by(self, user):
-        return json.loads(AnalysisSessionUsers.objects.get(analysis_session_id=self.id, user_id=user.id).columns_order)
+        asu = AnalysisSessionUsers.objects.filter(analysis_session_id=self.id, user_id=user.id).first()
+        if asu is None:
+            return []
+        else:
+            return json.loads(asu.columns_order)
 
     def set_columns_order_by(self,user,columns_order):
-        asu = AnalysisSessionUsers.objects.get(analysis_session=self,user_id=user.id)
+        asu = AnalysisSessionUsers.objects.filter(analysis_session=self,user_id=user.id).first()
+        if asu is None:
+            asu = AnalysisSessionUsers.objects.create(analysis_session=self, user_id=user.id)
         asu.columns_order = json.dumps(columns_order)
         asu.save()
 
@@ -392,6 +398,17 @@ class VTConsult(TimeStampedModel):
 
     def __unicode__(self):
         return unicode(self.info_report) or u''
+
+
+class AppParameter(TimeStampedModel):
+    KEY_OPTIONS = Choices(('virus_total_key_api', 'Virus Total Key API'))
+    key = models.CharField(choices=KEY_OPTIONS, default='', max_length=20, null=False)
+    value = models.CharField(null=False, default='', max_length=255)
+
+    class Meta:
+        db_table = 'manati_app_parameters'
+
+
 
 
 

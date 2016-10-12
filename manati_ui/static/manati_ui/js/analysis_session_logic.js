@@ -24,6 +24,8 @@ var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+var NAMES_HTTP_URL = ["http.url", "http_url"];
+var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server"];
 var _flows_grouped;
 var _helper;
 var _filterDataTable;
@@ -186,8 +188,23 @@ function AnalysisSessionLogic(){
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
-        COL_HTTP_URL_STR = "http.url";
-        COL_END_POINTS_SERVER_STR = "endpoints.server";
+
+        for(var index = 0; index < NAMES_HTTP_URL.length; index++){
+            var key = NAMES_HTTP_URL[index];
+            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+                COL_HTTP_URL_STR = key;
+                break;
+            }
+        }
+        for(var index = 0; index < NAMES_END_POINTS_SERVER.length; index++){
+            var key = NAMES_END_POINTS_SERVER[index];
+            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+                COL_END_POINTS_SERVER_STR = key;
+                break;
+            }
+        }
+        // COL_HTTP_URL_STR = "http.url";
+        // COL_END_POINTS_SERVER_STR = "endpoints.server";
         COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
@@ -751,7 +768,13 @@ function AnalysisSessionLogic(){
             // sorting header
             var headers;
             if(_.isEmpty(headers_info)){
-                headers_info = _.keys(data[0]);
+                var elem = weblogs[0];
+                var attributes = JSON.parse(elem.fields.attributes);
+                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
+                headers_info = _.keys(attributes);
+                headers_info.push(COL_VERDICT_STR);
+                headers_info.push(COL_REG_STATUS_STR);
+                headers_info.push(COL_DT_ID_STR);
                 thiz.setColumnsOrderFlat(true);
                 headers = headers_info;
             }else{
