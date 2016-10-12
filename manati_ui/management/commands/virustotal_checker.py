@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import models
-from manati_ui.models import VTConsult
+from manati_ui.models import VTConsult, AppParameter
 import simplejson, json
 import signal
 import urllib
@@ -19,7 +19,7 @@ from colorama import init, Fore, Back, Style
 
 URLS = {'ip': r'https://www.virustotal.com/vtapi/v2/ip-address/report',
         'domain': r'https://www.virustotal.com/vtapi/v2/domain/report'}
-API_KEY = 'efc4346703100a29d72e72c2d91d8b9c7f25bd7c59a5bb9309918b91729220d5'
+API_KEY = AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value
 WAIT_TIME = 15 # Public API allows 4 request per minute, so we wait 15 secs by default
 WHITE_LIST = ['1.0.0.127']
 OWNER_WHITE_LIST = ['Google Inc.', 'Facebook, Inc.', 'CloudFlare, Inc.', 'Microsoft Corporation',
