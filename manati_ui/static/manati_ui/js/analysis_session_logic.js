@@ -262,7 +262,9 @@ function AnalysisSessionLogic(){
         return rows_affected;
 
     };
-    var syncDB = function (){
+    var syncDB = function (show_loading){
+        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading) showLoading();
         var arr_list = _dt.rows('.modified').data();
         var data_row = {};
         arr_list.each(function(elem){
@@ -304,6 +306,7 @@ function AnalysisSessionLogic(){
 
                 });
                 console.log("DB Synchronized");
+                if(show_loading) hideLoading();
             },
 
             // handle a non-successful response
@@ -311,6 +314,7 @@ function AnalysisSessionLogic(){
                 $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
                     " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                 console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                hideLoading();
             }
 
         });
@@ -365,6 +369,7 @@ function AnalysisSessionLogic(){
                     columns_order_changed = false;
                     $("#weblogfile-name").off('click');
                     $("#weblogfile-name").css('cursor','auto');
+                    $("#sync-db-btn").show();
                 },
 
                 // handle a non-successful response
@@ -756,6 +761,12 @@ function AnalysisSessionLogic(){
             contextMenuSettings();
             $('#save-table').on('click',function(){
                saveDB();
+            });
+
+            //event for sync button
+            $('#sync-db-btn').on('click',function (ev) {
+               ev.preventDefault();
+               syncDB(true);
             });
         });
     };

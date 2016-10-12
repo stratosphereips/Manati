@@ -1,8 +1,9 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
     Analysis Session - {{ analysissession.name }}
+    <a id="sync-db-btn" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i></a>
     {% load staticfiles %}
-    <img id="loading-img" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
+    <img id="loading-img" width="33" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
 {% endblock %}
 {% block content %}
     <div class="row" id="analysis-session-page" >

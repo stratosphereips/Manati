@@ -1,6 +1,9 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
     New Analysis Session - <span id="weblogfile-name"></span><input type="text" maxlength="60" id="edit-input" />
+    <a id="sync-db-btn" style="display: none;" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i></a>
+    {% load staticfiles %}
+    <img id="loading-img" width="33" style="display: none;" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
 {% endblock %}
 {% block content %}
     <div class="row" id="analysis-session-page">
@@ -21,8 +24,7 @@
                     </div>
                     <input type="button" id="upload" class="btn btn-default" value="Upload File"/>
                     <input type="button" id="save-table" class="btn btn-primary" value="Save!" />
-                    {% load staticfiles %}
-                    <img id="loading-img" style="display: none;" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
+
 
 {#                    <progress></progress>#}
 
