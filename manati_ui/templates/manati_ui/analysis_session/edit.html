@@ -41,10 +41,11 @@
     </div>
     {% include 'manati_ui/analysis_session/modal_vt.html' %}
     <script type="text/javascript">
-       var logic = new AnalysisSessionLogic();
+        VERSION_APP = '{% version_app %}';
+        var logic = new AnalysisSessionLogic();
         logic.init();
         logic.callingEditingData({{analysissession.id| safe}});
-        VERSION_APP = '{% version_app %}';
+
 
     </script>
 {% endblock %}

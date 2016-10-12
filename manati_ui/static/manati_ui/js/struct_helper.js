@@ -55,6 +55,7 @@ function FlowsProcessed(flows_grouped){
 
     this.makeStaticalSection= function () {
         var table = document.createElement('table');
+        table.setAttribute("id", "statistics_table");
         table.classList = ["table"];
         var thead = document.createElement('thead');
         var tr = document.createElement('tr');
@@ -64,23 +65,34 @@ function FlowsProcessed(flows_grouped){
         var text_h1 = document.createTextNode('Key Group');
         var text_h2 = document.createTextNode('Key Flow');
         var text_h3 = document.createTextNode('Amount');
-        th1.appendChild(text_h1); th2.appendChild(text_h2); th3.appendChild(text_h3);
-        tr.appendChild(th1); tr.appendChild(th2); tr.appendChild(th3);
+        th1.appendChild(text_h1);
+        th2.appendChild(text_h2); th3.appendChild(text_h3);
+        tr.appendChild(th2); tr.appendChild(th3);
+        tr.appendChild(th1);
         thead.appendChild(tr);
         table.appendChild(thead);
         var tbody = document.createElement('tbody');
         $.each(_.keys(flows_grouped),function (index,key_group) {
-            var tr = document.createElement('tr');
+            // var tr = document.createElement('tr');
             var key_flows = _.keys(flows_grouped[key_group]);
-            var td1 = document.createElement('td');
-            var text = document.createTextNode(key_group);
-            td1.rowSpan = key_flows.length;
-            td1.appendChild(text);
-            tr.appendChild(td1);
+            // var td1 = document.createElement('td');
+            // var text = document.createTextNode(key_group);
+            // td1.rowSpan = key_flows.length;
+            // td1.appendChild(text);
+            // tr.appendChild(td1);
             $.each(key_flows, function (i,key_flow) {
-                if(tr==null) {
-                    tr=document.createElement('tr');
-                }
+                var tr = document.createElement('tr');
+                var td1 = document.createElement('td');
+                var text = document.createTextNode(key_group);
+                td1.appendChild(text);
+
+                // if(tr==null) {
+                //     tr=document.createElement('tr');
+                //     // var td1 = document.createElement('td');
+                //     // var text = document.createTextNode(key_group);
+                //     // td1.appendChild(text);
+                //     // tr.appendChild(td1);
+                // }
                 var td2 = document.createElement('td');
                 var text1 = document.createTextNode(key_flow);
                 td2.appendChild(text1);
@@ -90,6 +102,7 @@ function FlowsProcessed(flows_grouped){
                 var text3 = document.createTextNode(size.toString());
                 td3.appendChild(text3);
                 tr.appendChild(td3);
+                tr.appendChild(td1);
                 tbody.appendChild(tr);
                 tr = null;
             });
@@ -97,6 +110,7 @@ function FlowsProcessed(flows_grouped){
         });
         $("#statical-section").append("<br/>");
         $("#statical-section").append(table);
+        $(table).DataTable();
         $("li#statical-nav").show();
     };
 }
