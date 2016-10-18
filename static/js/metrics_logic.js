@@ -397,7 +397,7 @@ function Metrics(active, analysis_session_logic){
                     type:"POST",
                     data: data,
                     dataType: "json",
-                    url: "/manati_ui/analysis_session/sync_metrics",
+                    url: "/manati_project/manati_ui/analysis_session/sync_metrics",
                     success : function(json) {// handle a successful response
                         var keys = json.keys;
                         // console.log("Sync Metrics DONE, " + json.measurements_length + " registers were saved");
