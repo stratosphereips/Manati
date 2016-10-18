@@ -283,7 +283,7 @@ function AnalysisSessionLogic(){
             type:"POST",
             data: JSON.stringify(data),
             dataType: "json",
-            url: "/manati_ui/analysis_session/sync_db",
+            url: "/manati_project/manati_ui/analysis_session/sync_db",
             // handle a successful response
             success : function(json) {
                 // $('#post-text').val(''); // remove the value from the input
@@ -346,7 +346,7 @@ function AnalysisSessionLogic(){
                 type:"POST",
                 data: data,
                 dataType: "json",
-                url: "/manati_ui/analysis_session/create",
+                url: "/manati_project/manati_ui/analysis_session/create",
                 // handle a successful response
                 success : function(json) {
                     // $('#post-text').val(''); // remove the value from the input
@@ -363,7 +363,7 @@ function AnalysisSessionLogic(){
                     $('#wrap-form-upload-file').hide();
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
-                        "/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
+                        "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
                     setInterval(syncDB, 10000 );
                     hideLoading();
                     columns_order_changed = false;
@@ -557,7 +557,7 @@ function AnalysisSessionLogic(){
             type:"GET",
             data: data,
             dataType: "json",
-            url: "/manati_ui/consult_virus_total",
+            url: "/manati_project/manati_ui/consult_virus_total",
             success : function(json) {// handle a successful response
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
@@ -601,7 +601,7 @@ function AnalysisSessionLogic(){
             type:"GET",
             data: data,
             dataType: "json",
-            url: "/manati_ui/analysis_session/weblog/history",
+            url: "/manati_project/manati_ui/analysis_session/weblog/history",
             success : function(json) {// handle a successful response
                 var weblog_history = JSON.parse(json['data']);
                 var table = buildTableInfo_Wbl_History(weblog_history);
@@ -849,7 +849,7 @@ function AnalysisSessionLogic(){
                 type:"GET",
                 data: data,
                 dataType: "json",
-                url: "/manati_ui/analysis_session/get_weblogs",
+                url: "/manati_project/manati_ui/analysis_session/get_weblogs",
                 success : function(json) {// handle a successful response
                     var weblogs = JSON.parse(json['weblogs']);
                     var analysis_session_id = json['analysissessionid'];

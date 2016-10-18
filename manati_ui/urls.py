@@ -4,7 +4,7 @@ from . import views
 app_name = 'manati_ui'
 
 urlpatterns = [
-    url(r'^$', views.IndexView.as_view(), name='index'),
+    # url(r'^$', views.IndexView.as_view(), name='index'),
     url(r'^analysis_session/new$', views.new_analysis_session_view, name='new_analysis_session'),
     url(r'^analysis_session/(?P<pk>[0-9]+)/edit', views.EditAnalysisSession.as_view(), name='edit_analysis_session'),
     url(r'^analysis_session/(?P<id>[0-9]+)/delete', views.delete_analysis_session, name='delete_analysis_session'),
