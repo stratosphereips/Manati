@@ -2,6 +2,7 @@
 The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
 ## Versions
+- Wed Oct 12 21:19:21 CEST 2016: Vession 0.5.1
 - Wed Sep 21 17:56:40 CEST 2016: Version 0.41
 - Tue Sep 13 10:52:36 CEST 2016: Version 0.4
 - Thu Aug 18 15:44:31 CEST 2016: Version 0.3

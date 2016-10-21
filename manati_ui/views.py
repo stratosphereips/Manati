@@ -20,30 +20,32 @@ from utils import *
 #
 # from StringIO import StringIO
 
+REDIRECT_TO_LOGIN = "/manati_project/login"
+# class IndexView(generic.ListView):
+#     template_name = 'manati_ui/index.html'
+#     context_object_name = 'latest_question_list'
+#
+#     def get_queryset(self):
+#         """
+# 		Return the last five published questions (not including those set to be
+# 		published in the future).
+# 		"""
+#         return ''
 
-class IndexView(generic.ListView):
-    template_name = 'manati_ui/index.html'
-    context_object_name = 'latest_question_list'
+# class AnalysisSessionNewView(generic.DetailView):
+#     model = AnalysisSession
+#     template_name = 'manati_ui/analysis_session/new.html'
 
-    def get_queryset(self):
-        """
-		Return the last five published questions (not including those set to be
-		published in the future).
-		"""
-        return ''
 
-class AnalysisSessionNewView(generic.DetailView):
-    model = AnalysisSession
-    template_name = 'manati_ui/analysis_session/new.html'
-
-@login_required(login_url="/")
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
 def new_analysis_session_view(request):
 
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
 #ajax connexions
-@login_required(login_url="/")
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def create_analysis_session(request):
     analysis_session_id = -1
@@ -73,7 +75,7 @@ def create_analysis_session(request):
     #     return render_to_json(request, data)
 
 
-@login_required(login_url="/")
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_virus_total_consult(request):
     # script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -93,7 +95,7 @@ def make_virus_total_consult(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
-@login_required(login_url="/")
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def export_metrics(request):
     try:
@@ -110,7 +112,7 @@ def export_metrics(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-@login_required(login_url="/")
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblog_history(request):
     try:
@@ -136,7 +138,8 @@ def convert(data):
     else:
         return data
 
-@login_required(login_url="/")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
     try:
@@ -159,13 +162,15 @@ def sync_db(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
-@login_required(login_url="/")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def delete_analysis_session(request, id):
     AnalysisSession.objects.filter(id=id).delete()
     return HttpResponseRedirect("/manati_ui/analysis_sessions")
 
-@login_required(login_url="/")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_metrics(request):
     try:
@@ -183,7 +188,8 @@ def sync_metrics(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
-@login_required(login_url="/")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblogs(request):
     try:
@@ -204,9 +210,8 @@ def get_weblogs(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-
 class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
-    login_url = '/'
+    login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
     template_name = 'manati_ui/analysis_session/index.html'
@@ -219,7 +224,7 @@ class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
 
 
 class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
-    login_url = '/'
+    login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
     template_name = 'manati_ui/analysis_session/edit.html'
@@ -230,7 +235,8 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         context['analysis_session_id'] = object.id
         return context
 
-@login_required(login_url="/")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def profile_view(request):
     user = request.user

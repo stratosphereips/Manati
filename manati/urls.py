@@ -19,12 +19,16 @@ from django.contrib.auth import views
 from login.forms import LoginForm
 import login
 
+path_name = 'manati_project'
+
 urlpatterns = [
-    url(r'^manati_ui/', include('manati_ui.urls')),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'', include('login.urls')),
-    url(r'^index.html$', login.views.home, name="home"),
-    url(r'^login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
-    url(r'^logout/$', views.logout, {'next_page': '/login'}),
+
+    url(r'^'+path_name+'/manati_ui/', include('manati_ui.urls')),
+    url(r'^'+path_name+'/admin/', include(admin.site.urls)),
+    url(r''+path_name+'/', include('login.urls')),
+    url(r'^'+path_name+'/index.html$', login.views.home, name="home"),
+    url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
+    url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
+    url(r'^', login.views.home, name="home"),
 
 ]
