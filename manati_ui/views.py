@@ -1,9 +1,8 @@
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseServerError
+from django.http import HttpResponseServerError
 from django.core.urlresolvers import reverse
 from django.views import generic
-from django.utils import timezone
 from .models import *
 from manati_ui.forms import UserProfileForm
 from django.contrib.auth.models import User

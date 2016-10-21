@@ -2,7 +2,9 @@ colorama==0.3.7
 dealer==2.0.5
 Django==1.9.7
 django-appconf==1.0.2
+django-background-tasks==1.0.14
 django-bootstrap3==7.0.1
+django-compat==1.0.13
 django-compressor==2.0
 django-enumfield==1.3b2
 django-extensions==1.7.1

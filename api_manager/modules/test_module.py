@@ -1,5 +1,6 @@
 from api_manager.core.modules_manager import ModulesManager
 from api_manager.common.abstracts import Module
+import json
 
 
 class TestModule(Module):
@@ -10,7 +11,12 @@ class TestModule(Module):
     authors = ['Raul Benitez']
     events = [ModulesManager.MODULES_RUN_EVENTS.labelling]
 
-    def run(self):
-        pass
+    def run(self, *args):
+        event = args['event_thrown']
+        weblog = args['weblog']
+        weblogs = json.loads(ModulesManager.get_all_weblogs_json())
+        # do something with that
+        ModulesManager.set_changes_weblogs(self.module_name, weblogs)
+        #end
 
 module_obj = TestModule()

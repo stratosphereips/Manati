@@ -37,6 +37,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'api_manager',
+    'background_task',
     'rest_framework',
     'bootstrap3',
     'sass_processor',

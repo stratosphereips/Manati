@@ -15,7 +15,7 @@ class Module(object):
         pass
 
     @abstractmethod
-    def run(self):
+    def run(self, *args):
         # try:
         #     self.args = self.parser.parse_args(self.command_line)
         # except ArgumentErrorCallback as e:

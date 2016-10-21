@@ -250,6 +250,15 @@ class Weblog(TimeStampedModel):
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
+    def set_mod_attributes(self, mod_acronym, new_mod_attributes, save=False):
+        mod_attributes = json.loads(self.mod_attributes)
+        new_mod_attributes['created_at'] = datetime.datetime.now()
+        mod_attributes[mod_acronym] = new_mod_attributes
+        self.mod_attributes = json.dumps(mod_attributes)
+        if save:
+            self.save()
+
+
     @transaction.atomic
     def save_with_history(self, *args, **kwargs):
         with transaction.atomic():
