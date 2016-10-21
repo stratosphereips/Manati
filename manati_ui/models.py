@@ -184,7 +184,7 @@ class AnalysisSession(TimeStampedModel):
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
 
-    objects = AnalysisSessionManager()
+
     comments = GenericRelation('Comment')
 
     def __unicode__(self):
@@ -408,13 +408,6 @@ class AppParameter(TimeStampedModel):
     class Meta:
         db_table = 'manati_app_parameters'
 
-
-
-
-
-
-#class Module(TimeStampedModel):
-# ????????
 
 
 

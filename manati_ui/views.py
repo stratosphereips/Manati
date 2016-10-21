@@ -7,18 +7,13 @@ from django.utils import timezone
 from .models import *
 from manati_ui.forms import UserProfileForm
 from django.contrib.auth.models import User
-from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import UpdateView
-# from subprocess import Popen, PIPE
 from utils import *
-# import os
-#
-# from StringIO import StringIO
+from api_manager.core.modules_manager import ModulesManager
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -40,7 +35,7 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-
+    ModulesManager.load_modules()
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 

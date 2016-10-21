@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'api_manager',
     'rest_framework',
     'bootstrap3',
     'sass_processor',
@@ -161,3 +162,5 @@ SASS_PRECISION = 8
 STATIC_URL = '/static/'
 
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
