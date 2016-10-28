@@ -2,6 +2,8 @@ from __future__ import unicode_literals
 
 from django.db import models
 from manati_ui.models import TimeStampedModel
+from model_utils.fields import AutoCreatedField,AutoLastModifiedField
+from django.utils.translation import ugettext_lazy as _
 from jsonfield import JSONField
 from model_utils import Choices
 import json
@@ -57,13 +59,26 @@ class ExternalModule(TimeStampedModel):
 
     def mark_idle(self, save=False):
         self.status = self.MODULES_STATUS.idle
+        # hem = HistoryExternalModule.objects.last()
+        # hem.save()
         if save:
             self.save()
 
     def mark_running(self, save=False):
         self.status = self.MODULES_STATUS.running
+        # HistoryExternalModule.objects.create()
         if save:
             self.save()
 
     class Meta:
         db_table = 'manati_externals_modules'
+#
+#
+# class HistoryExternalModule(models.Model):
+#
+#     external_module = models.ForeignKey(ExternalModule, on_delete=models.CASCADE, null=False)
+#     start_running = AutoCreatedField(_('start_running'))
+#     stop_running = AutoLastModifiedField(_('stop_running'))
+#
+#     class Meta:
+#         db_table = 'manati_history_externals_modules'

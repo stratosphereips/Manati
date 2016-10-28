@@ -157,6 +157,7 @@ def convert(data):
 def sync_db(request):
     try:
         if request.method == 'POST':
+            user = request.user
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
             if "headers[]" in received_json_data:
@@ -166,7 +167,7 @@ def sync_db(request):
                 print("Headers Updated")
             data = convert(received_json_data['data'])
 
-            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
+            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
             json_query_set = serializers.serialize("json", wb_query_set)
             if wb_query_set:
                 ModulesManager.attach_event_after_update_verdict(json_query_set)
@@ -252,7 +253,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         path_log_file = os.path.join(settings.BASE_DIR, 'logs')
         logfile_name = os.path.join(path_log_file, "background_tasks.log")
         thread = threading.Thread(target=management.call_command, args=('process_tasks',
-                                                                        "--sleep", "60",
+                                                                        "--sleep", "10",
                                                                         "--log-level", "DEBUG",
                                                                         "--log-std", logfile_name))
         # thread.daemon = True  # Daemonize thread

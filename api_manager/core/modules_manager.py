@@ -87,25 +87,24 @@ class ModulesManager:
                 fields = attr_weblog['fields']
                 assert isinstance(fields['mod_attributes'], dict)
                 weblog.set_mod_attributes(module.acronym, fields['mod_attributes'], save=True)
-                # weblog.set_verdict_from_module() thinking about that
+                weblog.set_verdict_from_module(fields['verdict'], module, save=True)
 
     @staticmethod
     def __run_modules(event_thrown, modules, weblogs_seed_json):
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
-        weblogs_json_all = serializers.serialize("json",Weblog.objects.all()) # just for testing
-        weblogs_json = {
-                    ModulesManager.MODULES_RUN_EVENTS.labelling:  weblogs_json_all,
-                    ModulesManager.MODULES_RUN_EVENTS.bulk_labelling: weblogs_json_all,
-                  }.get(event_thrown)
+        # weblogs_json_all = serializers.serialize("json",Weblog.objects.all()) # just for testing
+        # weblogs_json = {
+        #             ModulesManager.MODULES_RUN_EVENTS.labelling:  weblogs_json_all,
+        #             ModulesManager.MODULES_RUN_EVENTS.bulk_labelling: weblogs_json_all,
+        #           }.get(event_thrown)
         for external_module in modules:
             module_path = os.path.join(path, external_module.filename)
             module_instance = external_module.module_instance
             module = imp.load_source(module_instance, module_path)
-            module.module_obj.run(weblogs=weblogs_json,
-                                  event_thrown=event_thrown,
-                                  weblogs_seed=weblogs_seed_json)
             external_module.mark_running(save=True)
+            module.module_obj.run(event_thrown=event_thrown,
+                                  weblogs_seed=weblogs_seed_json)
 
     @staticmethod
     @background(schedule=timezone.now())

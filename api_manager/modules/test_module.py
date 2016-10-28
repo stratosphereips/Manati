@@ -13,13 +13,13 @@ class TestModule(Module):
 
     def run(self, **kwargs):
         event = kwargs['event_thrown']
-        weblogs = json.loads(kwargs['weblogs'])
+        weblogs = json.loads(ModulesManager.get_all_weblogs_json())
         weblogs_seed = json.loads(kwargs['weblogs_seed'])
-
         for index in range(len(weblogs)):
-            weblogs[index]['fields']['mod_attributes'] = {'tested': "Reviewed"}
+            weblogs[index]['fields']['mod_attributes'] = {'tested': "Reviewed", "verdict": "malicious"}
+            weblogs[index]['fields']['verdict'] = 'malicious'
 
         ModulesManager.set_changes_weblogs(self.module_name, json.dumps(weblogs))
-        #end
+        return
 
 module_obj = TestModule()

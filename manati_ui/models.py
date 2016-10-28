@@ -127,7 +127,7 @@ class AnalysisSessionManager(models.Manager):
             return e
 
     @transaction.atomic
-    def sync_weblogs(self, analysis_session_id,data):
+    def sync_weblogs(self, analysis_session_id,data, user):
         try:
             print("Weblogs to update: ")
             print(len(data))
@@ -144,7 +144,7 @@ class AnalysisSessionManager(models.Manager):
 
                 wb_similar = analysis_session.weblog_set.filter(id__in=data_ids)
                 for wb in wb_similar:
-                    wb.set_verdict(data[str(wb.id)], save=True)
+                    wb.set_verdict(data[str(wb.id)], user, save=True)
                     list_objs.append(wb)
 
             return list_objs
@@ -247,6 +247,23 @@ class Weblog(TimeStampedModel):
     class Meta:
         db_table = 'manati_weblogs'
 
+    def clean(self):
+        self.clean_fields(exclude='verdict')
+        merge_verdict = self.verdict.split('_')
+        if len(merge_verdict) > 1:
+            user_verdict = merge_verdict[0]
+            model_verdict = merge_verdict[1]
+            temp_verdict1 = str(user_verdict) + '_' + str(model_verdict)
+            temp_verdict2 =  str(model_verdict)+ '_' + str(user_verdict)
+            if temp_verdict1 in dict(self.VERDICT_STATUS) is False and temp_verdict2 in dict(self.VERDICT_STATUS) is False :
+                raise ValidationError({'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
+            else:
+                pass
+        else:
+            if self.verdict in dict(self.VERDICT_STATUS) is False:
+                raise ValidationError(
+                    {'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
+
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
@@ -265,43 +282,70 @@ class Weblog(TimeStampedModel):
 
 
     @transaction.atomic
-    def save_with_history(self, *args, **kwargs):
+    def save_with_history(self, content_object, *args, **kwargs):
         with transaction.atomic():
             old_wbl = Weblog.objects.get(id=self.id)
+            old_verdict = kwargs['old_verdict'] if 'old_verdict' in kwargs else old_wbl.verdict
+            new_verdict = kwargs['new_verdict'] if 'new_verdict' in kwargs else self.verdict
+            if content_object is None:
+                content_object = self.analysis_session.users.first()
             weblog_history = self.weblogs_history()
             if not weblog_history or self.verdict != weblog_history[0].verdict:
                 newWeblogHistoy = WeblogHistory(weblog=self,
-                                                old_verdict=old_wbl.verdict,
-                                                verdict=self.verdict,
-                                                content_object=self.analysis_session.users.first())
+                                                old_verdict=old_verdict,
+                                                verdict= new_verdict,
+                                                content_object=content_object)
                 newWeblogHistoy.save()
-
+            self.clean()
+            # # save summary history
+            kwargs.pop('old_verdict', None)
+            kwargs.pop('new_verdict', None)
             super(Weblog, self).save(*args, **kwargs)
-        # # save summary history
-
 
     def set_register_status(self, status, save=False):
         self.register_status = status
         if save:
-            self.save_with_history()
+            self.clean()
+            self.save()
 
-    def set_verdict_from_module(self, verdict, save=False):
+    def set_verdict_from_module(self, module_verdict, external_module, save=False):
+        old_verdict = self.verdict
+        # ADDING LOCK
         #method that modules have to use for changing the verdict
-        pass
+        if module_verdict in dict(self.VERDICT_STATUS):
+            if self.verdict != self.VERDICT_STATUS.undefined:
+                merge_verdicts = self.verdict.split('_')
+                if len(merge_verdicts) > 1:
+                    user_verdict = merge_verdicts[0]
+                else:
+                    user_verdict = self.verdict
+                temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+                self.verdict = temp_verdict
+            else:
+                self.verdict = module_verdict
+            self.set_register_status(RegisterStatus.MODULE_MODIFICATION)
+        else:
+            raise ValidationError
 
-    def set_verdict(self, verdict, save=False):
+        new_verdict = self.verdict
+        if save:
+            self.save_with_history(external_module, old_verdict=old_verdict, new_verdict=new_verdict)
+
+    def set_verdict(self, verdict, user, save=False):
         #ADDING LOCK
-        #check if verdict exist
+        # check if verdict exist
         if verdict in dict(self.VERDICT_STATUS):
             if self.verdict and self.register_status == RegisterStatus.MODULE_MODIFICATION:
-                temp_verdict1 = str(self.verdict) + '_' + str(verdict)
-                temp_verdict2 = str(verdict) + '_' + str(self.verdict)
-                if temp_verdict1 in dict(self.VERDICT_STATUS):
-                    self.verdict = temp_verdict1
-                elif temp_verdict2 in dict(self.VERDICT_STATUS):
-                    self.verdict = temp_verdict2
-                else:
-                    raise KeyError
+                # first is the user says
+                temp_verdict = str(verdict) + '_' + str(self.verdict)
+                self.verdict = temp_verdict
+                # temp_verdict2 = str(verdict) + '_' + str(self.verdict)
+                # if temp_verdict1 in dict(self.VERDICT_STATUS):
+                #     self.verdict = temp_verdict1
+                # elif temp_verdict2 in dict(self.VERDICT_STATUS):
+                #     self.verdict = temp_verdict2
+                # else:
+                #     raise KeyError
                 self.set_register_status(RegisterStatus.READY)
             elif self.verdict and self.register_status == RegisterStatus.READY:
                 self.verdict = verdict
@@ -317,7 +361,7 @@ class Weblog(TimeStampedModel):
             raise ValidationError
 
         if save:
-            self.save_with_history()
+            self.save_with_history(user)
 
 
 class WeblogHistory(TimeStampedModel):
@@ -389,6 +433,7 @@ class VTConsultManager(models.Manager):
                 info_report_obj[VTConsult.KEYS_INFO[index]] = elem
                 index += 1
             VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(info_report_obj))
+
 
 class VTConsult(TimeStampedModel):
     KEYS_INFO = ["IP","Rating","Owner","Country Code","Log Line No","Positives","Total","Malicious Samples","Hosts"]
