@@ -14,6 +14,7 @@ urlpatterns = [
     url(r'^consult_virus_total$', views.make_virus_total_consult, name='make_virus_total_consult'),
     url(r'^export_metrics', views.export_metrics, name='export_metrics'),
     url(r'^analysis_session/weblog/history$', views.get_weblog_history, name='weblog_history'),
+    url(r'^analysis_session/weblog/modules_changes_attributes', views.get_modules_changes, name='weblog_mod_changes'),
     url(r'^analysis_session/sync_db', views.sync_db, name='sync_db_analysis_session'),
     url(r'^analysis_session/sync_metrics', views.sync_metrics, name='sync_metrics_analysis_session'),
     url(r'^analysis_session/get_weblogs', views.get_weblogs, name='get_weblogs_analysis_session'),

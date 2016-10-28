@@ -488,6 +488,14 @@ function AnalysisSessionLogic(){
                     getWeblogHistory(weblog_id);
                 }
             };
+            items_menu['weblog-modules-changes'] = {
+                name: "Consult History Modules changes", icon: "fa-search",
+                callback: function (key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getModulesChangesHistory(weblog_id);
+                }
+            };
         }
         items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
@@ -592,6 +600,58 @@ function AnalysisSessionLogic(){
         table += "</tbody>";
         table += "</table>";
         return table;
+
+    }
+    function buildTableInfo_Mod_attributes(mod_attributes){
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
+        table += "<tbody>";
+        console.log(mod_attributes);
+        _.each(mod_attributes, function (value, mod_name) {
+            var length = _.keys(value).length
+            var tr = "<tr>";
+            tr += "<td  rowspan='"+length+"'>" + mod_name +  "</td>";
+             _.each(value, function (parameter_value, key) {
+                 console.log(parameter_value, key);
+                 if(tr == null) tr = "<tr>";
+                 tr += "<td>" + key + "</td>";
+                 tr += "<td>" + parameter_value + "</td>";
+                 tr += "</tr>";
+                 table += tr;
+                 tr = null;
+             });
+        });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getModulesChangesHistory(weblog_id){
+        initModal("Modules Changes History of Weblog ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/modules_changes_attributes",
+            success : function(json) {// handle a successful response
+                var mod_attributes = JSON.parse(json['data']);
+                var table = buildTableInfo_Mod_attributes(mod_attributes);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
 
     }
     function getWeblogHistory(weblog_id){
@@ -783,6 +843,7 @@ function AnalysisSessionLogic(){
         // }
 
     };
+
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
         if(weblogs.length > 1){
@@ -840,6 +901,7 @@ function AnalysisSessionLogic(){
 
 
     };
+
     this.callingEditingData = function (analysis_session_id){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });

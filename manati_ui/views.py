@@ -125,6 +125,21 @@ def get_weblog_history(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_modules_changes(request):
+    try:
+        if request.method == 'GET':
+            # current_user = request.user
+            weblog_id = str(request.GET.get('weblog_id', ''))
+            weblog = Weblog.objects.filter(id=weblog_id).first()
+            return JsonResponse(dict(data=json.dumps(weblog.mod_attributes), msg='Modules Changes History Consulst DONE'))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
 
 def convert(data):
     if isinstance(data, basestring):
