@@ -157,6 +157,8 @@ STATICFILES_FINDERS = (
 
 SASS_PRECISION = 8
 
+BACKGROUND_TASK_RUN_ASYNC = True # run the modules task, asynchronously
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 

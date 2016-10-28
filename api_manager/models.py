@@ -26,9 +26,12 @@ class ExternalModuleManager(models.Manager):
         external_module_obj.clean()
         external_module_obj.save()
 
+    def find_by_event(self,event_name):
+        return ExternalModule.objects.filter(run_in_events__contains=event_name, status=ExternalModule.MODULES_STATUS.idle)
+
 
 class ExternalModule(TimeStampedModel):
-    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling')
+    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious')
     MODULES_STATUS = Choices('idle', 'running', 'removed')
     module_instance = models.CharField(max_length=20, unique=True)
     module_name = models.CharField(max_length=30, unique=True)
@@ -51,6 +54,16 @@ class ExternalModule(TimeStampedModel):
     def has_event(self, event):
         available_event = self.get_events()
         return event in available_event
+
+    def mark_idle(self, save=False):
+        self.status = self.MODULES_STATUS.idle
+        if save:
+            self.save()
+
+    def mark_running(self, save=False):
+        self.status = self.MODULES_STATUS.running
+        if save:
+            self.save()
 
     class Meta:
         db_table = 'manati_externals_modules'

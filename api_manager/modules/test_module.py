@@ -11,12 +11,15 @@ class TestModule(Module):
     authors = ['Raul Benitez']
     events = [ModulesManager.MODULES_RUN_EVENTS.labelling]
 
-    def run(self, *args):
-        event = args['event_thrown']
-        weblog = args['weblog']
-        weblogs = json.loads(ModulesManager.get_all_weblogs_json())
-        # do something with that
-        ModulesManager.set_changes_weblogs(self.module_name, weblogs)
+    def run(self, **kwargs):
+        event = kwargs['event_thrown']
+        weblogs = json.loads(kwargs['weblogs'])
+        weblogs_seed = json.loads(kwargs['weblogs_seed'])
+
+        for index in range(len(weblogs)):
+            weblogs[index]['fields']['mod_attributes'] = {'tested': "Reviewed"}
+
+        ModulesManager.set_changes_weblogs(self.module_name, json.dumps(weblogs))
         #end
 
 module_obj = TestModule()

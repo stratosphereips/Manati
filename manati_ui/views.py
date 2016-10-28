@@ -13,6 +13,10 @@ from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
 from api_manager.core.modules_manager import ModulesManager
+from django.core import management
+import threading
+from manati import settings
+import os
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -34,7 +38,7 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-    ModulesManager.load_modules()
+    # ModulesManager.load_modules()
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
@@ -148,7 +152,10 @@ def sync_db(request):
             data = convert(received_json_data['data'])
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
-            return JsonResponse(dict(data=serializers.serialize("json", wb_query_set), msg='Sync DONE'))
+            json_query_set = serializers.serialize("json", wb_query_set)
+            if wb_query_set:
+                ModulesManager.attach_event_after_update_verdict(json_query_set)
+            return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
@@ -196,6 +203,7 @@ def get_weblogs(request):
                                      analysissessionid=analysis_session_id,
                                      name=analysis_session.name,
                                      headers=json.dumps(headers)))
+
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")
@@ -226,6 +234,15 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
+        path_log_file = os.path.join(settings.BASE_DIR, 'logs')
+        logfile_name = os.path.join(path_log_file, "background_tasks.log")
+        thread = threading.Thread(target=management.call_command, args=('process_tasks',
+                                                                        "--sleep", "60",
+                                                                        "--log-level", "DEBUG",
+                                                                        "--log-std", logfile_name))
+        # thread.daemon = True  # Daemonize thread
+        thread.start()
+
         context['analysis_session_id'] = object.id
         return context
 

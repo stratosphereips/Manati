@@ -184,7 +184,7 @@ class AnalysisSession(TimeStampedModel):
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
 
-
+    objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
 
     def __unicode__(self):
@@ -251,10 +251,15 @@ class Weblog(TimeStampedModel):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
     def set_mod_attributes(self, mod_acronym, new_mod_attributes, save=False):
-        mod_attributes = json.loads(self.mod_attributes)
-        new_mod_attributes['created_at'] = datetime.datetime.now()
-        mod_attributes[mod_acronym] = new_mod_attributes
-        self.mod_attributes = json.dumps(mod_attributes)
+        new_mod_attributes['created_at'] = str(datetime.datetime.now())
+        if str(self.mod_attributes) == '':
+            self.mod_attributes = {}
+        try:
+            self.mod_attributes[mod_acronym] = new_mod_attributes
+        except TypeError as e:
+            self.mod_attributes = {}
+            self.mod_attributes[mod_acronym] = new_mod_attributes
+
         if save:
             self.save()
 
@@ -302,7 +307,8 @@ class Weblog(TimeStampedModel):
                 self.verdict = verdict
             elif self.verdict:
                 # this check any new state that we didn't consider yet
-                raise Exception("It must not happen, there is register_status not zero (or READY) and should be to be changed")
+                raise Exception(
+                    "It must not happen, there is register_status not zero (or READY) and should be to be changed")
             elif not self.verdict:
                 #SOMETHING IS TOTALLY WRONG
                 raise Exception(
