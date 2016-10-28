@@ -3,7 +3,12 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+from django.core import management
 
+
+def run_migrations_background_task(apps, schema_editor):
+    management.call_command("makemigrations", "background_task")
+    management.call_command("migrate", "background_task")
 
 class Migration(migrations.Migration):
 
@@ -17,4 +22,5 @@ class Migration(migrations.Migration):
             name='status',
             field=models.CharField(choices=[('idle', 'idle'), ('running', 'running'), ('removed', 'removed')], default='idle', max_length=20),
         ),
+        migrations.RunPython(run_migrations_background_task),
     ]
