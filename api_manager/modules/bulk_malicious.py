@@ -17,23 +17,20 @@ class BulkMalicious(Module):
         for index in range(len(weblogs_seed)):
             fields = weblogs_seed[index]['fields']
             verdict = fields['verdict']
+            if verdict != 'malicious':
+                continue
             attributes = fields['attributes']
             if isinstance(attributes, basestring):
                 attributes = json.loads(attributes)
             domain = ModulesManager.get_domain(attributes['http.url'])
+
             if domain != '':
                 mod_attribute = {
                     'verdict': verdict,
                     'description': 'Labelled to malicious because one weblog before, with the same domain was marked  malicious'}
-                ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name,
-                                                                     mod_attribute,
+
+                ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,
                                                                      attributes__contains=domain)
         ModulesManager.module_done(self.module_name)
-
-            # weblogs_seed[index]['fields']['mod_attributes'] = {'tested': "Reviewed", "verdict": "malicious"}
-            # weblogs_seed[index]['fields']['verdict'] = 'malicious'
-
-        # ModulesManager.set_changes_weblogs(self.module_name, json.dumps(weblogs))
-        return
 
 module_obj = BulkMalicious()

@@ -247,8 +247,8 @@ class Weblog(TimeStampedModel):
     class Meta:
         db_table = 'manati_weblogs'
 
-    def clean(self):
-        self.clean_fields(exclude='verdict')
+    def clean(self, *args, **kwargs):
+        self.clean_fields(exclude='verdict', *args, **kwargs)
         merge_verdict = self.verdict.split('_')
         if len(merge_verdict) > 1:
             user_verdict = merge_verdict[0]
@@ -260,22 +260,24 @@ class Weblog(TimeStampedModel):
             else:
                 pass
         else:
-            if self.verdict in dict(self.VERDICT_STATUS) is False:
+            if not (self.verdict in dict(self.VERDICT_STATUS)):
                 raise ValidationError(
                     {'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
+
 
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
-    def set_mod_attributes(self, mod_acronym, new_mod_attributes, save=False):
+    def set_mod_attributes(self, module_name, acronym, new_mod_attributes, save=False):
         new_mod_attributes['created_at'] = str(datetime.datetime.now())
+        new_mod_attributes['Module Name'] = module_name
         if str(self.mod_attributes) == '':
             self.mod_attributes = {}
         try:
-            self.mod_attributes[mod_acronym] = new_mod_attributes
+            self.mod_attributes[acronym] = new_mod_attributes
         except TypeError as e:
             self.mod_attributes = {}
-            self.mod_attributes[mod_acronym] = new_mod_attributes
+            self.mod_attributes[acronym] = new_mod_attributes
         # self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.modified)
 
         if save:
@@ -298,7 +300,6 @@ class Weblog(TimeStampedModel):
                                                 verdict= new_verdict,
                                                 content_object=content_object)
                 newWeblogHistoy.save()
-            self.clean()
             # # save summary history
             kwargs.pop('old_verdict', None)
             kwargs.pop('new_verdict', None)
@@ -319,7 +320,7 @@ class Weblog(TimeStampedModel):
         # ADDING LOCK
         #method that modules have to use for changing the verdict
         if module_verdict in dict(self.VERDICT_STATUS):
-            if self.verdict != self.VERDICT_STATUS.undefined or self.verdict != module_verdict:
+            if self.verdict != self.VERDICT_STATUS.undefined and self.verdict != module_verdict:
                 merge_verdicts = self.verdict.split('_')
                 if len(merge_verdicts) > 1:
                     user_verdict = merge_verdicts[0]
@@ -331,9 +332,10 @@ class Weblog(TimeStampedModel):
                 self.verdict = module_verdict
             self.set_register_status(RegisterStatus.MODULE_MODIFICATION)
         else:
-            raise ValidationError
+            raise ValidationError({'verdict': 'The assigned verdict is invalid ' + module_verdict})
 
         new_verdict = self.verdict
+        self.clean()
         if save:
             self.save_with_history(external_module, old_verdict=old_verdict, new_verdict=new_verdict)
 
@@ -367,7 +369,7 @@ class Weblog(TimeStampedModel):
             raise ValidationError
 
         self.create_aux_seed()
-
+        self.clean()
         if save:
             self.save_with_history(user)
 

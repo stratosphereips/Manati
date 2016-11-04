@@ -4,3 +4,5 @@
 */*.pyc
 *.pyc
 /logs/*.log
+/Untitled.ipynb
+/.ipynb_checkpoints/

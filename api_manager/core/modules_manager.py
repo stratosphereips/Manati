@@ -10,6 +10,7 @@ from django.core import serializers
 from django.db import transaction
 from manati_ui.utils import *
 import re
+from django.db.models import Q
 
 
 class ModulesManager:
@@ -61,8 +62,13 @@ class ModulesManager:
                                                     m.acronym, m.events)
 
     @staticmethod
-    def execute_module(module_name):
-        pass
+    def execute_module(external_module, event_thrown, weblogs_seed_json, path=os.path.join(settings.BASE_DIR, 'api_manager/modules')):
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        external_module.mark_running(save=True)
+        return module.module_obj.run(event_thrown=event_thrown,
+                              weblogs_seed=weblogs_seed_json)
 
     @staticmethod
     def run_modules():
@@ -74,19 +80,18 @@ class ModulesManager:
 
     @staticmethod
     def get_filtered_weblogs_json(**kwargs):
-        return serializers.serialize('json', Weblog.objects.filter(kwargs))
+        return serializers.serialize('json', Weblog.objects.filter(Q(**kwargs)))
 
     @staticmethod
     @transaction.atomic
     def update_mod_attribute_filtered_weblogs(module_name, mod_attribute, **kwargs):
         with transaction.atomic():
             external_module = ExternalModule.objects.get(module_name=module_name)
-            weblogs = Weblog.objects.filter(kwargs)
+            weblogs = Weblog.objects.filter(Q(**kwargs))
             for weblog in weblogs:
-                weblog.set_mod_attributes(external_module.acronym, mod_attribute, save=True)
+                weblog.set_mod_attributes(external_module.module_name,external_module.acronym , mod_attribute, save=True)
                 if 'verdict' in mod_attribute:
                     weblog.set_verdict_from_module(mod_attribute['verdict'], external_module, save=True)
-
 
     @staticmethod
     def module_done(module_name):
@@ -104,7 +109,7 @@ class ModulesManager:
                 weblog = Weblog.objects.get(id=attr_weblog['pk'])
                 fields = attr_weblog['fields']
                 assert isinstance(fields['mod_attributes'], dict)
-                weblog.set_mod_attributes(module.acronym, fields['mod_attributes'], save=True)
+                weblog.set_mod_attributes(module.module_name,module.acronym, fields['mod_attributes'], save=True)
                 if 'verdict' in fields['mod_attributes']:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
@@ -128,8 +133,14 @@ class ModulesManager:
     @staticmethod
     @background(schedule=timezone.now())
     def __attach_event(event_name, weblogs_seed_json):
-        external_modules = ExternalModule.objects.find_by_event(event_name)
-        ModulesManager.__run_modules(event_name, external_modules, weblogs_seed_json)
+        try:
+            external_modules = ExternalModule.objects.find_by_event(event_name)
+            ModulesManager.__run_modules(event_name, external_modules, weblogs_seed_json)
+        except Exception as e:
+            print_exception()
+            for external_module in external_modules:
+                ModulesManager.module_done(external_module.module_name)
+
 
     @staticmethod
     def attach_all_event():
@@ -140,6 +151,7 @@ class ModulesManager:
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.bulk_labelling, weblogs_seed_json)
             weblogs_malicious = [w.weblog for w in aux_weblogs.filter(weblog__verdict=Weblog.VERDICT_STATUS.malicious)]
             if weblogs_malicious:
+                print(weblogs_malicious)
                 weblogs_seed_json = serializers.serialize('json', weblogs_malicious)
                 ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling_malicious, weblogs_seed_json)
             aux_weblogs.delete()

@@ -39,6 +39,29 @@ var _m;
 
 var _loadingPlugin;
 
+function checkVerdict(_verdicts_merged, verdict){
+    if (verdict == undefined || verdict == null) return verdict;
+    var merged = verdict.split('_');
+
+    if(merged.length > 1){
+        var user_verdict = merged[0];
+        var module_verdict = merged[1];
+        var verdict_merge1 = user_verdict+"_"+module_verdict;
+        var verdict_merge2 = module_verdict+"_"+user_verdict;
+        if(_verdicts_merged.indexOf(verdict_merge1) > -1){
+            return verdict_merge1;
+        }else if(_verdicts_merged.indexOf(verdict_merge2) > -1){
+            return verdict_merge2;
+        }else{
+            console.error("Error adding Verdict, Merged verdict is not known : " + verdict)
+        }
+    }else if(_verdicts_merged.indexOf(verdict) > -1){
+        return verdict;
+    }else {
+        return null;
+    }
+}
+
 function AnalysisSessionLogic(){
     /************************************************************
                             GLOBAL ATTRIBUTES
@@ -126,7 +149,7 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
-                row.addClass(checkVerdict(aData[COLUMN_VERDICT]));
+                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
                 var str = aData[COLUMN_DT_ID].split(":");
 
                 if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
@@ -244,29 +267,8 @@ function AnalysisSessionLogic(){
         }
     }
 
-    function checkVerdict(verdict){
-        var merged = verdict.split('_');
-
-        if(merged.length > 1){
-            var user_verdict = merged[0];
-            var module_verdict = merged[1];
-            var verdict_merge1 = user_verdict+"_"+module_verdict;
-            var verdict_merge2 = module_verdict+"_"+user_verdict;
-            if(_verdicts_merged.indexOf(verdict_merge1) > -1){
-                return verdict_merge1;
-            }else if(_verdicts_merged.indexOf(verdict_merge2) > -1){
-                return verdict_merge2;
-            }else{
-                console.error("Error adding Verdict, Merged verdict is not known")
-            }
-        }else if(_verdicts_merged.indexOf(verdict) > -1){
-            return verdict;
-        }else {
-            return null;
-        }
-    }
     function addClassVerdict(class_selector,verdict) {
-        var checked_verdict = checkVerdict(verdict);
+        var checked_verdict = checkVerdict(_verdicts_merged, verdict);
         _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
         _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
         _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
