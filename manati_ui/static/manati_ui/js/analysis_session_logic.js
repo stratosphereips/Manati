@@ -213,7 +213,7 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-        // _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
