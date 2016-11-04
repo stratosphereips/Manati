@@ -226,19 +226,19 @@ class Weblog(TimeStampedModel):
                              ('legitimate','Legitimate'),
                              ('suspicious','Suspicious'),
                              ('undefined', 'Undefined'),
-                             ('false_positive','False Positive'),
+                             ('falsepositive','False Positive'),
                              ('malicious_legitimate', 'Malicious/Legitimate'),
                              ('suspicious_legitimate', 'Suspicious/Legitimate'),
                              ('undefined_legitimate', 'Undefined/Legitimate'),
-                             ('false_positive_legitimate', 'False Positive/Legitimate'),
+                             ('falsepositive_legitimate', 'False Positive/Legitimate'),
                              ('undefined_malicious', 'Undefined/Malicious'),
                              ('suspicious_malicious', 'Suspicious/Malicious'),
-                             ('false_positive_malicious', 'False Positive/Malicious'),
-                             ('false_positive_suspicious', 'False Positive/Suspicious'),
+                             ('falsepositive_malicious', 'False Positive/Malicious'),
+                             ('falsepositive_suspicious', 'False Positive/Suspicious'),
                              ('undefined_suspicious', 'Undefined/Suspicious'),
-                             ('undefined_false_positive', 'Undefined/False Positive'),
+                             ('undefined_falsepositive', 'Undefined/False Positive'),
                              )
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=20, null=True)
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=50, null=True)
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
@@ -254,7 +254,7 @@ class Weblog(TimeStampedModel):
             user_verdict = merge_verdict[0]
             model_verdict = merge_verdict[1]
             temp_verdict1 = str(user_verdict) + '_' + str(model_verdict)
-            temp_verdict2 =  str(model_verdict)+ '_' + str(user_verdict)
+            temp_verdict2 = str(model_verdict)+ '_' + str(user_verdict)
             if temp_verdict1 in dict(self.VERDICT_STATUS) is False and temp_verdict2 in dict(self.VERDICT_STATUS) is False :
                 raise ValidationError({'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
             else:
@@ -276,8 +276,10 @@ class Weblog(TimeStampedModel):
         except TypeError as e:
             self.mod_attributes = {}
             self.mod_attributes[mod_acronym] = new_mod_attributes
+        # self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.modified)
 
         if save:
+            self.clean()
             self.save()
 
 
@@ -300,20 +302,24 @@ class Weblog(TimeStampedModel):
             # # save summary history
             kwargs.pop('old_verdict', None)
             kwargs.pop('new_verdict', None)
+            self.clean()
             super(Weblog, self).save(*args, **kwargs)
 
     def set_register_status(self, status, save=False):
+        # if RegisterStatus.is_state(status):
         self.register_status = status
         if save:
             self.clean()
             self.save()
+        # else:
+        #     raise ValidationError("Status Assigned is not correct")
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
         old_verdict = self.verdict
         # ADDING LOCK
         #method that modules have to use for changing the verdict
         if module_verdict in dict(self.VERDICT_STATUS):
-            if self.verdict != self.VERDICT_STATUS.undefined:
+            if self.verdict != self.VERDICT_STATUS.undefined or self.verdict != module_verdict:
                 merge_verdicts = self.verdict.split('_')
                 if len(merge_verdicts) > 1:
                     user_verdict = merge_verdicts[0]
@@ -360,19 +366,39 @@ class Weblog(TimeStampedModel):
         else:
             raise ValidationError
 
+        self.create_aux_seed()
+
         if save:
             self.save_with_history(user)
+
+    def create_aux_seed(self):
+        self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.seed)
+
+    def remove_aux_seed(self):
+        self.moduleauxweblog_set.filter(status=ModuleAuxWeblog.STATUS.seed).remove()
+
+    def remove_all_aux_weblog(self):
+        self.moduleauxweblog_set.clear()
 
 
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
     weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
-    verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
-    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
+    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
     description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
+
+    def get_author_name(self):
+        if type(self.content_object).__name__ == "ExternalModule":
+            return self.content_object.module_name
+        elif isinstance(self.content_object, User):
+            return self.content_object.username
+
+    def created_at_txt(self):
+        return self.created_at.isoformat()
 
     class Meta:
         db_table = 'manati_weblog_history'
@@ -467,6 +493,15 @@ class AppParameter(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_app_parameters'
+
+
+class ModuleAuxWeblog(TimeStampedModel):
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE)
+    STATUS = Choices('seed', 'modified', 'undefined')
+    status = models.CharField(choices=STATUS, default=STATUS.undefined, max_length=20, null=False)
+
+    class Meta:
+        db_table = 'manati_module_aux_weblogs'
 
 
 

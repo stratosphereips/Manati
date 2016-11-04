@@ -16,6 +16,7 @@ from api_manager.core.modules_manager import ModulesManager
 from django.core import management
 import threading
 from manati import settings
+from preserialize.serialize import serialize
 import os
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
@@ -118,7 +119,12 @@ def get_weblog_history(request):
             # current_user = request.user
             weblog_id = str(request.GET.get('weblog_id', ''))
             webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
-            return JsonResponse(dict(data=serializers.serialize("json", webh_query_set), msg='WeblogHistory Consulst DONE'))
+            # webh_json = serializers.serialize("json", webh_query_set)
+            webh_json = serialize(webh_query_set,
+                                  fields=['id', 'weblog_id','version','created_at','verdict', 'old_verdict','author_name'],
+                                  exclude=['weblog'],
+                                  aliases={'author_name': 'get_author_name', 'created_at':'created_at_txt'})
+            return JsonResponse(dict(data=json.dumps(webh_json), msg='WeblogHistory Consulst DONE'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -151,7 +157,6 @@ def convert(data):
     else:
         return data
 
-
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
@@ -169,8 +174,7 @@ def sync_db(request):
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
             json_query_set = serializers.serialize("json", wb_query_set)
-            if wb_query_set:
-                ModulesManager.attach_event_after_update_verdict(json_query_set)
+            ModulesManager.attach_all_event() # it will check if will create the task or not
             return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
@@ -252,6 +256,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         object = super(EditAnalysisSession, self).get_object()
         path_log_file = os.path.join(settings.BASE_DIR, 'logs')
         logfile_name = os.path.join(path_log_file, "background_tasks.log")
+        logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
         thread = threading.Thread(target=management.call_command, args=('process_tasks',
                                                                         "--sleep", "10",
                                                                         "--log-level", "DEBUG",
