@@ -77,17 +77,34 @@ def create_analysis_session(request):
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_virus_total_consult(request):
-    # script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # p = Popen(["/Users/raulbeniteznetto/proyectos/master_tesis/project_manati/venv/bin/python", script_dir+"/modules_extra/vt-checker-hosts.py", "-ff", "216.176.200.22", "--nocsv", "--nocache"], cwd=script_dir, stdout=PIPE, stderr=PIPE)
-    # out, err = p.communicate()
-    # print(out)"
-    # print(err)
     try:
         if request.method == 'GET':
             current_user = request.user
             query_node = str(request.GET.get('query_node', ''))
             vtc_query_set = VTConsult.get_query_info(query_node, current_user)
             return JsonResponse(dict(query_node=query_node, info_report=vtc_query_set.info_report, msg='VT Consult Done' ))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def make_whois_consult(request):
+    try:
+        if request.method == 'GET':
+            current_user = request.user
+            query_node = str(request.GET.get('query_node', ''))
+            query_type = str(request.GET.get('query_type', ''))
+            if query_type == "ip":
+                wc_query_set = WhoisConsult.get_query_info_by_ip(query_node, current_user)
+            else:
+                wc_query_set = WhoisConsult.get_query_info_by_domain(query_node, current_user)
+
+            return JsonResponse(dict(query_node=query_node,
+                                     info_report=wc_query_set.info_report,
+                                     msg='Whois Consult Done'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:

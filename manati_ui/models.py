@@ -18,6 +18,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
+from ipwhois import IPWhois
+import whois
 
 
 # from django.db.models.signals import post_save
@@ -495,6 +497,62 @@ class AppParameter(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_app_parameters'
+
+
+class WhoisConsult(TimeStampedModel):
+    query_node = models.CharField(max_length=100, null=False)
+    info_report = JSONField(default=json.dumps({}), null=False)
+    user = models.ForeignKey(User)
+
+
+
+    @staticmethod
+    def __get_query_info__(query_node, user, **kwargs ):
+
+        class ComplexEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if hasattr(obj, 'reprJSON'):
+                    return obj.reprJSON()
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                else:
+                    return json.JSONEncoder.default(self, obj)
+
+        whois_consult = WhoisConsult.objects.filter(query_node=query_node,
+                                                    created_at__gt=timezone.now() - timezone.timedelta(days=365)).first()
+        if whois_consult is None:
+            if 'ip' in kwargs:
+                obj = IPWhois(query_node)
+                results = obj.lookup()
+                whois_consult = WhoisConsult.objects.create(query_node=query_node,
+                                                            info_report=json.dumps(results,
+                                                                                   cls=ComplexEncoder),
+                                                            user=user)
+            elif 'domain' in kwargs:
+                w = whois.whois(query_node)
+                whois_consult = WhoisConsult.objects.create(query_node=query_node,
+                                                            info_report=json.dumps(w,
+                                                                                   cls=ComplexEncoder),
+                                                            user=user)
+            else:
+                raise ValueError("you must determine is you want to do a domain or ip consultation by __get_query_info" +
+                                 "__('query', SomeUser, domain=True or ip=True")
+
+        return whois_consult
+
+    @staticmethod
+    def get_query_info_by_ip(query_node, user):
+        return WhoisConsult.__get_query_info__(query_node, user, ip=True)
+
+    @staticmethod
+    def get_query_info_by_domain(query_node, user):
+        return WhoisConsult.__get_query_info__(query_node, user, domain=True)
+
+    class Meta:
+        db_table = 'manati_whois_consults'
+
+    def __unicode__(self):
+        return unicode(self.info_report) or u''
 
 
 class ModuleAuxWeblog(TimeStampedModel):

@@ -489,7 +489,8 @@ function AnalysisSessionLogic(){
                     }
         }};
         items_menu['sep2'] = "-----------";
-        items_menu['fold3'] = {
+        items_submenu_external_query = {};
+        items_submenu_external_query['virus_total_consult'] = {
             name: "Consult to VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
@@ -511,21 +512,55 @@ function AnalysisSessionLogic(){
                 }
             }
         };
-        if(thiz.getAnalysisSessionId() != -1) {
-            items_menu['weblog-history'] = {
-                name: "Consult History of Weblogs", icon: "fa-search",
-                callback: function (key, options) {
-                    var weblog_id = bigData[COLUMN_DT_ID].toString();
-                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                    getWeblogHistory(weblog_id);
+        items_submenu_external_query['whois_consult'] = {
+            name: "Consult to Whois", icon: "fa-search",
+            items: {
+                "fold2-key1": {
+                    name: "using HTTP URL",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        consultWhois(qn, "domain");
+
+                    }
+                },
+                "fold2-key2": {
+                    name: "using Endpoints Server IP",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = bigData[COLUMN_END_POINTS_SERVER];
+                        consultWhois(qn, "ip");
+                    }
                 }
-            };
-            items_menu['weblog-modules-changes'] = {
-                name: "Consult History Modules changes", icon: "fa-search",
-                callback: function (key, options) {
-                    var weblog_id = bigData[COLUMN_DT_ID].toString();
-                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                    getModulesChangesHistory(weblog_id);
+            }
+        };
+        items_menu['fold3'] = {
+            name: "External Consultation", icon: "fa-search",
+            items: items_submenu_external_query
+        };
+        if(thiz.getAnalysisSessionId() != -1) {
+            items_menu['fold4'] = {
+                name: "Consult Registers", icon: "fa-search",
+                items: {
+                    "fold2-key1": {
+                        name: "Consult History of Weblogs",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                                getWeblogHistory(weblog_id);
+
+                        }
+                    },
+                    "fold2-key2": {
+                        name: "Consult History Modules changes",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getModulesChangesHistory(weblog_id);
+                        }
+                    }
                 }
             };
         }
@@ -571,6 +606,40 @@ function AnalysisSessionLogic(){
         return table;
 
     }
+    function buildTableInfo_Whois(info_report, no_title){
+        if(no_title == undefined || no_title == null) no_title = false;
+        var table = "<table class='table table-bordered table-striped'>";
+        if(!no_title) table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
+        table += "<tbody>";
+            for(var key in info_report){
+                table += "<tr>";
+                table += "<th>"+key+"</th>";
+                var info = info_report[key];
+                if (info instanceof Array){
+                    var html_temp = "";
+                    for(var index = 0; index < info.length; index++){
+                        var data = info[index];
+                        if(data instanceof Object){
+                             html_temp += buildTableInfo_Whois(data, true) ;
+                        }else if(typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>" ;
+                            break;
+                        }
+
+                    }
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }else{
+                    table += "<td>" + info + "</td>" ;
+                }
+
+                table += "</tr>";
+            }
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
     function initModal(title){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
@@ -602,6 +671,33 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+    }
+    function consultWhois(query_node, query_type){
+        // if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
+        // else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
+        // else{
+        //     console.error("Error query_type for ConsultVirusTotal is incorrect")
+        // }
+        initModal("Whois Query: <span>"+query_node+"</span>");
+        var data = {query_node: query_node, query_type: query_type};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/consult_whois",
+            success : function(json) {// handle a successful response
+                var info_report = JSON.parse(json['info_report']);
+                var query_node = json['query_node'];
+                var table = buildTableInfo_Whois(info_report);
                 updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -698,15 +794,10 @@ function AnalysisSessionLogic(){
                 var weblog_history = JSON.parse(json['data']);
                 var table = buildTableInfo_Wbl_History(weblog_history);
                 updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
-                // updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
                 console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
             }
 
         })

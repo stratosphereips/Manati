@@ -105,3 +105,18 @@
 .modal .modal-body table td{
     word-wrap: break-word;
 }
+
+
+.modal-dialog{
+  overflow-y: initial !important;
+}
+.modal-body{
+    height: 800px;
+    overflow-y: auto;
+}
+.report-modal-body {
+    max-height:800px;
+    overflow-y:auto;
+    overflow-x:auto;
+    word-wrap: break-word;
+}
