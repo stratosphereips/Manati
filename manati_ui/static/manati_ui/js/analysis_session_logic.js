@@ -683,11 +683,11 @@ function AnalysisSessionLogic(){
         })
     }
     function consultWhois(query_node, query_type){
-        // if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
-        // else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
-        // else{
-        //     console.error("Error query_type for ConsultVirusTotal is incorrect")
-        // }
+        if(query_type == "domain") _m.EventWhoisConsultationByDomian(query_type);
+        else if(query_type == "ip") _m.EventWhoisConsultationByIp(query_type);
+        else{
+            console.error("Error query_type for ConsultVirusTotal is incorrect")
+        }
         initModal("Whois Query: <span>"+query_node+"</span>");
         var data = {query_node: query_node, query_type: query_type};
         $.ajax({
