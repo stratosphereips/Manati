@@ -13,6 +13,7 @@ from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
 from api_manager.core.modules_manager import ModulesManager
+from api_manager.models import *
 from django.core import management
 import threading
 from manati import settings
@@ -249,7 +250,7 @@ def get_weblogs(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
+class IndexAnalysisSession(LoginRequiredMixin, generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
@@ -260,6 +261,16 @@ class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
         #Get the analysis session created by the admin (old website) and the current user
         user = self.request.user
         return AnalysisSession.objects.filter(users__in=[1, user.id])
+
+class IndexExternalModules(LoginRequiredMixin, generic.ListView):
+    login_url = REDIRECT_TO_LOGIN
+    redirect_field_name = 'redirect_to'
+    model = ExternalModule
+    template_name = 'manati_ui/modules/index.html'
+    context_object_name = 'external_modules'
+
+    def get_queryset(self):
+        return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
 
 
 class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):

@@ -1,0 +1,45 @@
+{% extends 'manati_ui/base.html' %}
+{% block title %}
+    List of Active Modules
+{% endblock %}
+{% block content %}
+    <div class="row" >
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="modules-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Module Name</th>
+                                            <th>Description</th>
+                                            <th>Created</th>
+                                            <th>Current Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if external_modules %}
+                                            {% for external_module in external_modules %}
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td>{{ external_module.module_name }}</td>
+                                                    <td>{{ external_module.description }}</td>
+                                                    <td>{{ external_module.created_at }}</td>
+                                                    <td>{{ external_module.status }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr><td colspan="3">No module available.</td></tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+{% endblock %}
