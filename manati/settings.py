@@ -36,6 +36,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'api_manager',
+    'background_task',
     'rest_framework',
     'bootstrap3',
     'sass_processor',
@@ -155,9 +157,25 @@ STATICFILES_FINDERS = (
 
 SASS_PRECISION = 8
 
+BACKGROUND_TASK_RUN_ASYNC = True # run the modules task, asynchronously
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
 
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
+
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+
+IPYTHON_ARGUMENTS = [
+    '--ext', 'django_extensions.management.notebook_extension',
+]
+
+NOTEBOOK_ARGUMENTS = [
+    # exposes IP and port
+    '--ip=0.0.0.0',
+    '--port=8888',
+    # disables the browser
+    '--no-browser',
+]

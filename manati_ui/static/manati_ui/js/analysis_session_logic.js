@@ -23,7 +23,11 @@ var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
-var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+var _verdicts = ["malicious","legitimate","suspicious","falsepositive", "undefined"];
+var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','falsepositive','malicious_legitimate',
+                        'suspicious_legitimate','undefined_legitimate','falsepositive_legitimate',
+                        'undefined_malicious','suspicious_malicious','falsepositive_malicious', 'falsepositive_suspicious',
+                        'undefined_suspicious','undefined_falsepositive'];
 var NAMES_HTTP_URL = ["http.url", "http_url"];
 var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server"];
 var _flows_grouped;
@@ -34,6 +38,29 @@ var _m;
 
 
 var _loadingPlugin;
+
+function checkVerdict(_verdicts_merged, verdict){
+    if (verdict == undefined || verdict == null) return verdict;
+    var merged = verdict.split('_');
+
+    if(merged.length > 1){
+        var user_verdict = merged[0];
+        var module_verdict = merged[1];
+        var verdict_merge1 = user_verdict+"_"+module_verdict;
+        var verdict_merge2 = module_verdict+"_"+user_verdict;
+        if(_verdicts_merged.indexOf(verdict_merge1) > -1){
+            return verdict_merge1;
+        }else if(_verdicts_merged.indexOf(verdict_merge2) > -1){
+            return verdict_merge2;
+        }else{
+            console.error("Error adding Verdict, Merged verdict is not known : " + verdict)
+        }
+    }else if(_verdicts_merged.indexOf(verdict) > -1){
+        return verdict;
+    }else {
+        return null;
+    }
+}
 
 function AnalysisSessionLogic(){
     /************************************************************
@@ -122,7 +149,7 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
-                row.addClass(aData[COLUMN_VERDICT]);
+                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
                 var str = aData[COLUMN_DT_ID].split(":");
 
                 if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
@@ -209,7 +236,7 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
@@ -240,7 +267,14 @@ function AnalysisSessionLogic(){
         }
     }
 
+    function addClassVerdict(class_selector,verdict) {
+        var checked_verdict = checkVerdict(_verdicts_merged, verdict);
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
+        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
 
+
+    }
     this.markVerdict= function (verdict, class_selector) {
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
         // console.log(verdict);
@@ -256,9 +290,7 @@ function AnalysisSessionLogic(){
         } );
         // Draw once all updates are done
         _dt.draw(false);
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts.join(" ")).addClass(verdict);
-        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
+        addClassVerdict(class_selector, verdict);
         return rows_affected;
 
     };
@@ -488,6 +520,14 @@ function AnalysisSessionLogic(){
                     getWeblogHistory(weblog_id);
                 }
             };
+            items_menu['weblog-modules-changes'] = {
+                name: "Consult History Modules changes", icon: "fa-search",
+                callback: function (key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getModulesChangesHistory(weblog_id);
+                }
+            };
         }
         items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
@@ -581,10 +621,10 @@ function AnalysisSessionLogic(){
                 // for(var key in value){
                 //     table += "<td>" + value[key]+ "</td>" ;
                 // }
-                table += "<td>" +  "</td>";
-                table += "<td>" + value.fields.old_verdict + "</td>" ;
-                table += "<td>" + value.fields.verdict + "</td>" ;
-                table += "<td>" + value.fields.created_at + "</td>" ;
+                table += "<td>" + value.author_name + "</td>";
+                table += "<td>" + value.old_verdict + "</td>" ;
+                table += "<td>" + value.verdict + "</td>" ;
+                table += "<td>" + value.created_at + "</td>" ;
                 table += "</tr>";
             });
 
@@ -592,6 +632,58 @@ function AnalysisSessionLogic(){
         table += "</tbody>";
         table += "</table>";
         return table;
+
+    }
+    function buildTableInfo_Mod_attributes(mod_attributes){
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
+        table += "<tbody>";
+        console.log(mod_attributes);
+        _.each(mod_attributes, function (value, mod_name) {
+            var length = _.keys(value).length
+            var tr = "<tr>";
+            tr += "<td  rowspan='"+length+"'>" + mod_name +  "</td>";
+             _.each(value, function (parameter_value, key) {
+                 console.log(parameter_value, key);
+                 if(tr == null) tr = "<tr>";
+                 tr += "<td>" + key + "</td>";
+                 tr += "<td>" + parameter_value + "</td>";
+                 tr += "</tr>";
+                 table += tr;
+                 tr = null;
+             });
+        });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getModulesChangesHistory(weblog_id){
+        initModal("Modules Changes History of Weblog ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/modules_changes_attributes",
+            success : function(json) {// handle a successful response
+                var mod_attributes = JSON.parse(json['data']);
+                var table = buildTableInfo_Mod_attributes(mod_attributes);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
 
     }
     function getWeblogHistory(weblog_id){
@@ -783,6 +875,7 @@ function AnalysisSessionLogic(){
         // }
 
     };
+
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
         if(weblogs.length > 1){
@@ -840,6 +933,7 @@ function AnalysisSessionLogic(){
 
 
     };
+
     this.callingEditingData = function (analysis_session_id){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
@@ -924,10 +1018,10 @@ function AnalysisSessionLogic(){
 
         var worker = new Worker(blobURL);
         worker.addEventListener('message', function(e) {
+            worker.terminate();
             _flows_grouped = e.data;
             _helper = new FlowsProcessed(_flows_grouped);
             _helper.makeStaticalSection();
-            worker.terminate();
             console.log("Worker Done");
 	    });
         worker.postMessage([_flows_grouped,flows,document.location.origin]);

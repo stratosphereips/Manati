@@ -1,24 +1,23 @@
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseServerError
+from django.http import HttpResponseServerError
 from django.core.urlresolvers import reverse
 from django.views import generic
-from django.utils import timezone
 from .models import *
 from manati_ui.forms import UserProfileForm
 from django.contrib.auth.models import User
-from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import UpdateView
-# from subprocess import Popen, PIPE
 from utils import *
-# import os
-#
-# from StringIO import StringIO
+from api_manager.core.modules_manager import ModulesManager
+from django.core import management
+import threading
+from manati import settings
+from preserialize.serialize import serialize
+import os
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -40,7 +39,7 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-
+    # ModulesManager.load_modules()
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
@@ -120,7 +119,27 @@ def get_weblog_history(request):
             # current_user = request.user
             weblog_id = str(request.GET.get('weblog_id', ''))
             webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
-            return JsonResponse(dict(data=serializers.serialize("json", webh_query_set), msg='WeblogHistory Consulst DONE'))
+            # webh_json = serializers.serialize("json", webh_query_set)
+            webh_json = serialize(webh_query_set,
+                                  fields=['id', 'weblog_id','version','created_at','verdict', 'old_verdict','author_name'],
+                                  exclude=['weblog'],
+                                  aliases={'author_name': 'get_author_name', 'created_at':'created_at_txt'})
+            return JsonResponse(dict(data=json.dumps(webh_json), msg='WeblogHistory Consulst DONE'))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_modules_changes(request):
+    try:
+        if request.method == 'GET':
+            # current_user = request.user
+            weblog_id = str(request.GET.get('weblog_id', ''))
+            weblog = Weblog.objects.filter(id=weblog_id).first()
+            return JsonResponse(dict(data=json.dumps(weblog.mod_attributes), msg='Modules Changes History Consulst DONE'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -138,12 +157,12 @@ def convert(data):
     else:
         return data
 
-
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
     try:
         if request.method == 'POST':
+            user = request.user
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
             if "headers[]" in received_json_data:
@@ -153,8 +172,10 @@ def sync_db(request):
                 print("Headers Updated")
             data = convert(received_json_data['data'])
 
-            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
-            return JsonResponse(dict(data=serializers.serialize("json", wb_query_set), msg='Sync DONE'))
+            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
+            json_query_set = serializers.serialize("json", wb_query_set)
+            ModulesManager.attach_all_event() # it will check if will create the task or not
+            return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
@@ -202,6 +223,7 @@ def get_weblogs(request):
                                      analysissessionid=analysis_session_id,
                                      name=analysis_session.name,
                                      headers=json.dumps(headers)))
+
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")
@@ -232,6 +254,16 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
+        path_log_file = os.path.join(settings.BASE_DIR, 'logs')
+        logfile_name = os.path.join(path_log_file, "background_tasks.log")
+        logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
+        thread = threading.Thread(target=management.call_command, args=('process_tasks',
+                                                                        "--sleep", "10",
+                                                                        "--log-level", "DEBUG",
+                                                                        "--log-std", logfile_name))
+        # thread.daemon = True  # Daemonize thread
+        thread.start()
+
         context['analysis_session_id'] = object.id
         return context
 

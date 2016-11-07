@@ -24,7 +24,7 @@ function FilterDataTable(column_verdict, verdicts){
     function pushingDataTable(){
         $.fn.dataTable.ext.search.push(
             function( settings, data, dataIndex ) {
-                var verdict = data[_column_verdict]; // use data for the age column
+                var verdict = checkVerdict(_verdicts, data[_column_verdict]); // use data for the age column
                 return _list_options[verdict];
             }
         );

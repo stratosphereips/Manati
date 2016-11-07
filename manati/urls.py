@@ -17,6 +17,7 @@ from django.conf.urls import include,url
 from django.contrib import admin
 from django.contrib.auth import views
 from login.forms import LoginForm
+from api_manager.core.modules_manager import ModulesManager
 import login
 
 path_name = 'manati_project'
@@ -32,3 +33,6 @@ urlpatterns = [
     url(r'^', login.views.home, name="home"),
 
 ]
+
+ModulesManager.checking_modules()
+ModulesManager.register_modules()
