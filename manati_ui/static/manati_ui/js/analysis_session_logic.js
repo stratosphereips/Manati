@@ -10,6 +10,7 @@ var _filename = '';
 var _size_file,_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
+var TIME_SYNC_DB = 15000;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -396,7 +397,7 @@ function AnalysisSessionLogic(){
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
                         "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
-                    setInterval(syncDB, 10000 );
+                    setInterval(syncDB, TIME_SYNC_DB ); 
                     hideLoading();
                     columns_order_changed = false;
                     $("#weblogfile-name").off('click');
@@ -1014,7 +1015,7 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-                setInterval(syncDB, 10000 );
+                setInterval(syncDB, TIME_SYNC_DB ); 
 
             });
         }else{
