@@ -952,6 +952,27 @@ function AnalysisSessionLogic(){
                ev.preventDefault();
                syncDB(true);
             });
+
+            $('#comment-form').on('submit',function(ev){
+                ev.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    url: form.context.action,
+                    type: 'POST',
+                    data: form.serialize(),
+                    dataType: 'json',
+                    success: function (json){
+                        $.notify(json.msg, "info");
+
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText);
+
+
+                    }
+                })
+            });
         });
     };
 

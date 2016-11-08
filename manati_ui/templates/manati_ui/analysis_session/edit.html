@@ -15,6 +15,8 @@
                         </li>
                         <li id="statical-nav" style="display: none;"><a href="#statical-section" data-toggle="tab">Statistics Section</a>
                         </li>
+                        <li id="coments-as-nav"><a href="#comment-section" data-toggle="tab">Comments</a>
+                        </li>
                     </ul>
                     <!-- Tab panes -->
                     <div class="tab-content">
@@ -32,6 +34,15 @@
                             </table>
                         </div>
                         <div class="tab-pane fade" id="statical-section"></div>
+                        <div class="tab-pane fade" id="comment-section">
+                            <form  method="POST" id="comment-form" action={% url 'manati_ui:analysis_session_comment' analysissession.id %} class="form" method="post" role="form">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <textarea class="form-control" rows="10" maxlength="255" name="text">{{ comment.text   }}</textarea>
+                                </div>
+                            <input type="submit" class="btn btn-success" value="Update Comment" />
+                        </form>
+                        </div>
                     </div>
                 </div>
 

@@ -416,6 +416,7 @@ class WeblogHistory(TimeStampedModel):
 
 
 class Comment(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # Weblog or AnalysisSession
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')

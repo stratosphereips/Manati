@@ -63,6 +63,14 @@ def create_analysis_session(request):
         else:
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
+            path_log_file = os.path.join(settings.BASE_DIR, 'logs')
+            logfile_name = os.path.join(path_log_file, "background_tasks.log")
+            thread = threading.Thread(target=management.call_command, args=('process_tasks',
+                                                                            "--sleep", "10",
+                                                                            "--log-level", "DEBUG",
+                                                                            "--log-std", logfile_name))
+            # thread.daemon = True  # Daemonize thread
+            thread.start()
             return JsonResponse(dict(data={'analysis_session_id': analysis_session_id}, msg='Analysis Session was created .' ))
 
     else:
@@ -293,6 +301,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         thread.start()
 
         context['analysis_session_id'] = object.id
+        context['comment'] = object.comments.last() if object.comments.exists() else Comment()
         return context
 
 
@@ -307,6 +316,24 @@ def profile_view(request):
     context = {"form": form}
     return render(request, 'manati_ui/user/edit.html', context)
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def create_comment_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            user = request.user
+            analysis_session = AnalysisSession.objects.get(id=id)
+            comment = Comment(user=user, text=request.POST['text'], content_object=analysis_session)
+            comment.full_clean()
+            comment.save()
+            json_data = json.dumps({'msg':"The comment was save correcly"})
+            return HttpResponse(json_data, content_type="application/json")
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
 
 def profile_update(request):
     try:
