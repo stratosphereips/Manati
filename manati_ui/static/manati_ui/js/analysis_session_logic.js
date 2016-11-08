@@ -977,6 +977,16 @@ function AnalysisSessionLogic(){
                     }
                 })
             });
+
+            Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
+                if (e.preventDefault) {
+                    e.preventDefault();
+                } else {
+                    // internet explorer
+                    e.returnValue = false;
+                }
+                syncDB(true);
+            });
         });
     };
 
