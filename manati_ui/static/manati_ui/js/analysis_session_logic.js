@@ -403,6 +403,10 @@ function AnalysisSessionLogic(){
                     $("#weblogfile-name").off('click');
                     $("#weblogfile-name").css('cursor','auto');
                     $("#sync-db-btn").show();
+                    //show comment and update form
+                    $("#coments-as-nav").show();
+                    $('#comment-form').attr('action', '/manati_project/manati_ui/analysis_session/'+
+                        _analysis_session_id+'/comment/create')
                 },
 
                 // handle a non-successful response
@@ -953,7 +957,7 @@ function AnalysisSessionLogic(){
                syncDB(true);
             });
 
-            $('#comment-form').on('submit',function(ev){
+            $('body').on('submit','#comment-form',function(ev){
                 ev.preventDefault();
                 var form = $(this);
                 $.ajax({

@@ -250,7 +250,7 @@ class Weblog(TimeStampedModel):
         db_table = 'manati_weblogs'
 
     def clean(self, *args, **kwargs):
-        self.clean_fields(exclude='verdict', *args, **kwargs)
+        self.clean_fields(exclude=['verdict', 'mod_attributes'], *args, **kwargs)
         merge_verdict = self.verdict.split('_')
         if len(merge_verdict) > 1:
             user_verdict = merge_verdict[0]
