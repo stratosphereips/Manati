@@ -351,9 +351,10 @@ def process_lines(lines, result_file, max_items, nocsv=False, dups=False, noreso
 
 
 def signal_handler(signal, frame):
-    print "\n[+] Saving {0} cache entries to file {1}".format(len(cache), args.c)
-    saveCache(cache, args.c)
-    sys.exit(0)
+    # print "\n[+] Saving {0} cache entries to file {1}".format(len(cache), args.c)
+    # saveCache(cache, args.c)
+    # sys.exit(0)
+    pass
 
 
 class Command(BaseCommand):

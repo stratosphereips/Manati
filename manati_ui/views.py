@@ -1,24 +1,20 @@
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseServerError
+from django.http import HttpResponseServerError
 from django.core.urlresolvers import reverse
 from django.views import generic
-from django.utils import timezone
 from .models import *
 from manati_ui.forms import UserProfileForm
 from django.contrib.auth.models import User
-from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import UpdateView
-# from subprocess import Popen, PIPE
 from utils import *
-# import os
-#
-# from StringIO import StringIO
+from api_manager.core.modules_manager import ModulesManager
+from api_manager.models import *
+from preserialize.serialize import serialize
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -40,7 +36,7 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-
+    # ModulesManager.load_modules()
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
@@ -63,7 +59,8 @@ def create_analysis_session(request):
         else:
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
-            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id}, msg='Analysis Session was created .' ))
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id},
+                                     msg='Analysis Session was created .'))
 
     else:
         messages.error(request, 'Only POST request')
@@ -78,17 +75,34 @@ def create_analysis_session(request):
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_virus_total_consult(request):
-    # script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # p = Popen(["/Users/raulbeniteznetto/proyectos/master_tesis/project_manati/venv/bin/python", script_dir+"/modules_extra/vt-checker-hosts.py", "-ff", "216.176.200.22", "--nocsv", "--nocache"], cwd=script_dir, stdout=PIPE, stderr=PIPE)
-    # out, err = p.communicate()
-    # print(out)"
-    # print(err)
     try:
         if request.method == 'GET':
             current_user = request.user
             query_node = str(request.GET.get('query_node', ''))
             vtc_query_set = VTConsult.get_query_info(query_node, current_user)
             return JsonResponse(dict(query_node=query_node, info_report=vtc_query_set.info_report, msg='VT Consult Done' ))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def make_whois_consult(request):
+    try:
+        if request.method == 'GET':
+            current_user = request.user
+            query_node = str(request.GET.get('query_node', ''))
+            query_type = str(request.GET.get('query_type', ''))
+            if query_type == "ip":
+                wc_query_set = WhoisConsult.get_query_info_by_ip(query_node, current_user)
+            else:
+                wc_query_set = WhoisConsult.get_query_info_by_domain(query_node, current_user)
+
+            return JsonResponse(dict(query_node=query_node,
+                                     info_report=wc_query_set.info_report,
+                                     msg='Whois Consult Done'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -120,7 +134,27 @@ def get_weblog_history(request):
             # current_user = request.user
             weblog_id = str(request.GET.get('weblog_id', ''))
             webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
-            return JsonResponse(dict(data=serializers.serialize("json", webh_query_set), msg='WeblogHistory Consulst DONE'))
+            # webh_json = serializers.serialize("json", webh_query_set)
+            webh_json = serialize(webh_query_set,
+                                  fields=['id', 'weblog_id','version','created_at','verdict', 'old_verdict','author_name'],
+                                  exclude=['weblog'],
+                                  aliases={'author_name': 'get_author_name', 'created_at':'created_at_txt'})
+            return JsonResponse(dict(data=json.dumps(webh_json), msg='WeblogHistory Consulst DONE'))
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_modules_changes(request):
+    try:
+        if request.method == 'GET':
+            # current_user = request.user
+            weblog_id = str(request.GET.get('weblog_id', ''))
+            weblog = Weblog.objects.filter(id=weblog_id).first()
+            return JsonResponse(dict(data=json.dumps(weblog.mod_attributes), msg='Modules Changes History Consulst DONE'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -138,12 +172,12 @@ def convert(data):
     else:
         return data
 
-
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
     try:
         if request.method == 'POST':
+            user = request.user
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
             if "headers[]" in received_json_data:
@@ -153,8 +187,10 @@ def sync_db(request):
                 print("Headers Updated")
             data = convert(received_json_data['data'])
 
-            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data)
-            return JsonResponse(dict(data=serializers.serialize("json", wb_query_set), msg='Sync DONE'))
+            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
+            json_query_set = serializers.serialize("json", wb_query_set)
+            ModulesManager.attach_all_event() # it will check if will create the task or not
+            return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
@@ -202,6 +238,7 @@ def get_weblogs(request):
                                      analysissessionid=analysis_session_id,
                                      name=analysis_session.name,
                                      headers=json.dumps(headers)))
+
         else:
             messages.error(request, 'Only GET request')
             return HttpResponseServerError("Only GET request")
@@ -210,7 +247,7 @@ def get_weblogs(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
+class IndexAnalysisSession(LoginRequiredMixin, generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
@@ -221,6 +258,19 @@ class IndexAnalysisSession(LoginRequiredMixin,generic.ListView):
         #Get the analysis session created by the admin (old website) and the current user
         user = self.request.user
         return AnalysisSession.objects.filter(users__in=[1, user.id])
+
+class IndexExternalModules(LoginRequiredMixin, generic.ListView):
+    login_url = REDIRECT_TO_LOGIN
+    redirect_field_name = 'redirect_to'
+    model = ExternalModule
+    template_name = 'manati_ui/modules/index.html'
+    context_object_name = 'external_modules'
+
+    def get_queryset(self):
+        return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
+
+
+
 
 
 class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
@@ -233,6 +283,7 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
         context['analysis_session_id'] = object.id
+        context['comment'] = object.comments.last() if object.comments.exists() else Comment()
         return context
 
 
@@ -247,6 +298,26 @@ def profile_view(request):
     context = {"form": form}
     return render(request, 'manati_ui/user/edit.html', context)
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def update_comment_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            user = request.user
+            analysis_session = AnalysisSession.objects.get(id=id)
+            comment = analysis_session.comments.last() if analysis_session.comments.exists() else Comment(user=user,
+                                                                                        content_object=analysis_session)
+            comment.text = request.POST['text']
+            comment.full_clean()
+            comment.save()
+            json_data = json.dumps({'msg':"The comment was save correcly"})
+            return HttpResponse(json_data, content_type="application/json")
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
 
 def profile_update(request):
     try:

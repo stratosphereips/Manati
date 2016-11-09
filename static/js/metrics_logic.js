@@ -371,6 +371,24 @@ function Metrics(active, analysis_session_logic){
         return EventMakeComments("analysis_session",analysis_session_id)
     };
 
+    var EventWhoisConsultation = function (query_node, query_type){
+        if(!active)return false;
+        var event_name = "whois_consultation";
+        var event_reg = new EventReg({ event_name: event_name,
+                                    query_type: query_type,
+                                    query_node: SHA256(query_node)},
+                                    thiz.as_logic);
+        addValue(event_reg);
+        return true;
+
+    };
+    this.EventWhoisConsultationByIp = function(query_node){
+        EventWhoisConsultation(query_node, "ip");
+    };
+    this.EventWhoisConsultationByDomian = function(query_node){
+        EventWhoisConsultation(query_node, "domain");
+    };
+
     var EventVirusTotalConsultation = function (query_node, query_type){
         if(!active)return false;
         var event_name = "virustotal_consultation";

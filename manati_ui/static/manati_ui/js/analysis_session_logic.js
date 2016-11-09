@@ -10,6 +10,7 @@ var _filename = '';
 var _size_file,_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
+var TIME_SYNC_DB = 15000;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -23,7 +24,11 @@ var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
-var _verdicts = ["malicious","legitimate","suspicious","false_positive", "undefined"];
+var _verdicts = ["malicious","legitimate","suspicious","falsepositive", "undefined"];
+var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','falsepositive','malicious_legitimate',
+                        'suspicious_legitimate','undefined_legitimate','falsepositive_legitimate',
+                        'undefined_malicious','suspicious_malicious','falsepositive_malicious', 'falsepositive_suspicious',
+                        'undefined_suspicious','undefined_falsepositive'];
 var NAMES_HTTP_URL = ["http.url", "http_url"];
 var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server"];
 var _flows_grouped;
@@ -34,6 +39,29 @@ var _m;
 
 
 var _loadingPlugin;
+
+function checkVerdict(_verdicts_merged, verdict){
+    if (verdict == undefined || verdict == null) return verdict;
+    var merged = verdict.split('_');
+
+    if(merged.length > 1){
+        var user_verdict = merged[0];
+        var module_verdict = merged[1];
+        var verdict_merge1 = user_verdict+"_"+module_verdict;
+        var verdict_merge2 = module_verdict+"_"+user_verdict;
+        if(_verdicts_merged.indexOf(verdict_merge1) > -1){
+            return verdict_merge1;
+        }else if(_verdicts_merged.indexOf(verdict_merge2) > -1){
+            return verdict_merge2;
+        }else{
+            console.error("Error adding Verdict, Merged verdict is not known : " + verdict)
+        }
+    }else if(_verdicts_merged.indexOf(verdict) > -1){
+        return verdict;
+    }else {
+        return null;
+    }
+}
 
 function AnalysisSessionLogic(){
     /************************************************************
@@ -122,7 +150,7 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
-                row.addClass(aData[COLUMN_VERDICT]);
+                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
                 var str = aData[COLUMN_DT_ID].split(":");
 
                 if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
@@ -209,7 +237,7 @@ function AnalysisSessionLogic(){
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
         CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts);
+        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
 
@@ -240,7 +268,14 @@ function AnalysisSessionLogic(){
         }
     }
 
+    function addClassVerdict(class_selector,verdict) {
+        var checked_verdict = checkVerdict(_verdicts_merged, verdict);
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
+        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
+        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
 
+
+    }
     this.markVerdict= function (verdict, class_selector) {
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
         // console.log(verdict);
@@ -256,9 +291,7 @@ function AnalysisSessionLogic(){
         } );
         // Draw once all updates are done
         _dt.draw(false);
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts.join(" ")).addClass(verdict);
-        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
+        addClassVerdict(class_selector, verdict);
         return rows_affected;
 
     };
@@ -364,12 +397,16 @@ function AnalysisSessionLogic(){
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
                         "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
-                    setInterval(syncDB, 10000 );
+                    setInterval(syncDB, TIME_SYNC_DB ); 
                     hideLoading();
                     columns_order_changed = false;
                     $("#weblogfile-name").off('click');
                     $("#weblogfile-name").css('cursor','auto');
                     $("#sync-db-btn").show();
+                    //show comment and update form
+                    $("#coments-as-nav").show();
+                    $('#comment-form').attr('action', '/manati_project/manati_ui/analysis_session/'+
+                        _analysis_session_id+'/comment/create')
                 },
 
                 // handle a non-successful response
@@ -457,8 +494,9 @@ function AnalysisSessionLogic(){
                     }
         }};
         items_menu['sep2'] = "-----------";
-        items_menu['fold3'] = {
-            name: "Consult to VirusTotal", icon: "fa-search",
+        items_submenu_external_query = {};
+        items_submenu_external_query['virus_total_consult'] = {
+            name: "VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
                     name: "using HTTP URL",
@@ -479,13 +517,55 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+        items_submenu_external_query['whois_consult'] = {
+            name: "Whois", icon: "fa-search",
+            items: {
+                "fold2-key1": {
+                    name: "using HTTP URL",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        consultWhois(qn, "domain");
+
+                    }
+                },
+                "fold2-key2": {
+                    name: "using Endpoints Server IP",
+                    icon: "fa-paper-plane-o",
+                    callback: function (key, options) {
+                        var qn = bigData[COLUMN_END_POINTS_SERVER];
+                        consultWhois(qn, "ip");
+                    }
+                }
+            }
+        };
+        items_menu['fold3'] = {
+            name: "External Intelligence", icon: "fa-search",
+            items: items_submenu_external_query
+        };
         if(thiz.getAnalysisSessionId() != -1) {
-            items_menu['weblog-history'] = {
-                name: "Consult History of Weblogs", icon: "fa-search",
-                callback: function (key, options) {
-                    var weblog_id = bigData[COLUMN_DT_ID].toString();
-                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                    getWeblogHistory(weblog_id);
+            items_menu['fold4'] = {
+                name: "Registry History", icon: "fa-search",
+                items: {
+                    "fold2-key1": {
+                        name: "Veredict History",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                                getWeblogHistory(weblog_id);
+
+                        }
+                    },
+                    "fold2-key2": {
+                        name: "Modules Changes",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getModulesChangesHistory(weblog_id);
+                        }
+                    }
                 }
             };
         }
@@ -523,6 +603,40 @@ function AnalysisSessionLogic(){
                 table += "<tr>";
                 table += "<th>"+key+"</th>";
                 table += "<td>" + info_report[key]+ "</td>" ;
+                table += "</tr>";
+            }
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function buildTableInfo_Whois(info_report, no_title){
+        if(no_title == undefined || no_title == null) no_title = false;
+        var table = "<table class='table table-bordered table-striped'>";
+        if(!no_title) table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
+        table += "<tbody>";
+            for(var key in info_report){
+                table += "<tr>";
+                table += "<th>"+key+"</th>";
+                var info = info_report[key];
+                if (info instanceof Array){
+                    var html_temp = "";
+                    for(var index = 0; index < info.length; index++){
+                        var data = info[index];
+                        if(data instanceof Object){
+                             html_temp += buildTableInfo_Whois(data, true) ;
+                        }else if(typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>" ;
+                            break;
+                        }
+
+                    }
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }else{
+                    table += "<td>" + info + "</td>" ;
+                }
+
                 table += "</tr>";
             }
 
@@ -572,6 +686,34 @@ function AnalysisSessionLogic(){
 
         })
     }
+    function consultWhois(query_node, query_type){
+        if(query_type == "domain") _m.EventWhoisConsultationByDomian(query_type);
+        else if(query_type == "ip") _m.EventWhoisConsultationByIp(query_type);
+        else{
+            console.error("Error query_type for WhoisConsultation is incorrect")
+        }
+        initModal("Whois Query: <span>"+query_node+"</span>");
+        var data = {query_node: query_node, query_type: query_type};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/consult_whois",
+            success : function(json) {// handle a successful response
+                var info_report = JSON.parse(json['info_report']);
+                var query_node = json['query_node'];
+                var table = buildTableInfo_Whois(info_report);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
+    }
+
     function buildTableInfo_Wbl_History(weblog_history){
         var table = "<table class='table table-bordered table-striped'>";
         table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
@@ -581,10 +723,10 @@ function AnalysisSessionLogic(){
                 // for(var key in value){
                 //     table += "<td>" + value[key]+ "</td>" ;
                 // }
-                table += "<td>" +  "</td>";
-                table += "<td>" + value.fields.old_verdict + "</td>" ;
-                table += "<td>" + value.fields.verdict + "</td>" ;
-                table += "<td>" + value.fields.created_at + "</td>" ;
+                table += "<td>" + value.author_name + "</td>";
+                table += "<td>" + value.old_verdict + "</td>" ;
+                table += "<td>" + value.verdict + "</td>" ;
+                table += "<td>" + moment(value.created_at).format('llll') + "</td>" ;
                 table += "</tr>";
             });
 
@@ -592,6 +734,61 @@ function AnalysisSessionLogic(){
         table += "</tbody>";
         table += "</table>";
         return table;
+
+    }
+    function buildTableInfo_Mod_attributes(mod_attributes){
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
+        table += "<tbody>";
+        console.log(mod_attributes);
+        _.each(mod_attributes, function (value, mod_name) {
+            var length = _.keys(value).length
+            var tr = "<tr>";
+            tr += "<td  rowspan='"+length+"'>" + mod_name +  "</td>";
+             _.each(value, function (parameter_value, key) {
+                 if(tr == null) tr = "<tr>";
+                 tr += "<td>" + key + "</td>";
+                 if(key == 'created_at'){
+                     tr += "<td>" + moment(parameter_value).format('llll')  + "</td>";
+                 }else{
+                     tr += "<td>" + parameter_value + "</td>";
+                 }
+                 tr += "</tr>";
+                 table += tr;
+                 tr = null;
+             });
+        });
+
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
+    function getModulesChangesHistory(weblog_id){
+        initModal("Modules Changes History of Weblog ID:" + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/modules_changes_attributes",
+            success : function(json) {// handle a successful response
+                var mod_attributes = JSON.parse(json['data']);
+                var table = buildTableInfo_Mod_attributes(mod_attributes);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
 
     }
     function getWeblogHistory(weblog_id){
@@ -606,15 +803,10 @@ function AnalysisSessionLogic(){
                 var weblog_history = JSON.parse(json['data']);
                 var table = buildTableInfo_Wbl_History(weblog_history);
                 updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
-                // updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
                 console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
             }
 
         })
@@ -768,6 +960,37 @@ function AnalysisSessionLogic(){
                ev.preventDefault();
                syncDB(true);
             });
+
+            $('body').on('submit','#comment-form',function(ev){
+                ev.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    url: form.context.action,
+                    type: 'POST',
+                    data: form.serialize(),
+                    dataType: 'json',
+                    success: function (json){
+                        $.notify(json.msg, "info");
+
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText);
+
+
+                    }
+                })
+            });
+
+            Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
+                if (e.preventDefault) {
+                    e.preventDefault();
+                } else {
+                    // internet explorer
+                    e.returnValue = false;
+                }
+                syncDB(true);
+            });
         });
     };
 
@@ -783,6 +1006,7 @@ function AnalysisSessionLogic(){
         // }
 
     };
+
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
         if(weblogs.length > 1){
@@ -830,7 +1054,7 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-                setInterval(syncDB, 10000 );
+                setInterval(syncDB, TIME_SYNC_DB ); 
 
             });
         }else{
@@ -840,6 +1064,7 @@ function AnalysisSessionLogic(){
 
 
     };
+
     this.callingEditingData = function (analysis_session_id){
         var data = {'analysis_session_id':analysis_session_id};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
@@ -924,10 +1149,10 @@ function AnalysisSessionLogic(){
 
         var worker = new Worker(blobURL);
         worker.addEventListener('message', function(e) {
+            worker.terminate();
             _flows_grouped = e.data;
             _helper = new FlowsProcessed(_flows_grouped);
             _helper.makeStaticalSection();
-            worker.terminate();
             console.log("Worker Done");
 	    });
         worker.postMessage([_flows_grouped,flows,document.location.origin]);

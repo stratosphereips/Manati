@@ -1,7 +1,7 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
     New Analysis Session - <span id="weblogfile-name"></span><input type="text" maxlength="60" id="edit-input" />
-    <a id="sync-db-btn" style="display: none;" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i></a>
+    <a id="sync-db-btn" style="display: none;" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i> Sync</a>
     {% load staticfiles %}
     <img id="loading-img" width="33" style="display: none;" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
 {% endblock %}
@@ -43,6 +43,9 @@
                         </li>
                         <li id="statical-nav" style="display: none;"><a href="#statical-section" data-toggle="tab">Statistics Section</a>
                         </li>
+
+                        <li id="coments-as-nav" style="display: none;"><a href="#comment-section" data-toggle="tab">Comments</a>
+                        </li>
                     </ul>
                     <!-- Tab panes -->
                     <div class="tab-content">
@@ -52,7 +55,7 @@
                                 <button type="button" data-verdict="malicious" class="verdict btn btn-danger">Malicious</button>
                                 <button type="button" data-verdict="legitimate" class="verdict btn btn-success">Legitimate</button>
                                 <button type="button" data-verdict="suspicious" class="verdict btn btn-warning">Suspicious</button>
-                                <button type="button" data-verdict="false_positive" class="verdict btn btn-info">False Positive</button>
+                                <button type="button" data-verdict="falsepositive" class="verdict btn btn-info">False Positive</button>
                                 <button type="button" data-verdict="undefined" class="verdict btn btn-undefined">Undefined</button>
                                 <a href="#" class="unselect">Unselect</a>
                             </p>
@@ -60,6 +63,15 @@
                             </table>
                         </div>
                         <div class="tab-pane fade" id="statical-section"></div>
+                        <div class="tab-pane fade" id="comment-section">
+                            <form  method="POST" id="comment-form" action='' class="form" method="post" role="form">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <textarea class="form-control" rows="10" maxlength="255" name="text">{{ comment.text   }}</textarea>
+                                </div>
+                            <input type="submit" class="btn btn-success" value="Update Comment" />
+
+                        </div>
                     </div>
 
                 </div>

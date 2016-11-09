@@ -18,6 +18,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
+from ipwhois import IPWhois
+import whois
 
 
 # from django.db.models.signals import post_save
@@ -127,7 +129,7 @@ class AnalysisSessionManager(models.Manager):
             return e
 
     @transaction.atomic
-    def sync_weblogs(self, analysis_session_id,data):
+    def sync_weblogs(self, analysis_session_id,data, user):
         try:
             print("Weblogs to update: ")
             print(len(data))
@@ -144,7 +146,7 @@ class AnalysisSessionManager(models.Manager):
 
                 wb_similar = analysis_session.weblog_set.filter(id__in=data_ids)
                 for wb in wb_similar:
-                    wb.set_verdict(data[str(wb.id)], save=True)
+                    wb.set_verdict(data[str(wb.id)], user, save=True)
                     list_objs.append(wb)
 
             return list_objs
@@ -226,19 +228,19 @@ class Weblog(TimeStampedModel):
                              ('legitimate','Legitimate'),
                              ('suspicious','Suspicious'),
                              ('undefined', 'Undefined'),
-                             ('false_positive','False Positive'),
+                             ('falsepositive','False Positive'),
                              ('malicious_legitimate', 'Malicious/Legitimate'),
                              ('suspicious_legitimate', 'Suspicious/Legitimate'),
                              ('undefined_legitimate', 'Undefined/Legitimate'),
-                             ('false_positive_legitimate', 'False Positive/Legitimate'),
+                             ('falsepositive_legitimate', 'False Positive/Legitimate'),
                              ('undefined_malicious', 'Undefined/Malicious'),
                              ('suspicious_malicious', 'Suspicious/Malicious'),
-                             ('false_positive_malicious', 'False Positive/Malicious'),
-                             ('false_positive_suspicious', 'False Positive/Suspicious'),
+                             ('falsepositive_malicious', 'False Positive/Malicious'),
+                             ('falsepositive_suspicious', 'False Positive/Suspicious'),
                              ('undefined_suspicious', 'Undefined/Suspicious'),
-                             ('undefined_false_positive', 'Undefined/False Positive'),
+                             ('undefined_falsepositive', 'Undefined/False Positive'),
                              )
-    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=20, null=True)
+    verdict = models.CharField(choices=VERDICT_STATUS, default=VERDICT_STATUS.undefined, max_length=50, null=True)
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
@@ -247,53 +249,120 @@ class Weblog(TimeStampedModel):
     class Meta:
         db_table = 'manati_weblogs'
 
+    def clean(self, *args, **kwargs):
+        self.clean_fields(exclude=['verdict', 'mod_attributes'], *args, **kwargs)
+        merge_verdict = self.verdict.split('_')
+        if len(merge_verdict) > 1:
+            user_verdict = merge_verdict[0]
+            model_verdict = merge_verdict[1]
+            temp_verdict1 = str(user_verdict) + '_' + str(model_verdict)
+            temp_verdict2 = str(model_verdict)+ '_' + str(user_verdict)
+            if temp_verdict1 in dict(self.VERDICT_STATUS) is False and temp_verdict2 in dict(self.VERDICT_STATUS) is False :
+                raise ValidationError({'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
+            else:
+                pass
+        else:
+            if not (self.verdict in dict(self.VERDICT_STATUS)):
+                raise ValidationError(
+                    {'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
+
+
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
+    def set_mod_attributes(self, module_name, new_mod_attributes, save=False):
+        new_mod_attributes['created_at'] = str(datetime.datetime.now())
+        new_mod_attributes['Module Name'] = module_name
+        if str(self.mod_attributes) == '':
+            self.mod_attributes = {}
+        try:
+            self.mod_attributes[module_name] = new_mod_attributes
+        except TypeError as e:
+            self.mod_attributes = {}
+            self.mod_attributes[module_name] = new_mod_attributes
+        # self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.modified)
+
+        if save:
+            self.clean()
+            self.save()
+
+
     @transaction.atomic
-    def save_with_history(self, *args, **kwargs):
+    def save_with_history(self, content_object, *args, **kwargs):
         with transaction.atomic():
             old_wbl = Weblog.objects.get(id=self.id)
+            old_verdict = kwargs['old_verdict'] if 'old_verdict' in kwargs else old_wbl.verdict
+            new_verdict = kwargs['new_verdict'] if 'new_verdict' in kwargs else self.verdict
+            if content_object is None:
+                content_object = self.analysis_session.users.first()
             weblog_history = self.weblogs_history()
             if not weblog_history or self.verdict != weblog_history[0].verdict:
                 newWeblogHistoy = WeblogHistory(weblog=self,
-                                                old_verdict=old_wbl.verdict,
-                                                verdict=self.verdict,
-                                                content_object=self.analysis_session.users.first())
+                                                old_verdict=old_verdict,
+                                                verdict= new_verdict,
+                                                content_object=content_object)
                 newWeblogHistoy.save()
-
+            # # save summary history
+            kwargs.pop('old_verdict', None)
+            kwargs.pop('new_verdict', None)
+            self.clean()
             super(Weblog, self).save(*args, **kwargs)
-        # # save summary history
-
 
     def set_register_status(self, status, save=False):
+        # if RegisterStatus.is_state(status):
         self.register_status = status
         if save:
-            self.save_with_history()
+            self.clean()
+            self.save()
+        # else:
+        #     raise ValidationError("Status Assigned is not correct")
 
-    def set_verdict_from_module(self, verdict, save=False):
+    def set_verdict_from_module(self, module_verdict, external_module, save=False):
+        old_verdict = self.verdict
+        # ADDING LOCK
         #method that modules have to use for changing the verdict
-        pass
+        if module_verdict in dict(self.VERDICT_STATUS):
+            if self.verdict != self.VERDICT_STATUS.undefined and self.verdict != module_verdict:
+                merge_verdicts = self.verdict.split('_')
+                if len(merge_verdicts) > 1:
+                    user_verdict = merge_verdicts[0]
+                else:
+                    user_verdict = self.verdict
+                temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+                self.verdict = temp_verdict
+            else:
+                self.verdict = module_verdict
+            self.set_register_status(RegisterStatus.MODULE_MODIFICATION)
+        else:
+            raise ValidationError({'verdict': 'The assigned verdict is invalid ' + module_verdict})
 
-    def set_verdict(self, verdict, save=False):
+        new_verdict = self.verdict
+        self.clean()
+        if save:
+            self.save_with_history(external_module, old_verdict=old_verdict, new_verdict=new_verdict)
+
+    def set_verdict(self, verdict, user, save=False):
         #ADDING LOCK
-        #check if verdict exist
+        # check if verdict exist
         if verdict in dict(self.VERDICT_STATUS):
             if self.verdict and self.register_status == RegisterStatus.MODULE_MODIFICATION:
-                temp_verdict1 = str(self.verdict) + '_' + str(verdict)
-                temp_verdict2 = str(verdict) + '_' + str(self.verdict)
-                if temp_verdict1 in dict(self.VERDICT_STATUS):
-                    self.verdict = temp_verdict1
-                elif temp_verdict2 in dict(self.VERDICT_STATUS):
-                    self.verdict = temp_verdict2
-                else:
-                    raise KeyError
+                # first is the user says
+                temp_verdict = str(verdict) + '_' + str(self.verdict)
+                self.verdict = temp_verdict
+                # temp_verdict2 = str(verdict) + '_' + str(self.verdict)
+                # if temp_verdict1 in dict(self.VERDICT_STATUS):
+                #     self.verdict = temp_verdict1
+                # elif temp_verdict2 in dict(self.VERDICT_STATUS):
+                #     self.verdict = temp_verdict2
+                # else:
+                #     raise KeyError
                 self.set_register_status(RegisterStatus.READY)
             elif self.verdict and self.register_status == RegisterStatus.READY:
                 self.verdict = verdict
             elif self.verdict:
                 # this check any new state that we didn't consider yet
-                raise Exception("It must not happen, there is register_status not zero (or READY) and should be to be changed")
+                raise Exception(
+                    "It must not happen, there is register_status not zero (or READY) and should be to be changed")
             elif not self.verdict:
                 #SOMETHING IS TOTALLY WRONG
                 raise Exception(
@@ -301,19 +370,41 @@ class Weblog(TimeStampedModel):
         else:
             raise ValidationError
 
+        self.create_aux_seed()
+        self.clean()
         if save:
-            self.save_with_history()
+            self.save_with_history(user)
+
+    def create_aux_seed(self):
+        self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.seed)
+
+    def remove_aux_seed(self):
+        self.moduleauxweblog_set.filter(status=ModuleAuxWeblog.STATUS.seed).remove()
+
+    def remove_all_aux_weblog(self):
+        self.moduleauxweblog_set.clear()
 
 
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
     weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
-    verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
-    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=20, null=False)
+    verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
+                               default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
+    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
+                                   default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
     description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
+
+    def get_author_name(self):
+        if type(self.content_object).__name__ == "ExternalModule":
+            return self.content_object.module_name
+        elif isinstance(self.content_object, User):
+            return self.content_object.username
+
+    def created_at_txt(self):
+        return self.created_at.isoformat()
 
     class Meta:
         db_table = 'manati_weblog_history'
@@ -327,6 +418,7 @@ class WeblogHistory(TimeStampedModel):
 
 
 class Comment(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # Weblog or AnalysisSession
     object_id = models.CharField(max_length=20)
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -375,6 +467,7 @@ class VTConsultManager(models.Manager):
                 index += 1
             VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(info_report_obj))
 
+
 class VTConsult(TimeStampedModel):
     KEYS_INFO = ["IP","Rating","Owner","Country Code","Log Line No","Positives","Total","Malicious Samples","Hosts"]
     query_node = models.CharField(max_length=100, null=False)
@@ -409,12 +502,70 @@ class AppParameter(TimeStampedModel):
         db_table = 'manati_app_parameters'
 
 
+class WhoisConsult(TimeStampedModel):
+    query_node = models.CharField(max_length=100, null=False)
+    info_report = JSONField(default=json.dumps({}), null=False)
+    user = models.ForeignKey(User)
 
 
 
+    @staticmethod
+    def __get_query_info__(query_node, user, **kwargs ):
 
-#class Module(TimeStampedModel):
-# ????????
+        class ComplexEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if hasattr(obj, 'reprJSON'):
+                    return obj.reprJSON()
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                else:
+                    return json.JSONEncoder.default(self, obj)
+
+        whois_consult = WhoisConsult.objects.filter(query_node=query_node,
+                                                    created_at__gt=timezone.now() - timezone.timedelta(days=365)).first()
+        if whois_consult is None:
+            if 'ip' in kwargs:
+                obj = IPWhois(query_node)
+                results = obj.lookup()
+                whois_consult = WhoisConsult.objects.create(query_node=query_node,
+                                                            info_report=json.dumps(results,
+                                                                                   cls=ComplexEncoder),
+                                                            user=user)
+            elif 'domain' in kwargs:
+                w = whois.whois(query_node)
+                whois_consult = WhoisConsult.objects.create(query_node=query_node,
+                                                            info_report=json.dumps(w,
+                                                                                   cls=ComplexEncoder),
+                                                            user=user)
+            else:
+                raise ValueError("you must determine is you want to do a domain or ip consultation by __get_query_info" +
+                                 "__('query', SomeUser, domain=True or ip=True")
+
+        return whois_consult
+
+    @staticmethod
+    def get_query_info_by_ip(query_node, user):
+        return WhoisConsult.__get_query_info__(query_node, user, ip=True)
+
+    @staticmethod
+    def get_query_info_by_domain(query_node, user):
+        return WhoisConsult.__get_query_info__(query_node, user, domain=True)
+
+    class Meta:
+        db_table = 'manati_whois_consults'
+
+    def __unicode__(self):
+        return unicode(self.info_report) or u''
+
+
+class ModuleAuxWeblog(TimeStampedModel):
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE)
+    STATUS = Choices('seed', 'modified', 'undefined')
+    status = models.CharField(choices=STATUS, default=STATUS.undefined, max_length=20, null=False)
+
+    class Meta:
+        db_table = 'manati_module_aux_weblogs'
+
 
 
 
