@@ -270,16 +270,16 @@ class Weblog(TimeStampedModel):
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
-    def set_mod_attributes(self, module_name, acronym, new_mod_attributes, save=False):
+    def set_mod_attributes(self, module_name, new_mod_attributes, save=False):
         new_mod_attributes['created_at'] = str(datetime.datetime.now())
         new_mod_attributes['Module Name'] = module_name
         if str(self.mod_attributes) == '':
             self.mod_attributes = {}
         try:
-            self.mod_attributes[acronym] = new_mod_attributes
+            self.mod_attributes[module_name] = new_mod_attributes
         except TypeError as e:
             self.mod_attributes = {}
-            self.mod_attributes[acronym] = new_mod_attributes
+            self.mod_attributes[module_name] = new_mod_attributes
         # self.moduleauxweblog_set.create(status=ModuleAuxWeblog.STATUS.modified)
 
         if save:
@@ -388,8 +388,10 @@ class Weblog(TimeStampedModel):
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
     weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
-    verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
-    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS, default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
+    verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
+                               default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
+    old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
+                                   default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
     description = models.CharField(max_length=255, null=True, default="")
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) #User or Module
     object_id = models.CharField(max_length=20)

@@ -496,7 +496,7 @@ function AnalysisSessionLogic(){
         items_menu['sep2'] = "-----------";
         items_submenu_external_query = {};
         items_submenu_external_query['virus_total_consult'] = {
-            name: "Consult to VirusTotal", icon: "fa-search",
+            name: "VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
                     name: "using HTTP URL",
@@ -518,7 +518,7 @@ function AnalysisSessionLogic(){
             }
         };
         items_submenu_external_query['whois_consult'] = {
-            name: "Consult to Whois", icon: "fa-search",
+            name: "Whois", icon: "fa-search",
             items: {
                 "fold2-key1": {
                     name: "using HTTP URL",
@@ -540,15 +540,15 @@ function AnalysisSessionLogic(){
             }
         };
         items_menu['fold3'] = {
-            name: "External Consultation", icon: "fa-search",
+            name: "External Intelligence", icon: "fa-search",
             items: items_submenu_external_query
         };
         if(thiz.getAnalysisSessionId() != -1) {
             items_menu['fold4'] = {
-                name: "Consult Registers", icon: "fa-search",
+                name: "Registry History", icon: "fa-search",
                 items: {
                     "fold2-key1": {
-                        name: "Consult History of Weblogs",
+                        name: "Veredict History",
                         icon: "fa-paper-plane-o",
                         callback: function (key, options) {
                             var weblog_id = bigData[COLUMN_DT_ID].toString();
@@ -558,7 +558,7 @@ function AnalysisSessionLogic(){
                         }
                     },
                     "fold2-key2": {
-                        name: "Consult History Modules changes",
+                        name: "Modules Changes",
                         icon: "fa-paper-plane-o",
                         callback: function (key, options) {
                             var weblog_id = bigData[COLUMN_DT_ID].toString();
@@ -713,6 +713,7 @@ function AnalysisSessionLogic(){
 
         })
     }
+
     function buildTableInfo_Wbl_History(weblog_history){
         var table = "<table class='table table-bordered table-striped'>";
         table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
@@ -725,7 +726,7 @@ function AnalysisSessionLogic(){
                 table += "<td>" + value.author_name + "</td>";
                 table += "<td>" + value.old_verdict + "</td>" ;
                 table += "<td>" + value.verdict + "</td>" ;
-                table += "<td>" + value.created_at + "</td>" ;
+                table += "<td>" + moment(value.created_at).format('llll') + "</td>" ;
                 table += "</tr>";
             });
 
@@ -745,10 +746,13 @@ function AnalysisSessionLogic(){
             var tr = "<tr>";
             tr += "<td  rowspan='"+length+"'>" + mod_name +  "</td>";
              _.each(value, function (parameter_value, key) {
-                 console.log(parameter_value, key);
                  if(tr == null) tr = "<tr>";
                  tr += "<td>" + key + "</td>";
-                 tr += "<td>" + parameter_value + "</td>";
+                 if(key == 'created_at'){
+                     tr += "<td>" + moment(parameter_value).format('llll')  + "</td>";
+                 }else{
+                     tr += "<td>" + parameter_value + "</td>";
+                 }
                  tr += "</tr>";
                  table += tr;
                  tr = null;

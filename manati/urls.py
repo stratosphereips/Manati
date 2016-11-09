@@ -19,6 +19,10 @@ from django.contrib.auth import views
 from login.forms import LoginForm
 from api_manager.core.modules_manager import ModulesManager
 import login
+from django.core import management
+import threading
+from manati import settings
+import os
 
 path_name = 'manati_project'
 
@@ -36,3 +40,17 @@ urlpatterns = [
 
 ModulesManager.checking_modules()
 ModulesManager.register_modules()
+
+
+def __run_background_task_service__():
+    path_log_file = os.path.join(settings.BASE_DIR, 'logs')
+    logfile_name = os.path.join(path_log_file, "background_tasks.log")
+    logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
+    thread = threading.Thread(target=management.call_command, args=('process_tasks',
+                                                                    "--sleep", "10",
+                                                                    "--log-level", "DEBUG",
+                                                                    "--log-std", logfile_name))
+    # thread.daemon = True  # Daemonize thread
+    thread.start()
+
+__run_background_task_service__()

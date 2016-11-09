@@ -8,7 +8,6 @@ class Module(object):
     description = ''
     version = ''
     authors = []
-    acronym = ''
     events = []
 
     def __init__(self):
@@ -26,7 +25,7 @@ class Module(object):
         return self.module_name + "_" + self.version
 
     def __str__(self):
-        return "; ".join([self.module_name, self.acronym, ", ".join(self.authors), self.description])
+        return "; ".join([self.module_name, ", ".join(self.authors), self.description])
 
     def __getitem__(self, key):
         return self.module_name

@@ -11,7 +11,7 @@ import json
 
 class ExternalModuleManager(models.Manager):
 
-    def create(self, module_instance, filename, module_name, description, version, authors, acronym, available_events, *args, **kwargs):
+    def create(self, module_instance, filename, module_name, description, version, authors, available_events, *args, **kwargs):
         external_module_obj = ExternalModule()
         external_module_obj.module_instance = module_instance
         external_module_obj.filename = filename
@@ -23,7 +23,6 @@ class ExternalModuleManager(models.Manager):
             # if event innot dict(self.VERDICT_STATUS):
             external_module_obj.MODULES_RUN_EVENTS[event]
         external_module_obj.run_in_events = json.dumps(available_events)
-        external_module_obj.acronym = acronym[0:5] if len(acronym) > 5 else acronym
         external_module_obj.status = ExternalModule.MODULES_STATUS.idle
         external_module_obj.clean()
         external_module_obj.save()
@@ -41,7 +40,6 @@ class ExternalModule(TimeStampedModel):
     version = models.CharField(max_length=20)
     authors = JSONField(default=json.dumps({}))
     run_in_events = JSONField(default=json.dumps({}))
-    acronym = models.CharField(max_length=5, unique=True)
     filename = models.CharField(max_length=20, null=True)
     status = models.CharField(max_length=20, choices=MODULES_STATUS, default=MODULES_STATUS.idle)
 
