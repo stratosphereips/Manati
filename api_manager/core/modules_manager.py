@@ -59,16 +59,17 @@ class ModulesManager:
             else:
                 exm = ExternalModule.objects.create(module_instance, filename, m.module_name,
                                                     m.description, m.version, m.authors,
-                                                    m.acronym, m.events)
+                                                    m.events)
 
     @staticmethod
-    def execute_module(external_module, event_thrown, weblogs_seed_json, path=os.path.join(settings.BASE_DIR, 'api_manager/modules')):
+    @background(schedule=timezone.now())
+    def execute_module(external_module, event_thrown, weblogs_seed_json,
+                       path=os.path.join(settings.BASE_DIR, 'api_manager/modules')):
         module_path = os.path.join(path, external_module.filename)
         module_instance = external_module.module_instance
         module = imp.load_source(module_instance, module_path)
         external_module.mark_running(save=True)
-        return module.module_obj.run(event_thrown=event_thrown,
-                              weblogs_seed=weblogs_seed_json)
+        return module.module_obj.run(event_thrown=event_thrown, weblogs_seed=weblogs_seed_json)
 
     @staticmethod
     def run_modules():
@@ -89,7 +90,7 @@ class ModulesManager:
             external_module = ExternalModule.objects.get(module_name=module_name)
             weblogs = Weblog.objects.filter(Q(**kwargs))
             for weblog in weblogs:
-                weblog.set_mod_attributes(external_module.module_name,external_module.acronym , mod_attribute, save=True)
+                weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=True)
                 if 'verdict' in mod_attribute:
                     weblog.set_verdict_from_module(mod_attribute['verdict'], external_module, save=True)
 
@@ -109,7 +110,7 @@ class ModulesManager:
                 weblog = Weblog.objects.get(id=attr_weblog['pk'])
                 fields = attr_weblog['fields']
                 assert isinstance(fields['mod_attributes'], dict)
-                weblog.set_mod_attributes(module.module_name,module.acronym, fields['mod_attributes'], save=True)
+                weblog.set_mod_attributes(module.module_name, fields['mod_attributes'], save=True)
                 if 'verdict' in fields['mod_attributes']:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
@@ -117,11 +118,6 @@ class ModulesManager:
     def __run_modules(event_thrown, modules, weblogs_seed_json):
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
-        # weblogs_json_all = serializers.serialize("json",Weblog.objects.all()) # just for testing
-        # weblogs_json = {
-        #             ModulesManager.MODULES_RUN_EVENTS.labelling:  weblogs_json_all,
-        #             ModulesManager.MODULES_RUN_EVENTS.bulk_labelling: weblogs_json_all,
-        #           }.get(event_thrown)
         for external_module in modules:
             module_path = os.path.join(path, external_module.filename)
             module_instance = external_module.module_instance
@@ -129,13 +125,15 @@ class ModulesManager:
             external_module.mark_running(save=True)
             module.module_obj.run(event_thrown=event_thrown,
                                   weblogs_seed=weblogs_seed_json)
+            # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
     @staticmethod
     @background(schedule=timezone.now())
     def __attach_event(event_name, weblogs_seed_json):
         try:
             external_modules = ExternalModule.objects.find_by_event(event_name)
-            ModulesManager.__run_modules(event_name, external_modules, weblogs_seed_json)
+            if external_modules.exists():
+                ModulesManager.__run_modules(event_name, external_modules, weblogs_seed_json)
         except Exception as e:
             print_exception()
             for external_module in external_modules:
@@ -145,7 +143,7 @@ class ModulesManager:
     @staticmethod
     def attach_all_event():
         aux_weblogs = ModuleAuxWeblog.objects.select_related('weblog').filter(status=ModuleAuxWeblog.STATUS.seed)
-        if aux_weblogs.exists() and aux_weblogs.count() > 10:
+        if aux_weblogs.exists():
             weblogs_seed_json = serializers.serialize('json', [ w.weblog for w in aux_weblogs])
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling, weblogs_seed_json)
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.bulk_labelling, weblogs_seed_json)

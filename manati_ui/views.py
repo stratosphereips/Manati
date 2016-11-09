@@ -14,11 +14,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
 from api_manager.core.modules_manager import ModulesManager
 from api_manager.models import *
-from django.core import management
-import threading
-from manati import settings
 from preserialize.serialize import serialize
-import os
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -63,15 +59,8 @@ def create_analysis_session(request):
         else:
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
-            path_log_file = os.path.join(settings.BASE_DIR, 'logs')
-            logfile_name = os.path.join(path_log_file, "background_tasks.log")
-            thread = threading.Thread(target=management.call_command, args=('process_tasks',
-                                                                            "--sleep", "10",
-                                                                            "--log-level", "DEBUG",
-                                                                            "--log-std", logfile_name))
-            # thread.daemon = True  # Daemonize thread
-            thread.start()
-            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id}, msg='Analysis Session was created .' ))
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id},
+                                     msg='Analysis Session was created .'))
 
     else:
         messages.error(request, 'Only POST request')
@@ -281,6 +270,9 @@ class IndexExternalModules(LoginRequiredMixin, generic.ListView):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
 
 
+
+
+
 class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
@@ -290,16 +282,6 @@ class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super(EditAnalysisSession, self).get_context_data(**kwargs)
         object = super(EditAnalysisSession, self).get_object()
-        path_log_file = os.path.join(settings.BASE_DIR, 'logs')
-        logfile_name = os.path.join(path_log_file, "background_tasks.log")
-        logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
-        thread = threading.Thread(target=management.call_command, args=('process_tasks',
-                                                                        "--sleep", "10",
-                                                                        "--log-level", "DEBUG",
-                                                                        "--log-std", logfile_name))
-        # thread.daemon = True  # Daemonize thread
-        thread.start()
-
         context['analysis_session_id'] = object.id
         context['comment'] = object.comments.last() if object.comments.exists() else Comment()
         return context
@@ -318,12 +300,14 @@ def profile_view(request):
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
-def create_comment_analysis_session(request, id):
+def update_comment_analysis_session(request, id):
     try:
         if request.method == 'POST':
             user = request.user
             analysis_session = AnalysisSession.objects.get(id=id)
-            comment = Comment(user=user, text=request.POST['text'], content_object=analysis_session)
+            comment = analysis_session.comments.last() if analysis_session.comments.exists() else Comment(user=user,
+                                                                                        content_object=analysis_session)
+            comment.text = request.POST['text']
             comment.full_clean()
             comment.save()
             json_data = json.dumps({'msg':"The comment was save correcly"})

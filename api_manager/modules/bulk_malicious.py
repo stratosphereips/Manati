@@ -5,7 +5,6 @@ import json
 
 class BulkMalicious(Module):
     module_name = 'bulk_malicious'
-    acronym = 'bm'
     description = 'Getting the malicious weblogs seed, and find for all the weblogs with the same domain'
     version = 'v0.1'
     authors = ['Raul Benitez']
