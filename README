@@ -56,10 +56,15 @@ After putting the password you should be logged in in the postgres.
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
 
 ## Run migrate files
+10. python ./manage.py migrate background_task
 11. python ./manage.py migrate
 
+12. awk 'NR==58 {$0="    __run_background_task_service__()"} { print }'  ./manati/urls.py > ./manati/urls1.py; rm -rf ./manati/urls.py; mv ./manati/urls1.py ./manati/urls.py
+
+#The last command is to uncomment the line 58 of the line ./manati/urls.py, this line active the background modules.
+
 ## Create super user for login in the web system
-12. python manage.py createsuperuser
+13. python manage.py createsuperuser
 
 ## How to run it
 It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:

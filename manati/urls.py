@@ -23,6 +23,7 @@ from django.core import management
 import threading
 from manati import settings
 import os
+from django.db import connection
 
 path_name = 'manati_project'
 
@@ -37,10 +38,8 @@ urlpatterns = [
     url(r'^', login.views.home, name="home"),
 
 ]
-
-ModulesManager.checking_modules()
-ModulesManager.register_modules()
-
+def db_table_exists(table_name):
+    return table_name in connection.introspection.table_names()
 
 def __run_background_task_service__():
     path_log_file = os.path.join(settings.BASE_DIR, 'logs')
@@ -53,4 +52,12 @@ def __run_background_task_service__():
     # thread.daemon = True  # Daemonize thread
     thread.start()
 
-__run_background_task_service__()
+if db_table_exists('manati_externals_modules'):
+    ModulesManager.checking_modules()
+    ModulesManager.register_modules()
+    #__run_background_task_service__()
+
+
+
+
+

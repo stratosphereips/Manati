@@ -29,6 +29,11 @@ def get_all_weblogs(self, id=None):
         row = dictfetchall(cursor)
     return row
 
+def update_attributes_raw_weblog(id, attributes_json, new_id):
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE manati_weblogs SET attributes = %s, id = %s WHERE id = %s", [attributes_json, new_id, id])
+
+
 def update_weblogs(apps, schema_editor):
     # Weblog.objects.all().update(id="".join([F('id'), str(":"), F('analysis_session_id')]))
     for weblog in Weblog.objects.all():
@@ -41,10 +46,9 @@ def update_weblogs(apps, schema_editor):
         old_attributes.pop('analysis_session_id', None)
         old_attributes.pop('attributes', None)
         old_attributes.pop('mod_attributes', None)
-        weblog.id = str(weblog.analysis_session_id) + ":" + str(weblog.id)
-        weblog.attributes = json.dumps(old_attributes)
-        weblog.clean()
-        weblog.save()
+        new_id = str(weblog.analysis_session_id) + ":" + str(weblog.id)
+        attributes = json.dumps(old_attributes)
+        update_attributes_raw_weblog(str(weblog.id), attributes,new_id)
 
     for weblog in Weblog.objects.all():
         if len(weblog.id.split(':')) <= 1:
