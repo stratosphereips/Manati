@@ -95,7 +95,8 @@ function ReaderFile(analysis_session_logic_obj){
     }
     var funcOnReady = function (){
         // _progress = document.querySelector('.percent');
-        document.getElementById('visualize_weblogs').addEventListener('change', handleFileSelect, false);
+        $(document).on('change','#visualize_weblogs',handleFileSelect);
+        // document.getElementById('visualize_weblogs').addEventListener('change', handleFileSelect, false);
         $(':file').on('fileselect', function(event, numFiles, label) {
               var input = $(this).parents('.input-group').find(':text'),
                   log = numFiles > 1 ? numFiles + ' files selected' : label;
