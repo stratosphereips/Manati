@@ -1144,6 +1144,7 @@ function AnalysisSessionLogic(){
     };
 
     var processingFlows_WORKER = function (flows) {
+         $("#statical-section").html('');
         _flows_grouped = {};
         var blob = new Blob([ "onmessage = function(e) { " +
             "var flows = e.data[1];"+

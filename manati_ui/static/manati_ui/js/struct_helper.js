@@ -108,6 +108,7 @@ function FlowsProcessed(flows_grouped){
             });
             table.appendChild(tbody);
         });
+
         $("#statical-section").append("<br/>");
         $("#statical-section").append(table);
         $(table).DataTable();
