@@ -29,8 +29,8 @@ var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','false
                         'suspicious_legitimate','undefined_legitimate','falsepositive_legitimate',
                         'undefined_malicious','suspicious_malicious','falsepositive_malicious', 'falsepositive_suspicious',
                         'undefined_suspicious','undefined_falsepositive'];
-var NAMES_HTTP_URL = ["http.url", "http_url"];
-var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server"];
+var NAMES_HTTP_URL = ["http.url", "http_url", "host"];
+var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h"];
 var _flows_grouped;
 var _helper;
 var _filterDataTable;
@@ -72,6 +72,7 @@ function AnalysisSessionLogic(){
     var stepped = 0;
     var rowCount, firstError, errorCount = 0;
     var db_name = 'weblogs_db';
+    var reader_files;
     this.columns_order_changed = false;
     thiz = this;
     _m = new Metrics(true,this);
@@ -104,6 +105,7 @@ function AnalysisSessionLogic(){
             _dt.clear().draw();
             _dt.destroy();
             _dt = null;
+            $('#weblogs-datatable').html('');
         }
         // create or init datatable
         _dt = $('#weblogs-datatable').DataTable({
@@ -242,31 +244,7 @@ function AnalysisSessionLogic(){
         $('#save-table').show();
 
     }
-    function completeFn(results,file){
-        if (results && results.errors)
-        {
-            if (results.errors)
-            {
-                errorCount = results.errors.length;
-                firstError = results.errors[0];
-            }
-            if (results.data && results.data.length > 0){
 
-                console.log("Done with all files");
-                //INIT DATA
-                rowCount = results.data.length;
-                var data = results.data;
-                var headers = results.meta.fields;
-                $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
-                    headers.push(value);
-                });
-                initData(data,headers);
-                hideLoading();
-                _m.EventFileUploadingFinished(_filename, rowCount);
-            }
-
-        }
-    }
 
     function addClassVerdict(class_selector,verdict) {
         var checked_verdict = checkVerdict(_verdicts_merged, verdict);
@@ -889,55 +867,10 @@ function AnalysisSessionLogic(){
             });
             $('#panel-datatable').hide();
             $('#save-table').hide();
-            $('#upload').click(function (){
-                 $('input[type=file]').parse({
-                    config: {
-                        delimiter: "",
-                        header: true,
-                        complete: completeFn,
-                        // step: stepFn,
-                        worker: true,
-                        skipEmptyLines: true
-                        // base config to use for each file
-                    },
-                    before: function(file, inputElem)
-                    {
-                        _size_file = file.size;
-                        _type_file = file.type;
-                        setFileName(file.name);
-                        showLoading();
-                        _m.EventFileUploadingStart(file.name,_size_file,_type_file);
-                        console.log("Parsing file...", file);
-                        $.notify("Parsing file...", "info");
+            // $('#upload').click(function (){
+            //
+            // });
 
-
-                    },
-                    error: function(err, file, inputElem, reason)
-                    {
-                        console.log("ERROR Parsing:", err, file);
-                        $.notify("ERROR Parsing:" + " " + err + " "+ file);
-                        _m.EventFileUploadingError(file.name);
-                    }
-                });
-            });
-            $(':file').on('fileselect', function(event, numFiles, label) {
-
-                  var input = $(this).parents('.input-group').find(':text'),
-                      log = numFiles > 1 ? numFiles + ' files selected' : label;
-
-                  if( input.length ) {
-                      input.val(log);
-                  } else {
-                      if( log ) alert(log);
-                  }
-
-              });
-            $(document).on('change', ':file', function() {
-                var input = $(this),
-                    numFiles = input.get(0).files ? input.get(0).files.length : 1,
-                    label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
-                input.trigger('fileselect', [numFiles, label]);
-            });
 
             //events for verdict buttons
             $('.btn.verdict').click( function () {
@@ -1000,11 +933,90 @@ function AnalysisSessionLogic(){
      *************************************************************/
     //INITIAL function , like a contructor
     thiz.init = function(){
+        reader_files = ReaderFile(thiz);
         on_ready_fn();
         // window.onbeforeunload = function() {
         //     return "Dude, are you sure you want to leave? Think of the kittens!";
         // }
 
+    };
+    thiz.eventBeforeParing = function(file){
+        _size_file = file.size;
+        _type_file = file.type;
+        setFileName(file.name);
+        showLoading();
+        _m.EventFileUploadingStart(file.name,_size_file,_type_file);
+        console.log("Parsing file...", file);
+        $.notify("Parsing file...", "info");
+    };
+    thiz.parseData = function(file_rows){
+        var completeFn = function (results,file){
+            console.log("Entro");
+            if (results && results.errors)
+            {
+                if (results.errors)
+                {
+                    errorCount = results.errors.length;
+                    firstError = results.errors[0];
+                }
+                if (results.data && results.data.length > 0){
+
+                    console.log("Done with all files");
+                    //INIT DATA
+                    rowCount = results.data.length;
+                    var data = results.data;
+                    var headers = results.meta.fields;
+                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
+                        headers.push(value);
+                    });
+                    initData(data,headers);
+                    hideLoading();
+                    _m.EventFileUploadingFinished(_filename, rowCount);
+                }
+
+            }
+        };
+        // {
+        //     config: {
+        //         delimiter: "",
+        //         header: true,
+        //         complete: completeFn,
+        //         worker: true,
+        //         skipEmptyLines: true
+        //     },
+        //     before: function(file, inputElem)
+        //     {
+        //         _size_file = file.size;
+        //         _type_file = file.type;
+        //         setFileName(file.name);
+        //         showLoading();
+        //         _m.EventFileUploadingStart(file.name,_size_file,_type_file);
+        //         console.log("Parsing file...", file);
+        //         $.notify("Parsing file...", "info");
+        //     },
+        //     error: function(err, file, inputElem, reason)
+        //     {
+        //         console.log("ERROR Parsing:", err, file);
+        //         $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
+        //         _m.EventFileUploadingError(file.name);
+        //     }
+        // }
+
+        Papa.parse(file_rows,
+            {
+                delimiter: "",
+                header: true,
+                complete: completeFn,
+                worker: true,
+                skipEmptyLines: true,
+                error: function(err, file, inputElem, reason)
+                {
+                    console.log("ERROR Parsing:", err, file);
+                    $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
+                    _m.EventFileUploadingError(file.name);
+                }
+            }
+        );
     };
 
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
