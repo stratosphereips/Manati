@@ -136,7 +136,6 @@ function AnalysisSessionLogic(){
                 // }
             ],
             "scrollX": true,
-            "aLengthMenu": [[25, 50, 100, 500, -1], [25, 50, 100, 500, "All"]],
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
@@ -163,7 +162,14 @@ function AnalysisSessionLogic(){
                 }else{
                     row.attr("data-dbid", str[0]);
                 }
-            }
+            },
+            // deferRender:    true,
+            // scrollY:        300,
+            // scrollCollapse: true,
+            // scroller:       {
+            //     loadingIndicator: true
+            // },
+            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]],
         });
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
@@ -477,7 +483,7 @@ function AnalysisSessionLogic(){
             name: "VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using HTTP URL",
+                    name: "using " + COL_HTTP_URL_STR,
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
@@ -486,7 +492,7 @@ function AnalysisSessionLogic(){
                     }
                 },
                 "fold2-key2": {
-                    name: "using Endpoints Server IP",
+                    name: "using " + COL_END_POINTS_SERVER_STR,
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
