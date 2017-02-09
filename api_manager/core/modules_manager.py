@@ -11,11 +11,16 @@ from django.db import transaction
 from manati_ui.utils import *
 import re
 from django.db.models import Q
+from model_utils import Choices
+from share_modules.constants import Constant
+from tryagain import retries
 
 
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
     MODULES_RUN_EVENTS = ExternalModule.MODULES_RUN_EVENTS
+    LABELS_AVAILABLE = Choices('malicious','legitimate','suspicious','undefined','falsepositive')
+    URL_ATTRIBUTES_AVAILABLE = Constant.URL_ATTRIBUTES_AVAILABLE
 
     def __init__(self):
         pass
@@ -34,9 +39,19 @@ class ModulesManager:
             filename = module.filename
             filename_path = os.path.join(path, filename)
             if os.path.exists(filename_path) is False:
+                # remove module or change its status
                 module.status = ExternalModule.MODULES_STATUS.removed
                 module.save()
-
+            else:
+                #update information
+                module_file = imp.load_source(module.module_instance, filename_path)
+                module_instanced = module_file.module_obj
+                module.description = module_instanced.description
+                module.version = module_instanced.version
+                module.authors = module_instanced.authors
+                module.run_in_events = json.dumps(module_instanced.events)
+                module.status = ExternalModule.MODULES_STATUS.idle
+                module.save()
 
     @staticmethod
     # @background(schedule=timezone.now())
@@ -115,25 +130,37 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    def __run_modules(event_thrown, modules, weblogs_seed_json):
+    # @background(schedule=timezone.now())
+    def __run_modules(event_thrown, module_name, weblogs_seed_json):
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
-        for external_module in modules:
-            module_path = os.path.join(path, external_module.filename)
-            module_instance = external_module.module_instance
-            module = imp.load_source(module_instance, module_path)
-            external_module.mark_running(save=True)
-            module.module_obj.run(event_thrown=event_thrown,
-                                  weblogs_seed=weblogs_seed_json)
-            # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
+        external_module = ModulesManager.unstable_externa_module_is_free(module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        external_module.mark_running(save=True)
+        module.module_obj.run(event_thrown=event_thrown,
+                              weblogs_seed=weblogs_seed_json)
+        # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
     @staticmethod
-    @background(schedule=timezone.now())
+    @retries(max_attempts=10, exceptions=(Exception), wait=5)
+    def unstable_externa_module_is_free(module_name):
+        em = ExternalModule.objects.get(module_name=module_name)
+        if em and em.status == ExternalModule.MODULES_STATUS.idle:
+            return em
+        else:
+            raise Exception("The module is not free")
+
+    @staticmethod
     def __attach_event(event_name, weblogs_seed_json):
         try:
+
             external_modules = ExternalModule.objects.find_by_event(event_name)
-            if external_modules.exists():
-                ModulesManager.__run_modules(event_name, external_modules, weblogs_seed_json)
+            print(event_name,len(external_modules))
+            if len(external_modules)>0:
+                for external_module in external_modules:
+                    ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
         except Exception as e:
             print_exception()
             for external_module in external_modules:
@@ -149,7 +176,6 @@ class ModulesManager:
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.bulk_labelling, weblogs_seed_json)
             weblogs_malicious = [w.weblog for w in aux_weblogs.filter(weblog__verdict=Weblog.VERDICT_STATUS.malicious)]
             if weblogs_malicious:
-                print(weblogs_malicious)
                 weblogs_seed_json = serializers.serialize('json', weblogs_malicious)
                 ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling_malicious, weblogs_seed_json)
             aux_weblogs.delete()
@@ -161,6 +187,20 @@ class ModulesManager:
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling, weblogs_seed_json)
         except Exception as e:
             print_exception()
+
+    @staticmethod
+    def get_domain_by_obj(attributes_obj):
+        keys = attributes_obj.keys()
+        possible_key_url = ModulesManager.URL_ATTRIBUTES_AVAILABLE
+        indices = [i for (i, x) in enumerate(keys) if x in set(keys).intersection(possible_key_url)]
+        if indices:
+            key_url = str(keys[indices[0]])
+            if key_url == 'host':
+                return str(attributes_obj[key_url])
+            else:
+                return ModulesManager.get_domain(str(attributes_obj[key_url]))
+        else:
+            return None
 
     @staticmethod
     def get_domain(url):
@@ -188,7 +228,7 @@ class ModulesManager:
             auth = m_uri.group("authority")
             m_domain = re_domain.search(auth)
             if m_domain and m_domain.group("domain"):
-                result = m_domain.group("domain");
+                result = m_domain.group("domain")
         return result
 
 

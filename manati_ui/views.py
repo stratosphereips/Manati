@@ -36,7 +36,6 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-    # ModulesManager.load_modules()
     context = {}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
