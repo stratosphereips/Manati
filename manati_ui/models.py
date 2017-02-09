@@ -328,7 +328,13 @@ class Weblog(TimeStampedModel):
                     user_verdict = merge_verdicts[0]
                 else:
                     user_verdict = self.verdict
-                temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+
+                ctype = ContentType.objects.get(model='user')
+                last_history = self.histories.filter(content_type=ctype)
+                if len(last_history) > 0: # the some verdict in the history in this weblog was labelled by a user
+                    temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+                else:
+                    temp_verdict = str(module_verdict)
                 self.verdict = temp_verdict
             else:
                 self.verdict = module_verdict
@@ -387,7 +393,7 @@ class Weblog(TimeStampedModel):
 
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
-    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False, related_name='histories')
     verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
                                default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
     old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
