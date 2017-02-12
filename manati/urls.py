@@ -52,10 +52,10 @@ def __run_background_task_service__():
     # thread.daemon = True  # Daemonize thread
     thread.start()
 
-if db_table_exists('manati_externals_modules'):
+if db_table_exists('manati_externals_modules') and db_table_exists('background_task') and db_table_exists('django_content_type'):
     ModulesManager.checking_modules()
     ModulesManager.register_modules()
-    #__run_background_task_service__()
+    __run_background_task_service__()
 
 
 
