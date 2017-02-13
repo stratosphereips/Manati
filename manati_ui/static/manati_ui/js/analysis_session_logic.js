@@ -89,6 +89,9 @@ function AnalysisSessionLogic(){
     this.getAnalysisSessionName = function () {
         return _filename;
     };
+    this.isSaved = function (){
+        return _analysis_session_id != -1
+    }
 
      /************************************************************
                             PRIVATE FUNCTIONS
@@ -928,7 +931,7 @@ function AnalysisSessionLogic(){
                     // internet explorer
                     e.returnValue = false;
                 }
-                syncDB(true);
+                if(thiz.isSaved()) syncDB(true);
             });
         });
     };

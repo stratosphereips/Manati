@@ -9,7 +9,22 @@ import django.utils.timezone
 import jsonfield.fields
 import model_utils.fields
 import json
+import datetime
 from manati_ui.models import Weblog,AnalysisSession,AnalysisSessionUsers,User
+from django.contrib.auth.hashers import make_password
+
+
+def create_admin_user(apps, schema_editor):
+    User = apps.get_registered_model('auth', 'User')
+    admin = User(
+        username='admin',
+        email='admin@admin.com',
+        password=make_password('}$vM3Gn^r~RA{dfv'),
+        is_superuser=True,
+        last_login=datetime.datetime.now(),
+        is_staff=True
+    )
+    admin.save()
 
 def dictfetchall(cursor):
     "Return all rows from a cursor as a dict"
@@ -29,6 +44,11 @@ def get_all_weblogs(self, id=None):
         row = dictfetchall(cursor)
     return row
 
+def update_attributes_raw_weblog(id, attributes_json, new_id):
+    with connection.cursor() as cursor:
+        cursor.execute("UPDATE manati_weblogs SET attributes = %s, id = %s WHERE id = %s", [attributes_json, new_id, id])
+
+
 def update_weblogs(apps, schema_editor):
     # Weblog.objects.all().update(id="".join([F('id'), str(":"), F('analysis_session_id')]))
     for weblog in Weblog.objects.all():
@@ -41,16 +61,21 @@ def update_weblogs(apps, schema_editor):
         old_attributes.pop('analysis_session_id', None)
         old_attributes.pop('attributes', None)
         old_attributes.pop('mod_attributes', None)
-        weblog.id = str(weblog.analysis_session_id) + ":" + str(weblog.id)
-        weblog.attributes = json.dumps(old_attributes)
-        weblog.clean()
-        weblog.save()
+        new_id = str(weblog.analysis_session_id) + ":" + str(weblog.id)
+        attributes = json.dumps(old_attributes)
+        update_attributes_raw_weblog(str(weblog.id), attributes,new_id)
 
     for weblog in Weblog.objects.all():
         if len(weblog.id.split(':')) <= 1:
             weblog.delete()
 
-    current_user = User.objects.get(id=1)
+    current_users = User.objects.filter(id=1)
+    if not current_users.count() > 0:
+        create_admin_user(apps, schema_editor)
+        current_user = User.objects.filter(id=1)
+    else:
+        current_user = current_users.first()
+
     for analysis_session in AnalysisSession.objects.all():
         AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
                                             user_id=current_user.id,

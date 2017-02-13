@@ -2,6 +2,7 @@
 The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
 ## Versions
+- Thu Nov 10 12:30:45 CEST 2016: Vession 0.6.2.1
 - Wed Oct 12 21:19:21 CEST 2016: Vession 0.5.1
 - Wed Sep 21 17:56:40 CEST 2016: Version 0.41
 - Tue Sep 13 10:52:36 CEST 2016: Version 0.4
@@ -56,10 +57,15 @@ After putting the password you should be logged in in the postgres.
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
 
 ## Run migrate files
+10. python ./manage.py migrate background_task
 11. python ./manage.py migrate
 
+12. awk 'NR==58 {$0="    __run_background_task_service__()"} { print }'  ./manati/urls.py > ./manati/urls1.py; rm -rf ./manati/urls.py; mv ./manati/urls1.py ./manati/urls.py
+
+#The last command is to uncomment the line 58 of the line ./manati/urls.py, this line active the background modules.
+
 ## Create super user for login in the web system
-12. python manage.py createsuperuser
+13. python manage.py createsuperuser
 
 ## How to run it
 It is not recommended to run the server as root, but since only root can open ports numbers less than 1024, it is up to you which user you use. By default it opens the port 8000, so you can run it as root:
