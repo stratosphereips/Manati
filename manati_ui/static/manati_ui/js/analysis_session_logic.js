@@ -960,7 +960,6 @@ function AnalysisSessionLogic(){
     };
     thiz.parseData = function(file_rows){
         var completeFn = function (results,file){
-            console.log("Entro");
             if (results && results.errors)
             {
                 if (results.errors)
@@ -1010,7 +1009,6 @@ function AnalysisSessionLogic(){
         //         _m.EventFileUploadingError(file.name);
         //     }
         // }
-
         Papa.parse(file_rows,
             {
                 delimiter: "",

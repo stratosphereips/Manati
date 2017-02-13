@@ -78,8 +78,10 @@ function ReaderFile(analysis_session_logic_obj){
                       else break;
                   }
                   var header = choiceHeaders(possible_headers);
-                  rows = rows.slice(i,rows.length+1);
+                  rows = rows.slice(i,rows.length-2); // removing the headers and the las #close comment.
+                  // in the end of the BRO files
                   rows.unshift(header);
+
               }
               var file_rows = rows.join('\n');
               _aslo.parseData(file_rows);
