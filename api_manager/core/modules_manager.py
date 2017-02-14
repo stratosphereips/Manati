@@ -184,6 +184,10 @@ class ModulesManager:
                 ModulesManager.db_table_exists('django_content_type'):
             path_log_file = os.path.join(settings.BASE_DIR, 'logs')
             logfile_name = os.path.join(path_log_file, "background_tasks.log")
+            if not os.path.isfile(logfile_name):
+                os.mkdir(path_log_file)
+                f = open(logfile_name, "w")
+                print('Creating file: ' + logfile_name)
             logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
             ModulesManager.background_task_thread = threading.Thread(target=management.call_command, args=('process_tasks',
                                                                             "--sleep", "10",
