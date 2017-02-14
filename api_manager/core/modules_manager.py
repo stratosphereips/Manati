@@ -15,12 +15,18 @@ from model_utils import Choices
 from share_modules.constants import Constant
 from tryagain import retries
 
+import threading
+import os
+from django.db import connection
+from django.core import management
+
 
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
     MODULES_RUN_EVENTS = ExternalModule.MODULES_RUN_EVENTS
     LABELS_AVAILABLE = Choices('malicious','legitimate','suspicious','undefined','falsepositive')
     URL_ATTRIBUTES_AVAILABLE = Constant.URL_ATTRIBUTES_AVAILABLE
+    background_task_thread = None
 
     def __init__(self):
         pass
@@ -166,9 +172,30 @@ class ModulesManager:
             for external_module in external_modules:
                 ModulesManager.module_done(external_module.module_name)
 
+    @staticmethod
+    def db_table_exists(table_name):
+        return table_name in connection.introspection.table_names()
+
+    @staticmethod
+    def __run_background_task_service__():
+        if not ModulesManager.background_task_thread and \
+                ModulesManager.db_table_exists('manati_externals_modules') and \
+                ModulesManager.db_table_exists('background_task') and \
+                ModulesManager.db_table_exists('django_content_type'):
+            path_log_file = os.path.join(settings.BASE_DIR, 'logs')
+            logfile_name = os.path.join(path_log_file, "background_tasks.log")
+            logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
+            ModulesManager.background_task_thread = threading.Thread(target=management.call_command, args=('process_tasks',
+                                                                            "--sleep", "10",
+                                                                            "--log-level", "DEBUG",
+                                                                            "--log-std", logfile_name))
+            # thread.daemon = True  # Daemonize thread
+            ModulesManager.background_task_thread.start()
+
 
     @staticmethod
     def attach_all_event():
+        ModulesManager.__run_background_task_service__()
         aux_weblogs = ModuleAuxWeblog.objects.select_related('weblog').filter(status=ModuleAuxWeblog.STATUS.seed)
         if aux_weblogs.exists():
             weblogs_seed_json = serializers.serialize('json', [ w.weblog for w in aux_weblogs])
