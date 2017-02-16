@@ -53,11 +53,17 @@ class AnalysisSessionManager(models.Manager):
     def create(self, filename, key_list, weblogs, current_user):
         try:
             analysis_session = AnalysisSession()
-            analysis_sessions_users = None
             wb_list = []
-            previous_exist = AnalysisSession.objects.filter(name=filename).first()
-            if isinstance(previous_exist, AnalysisSession):
-                delete_threading(previous_exist)
+            previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
+            if previous_exists.count() > 0:
+                count = 1
+                while(previous_exists.count() > 0):
+                    copy_filename = filename + " " + "(" + str(count) + ")"
+                    previous_exists = AnalysisSession.objects.filter(name=copy_filename, users__id=current_user.id)
+                    count += 1
+
+                filename = copy_filename
+
             with transaction.atomic():
                 analysis_session.name = filename
                 analysis_session.clean()

@@ -58,7 +58,7 @@ def create_analysis_session(request):
         else:
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
-            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id},
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id, 'filename': analysis_session.name },
                                      msg='Analysis Session was created .'))
 
     else:

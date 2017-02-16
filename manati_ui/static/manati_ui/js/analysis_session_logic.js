@@ -376,9 +376,10 @@ function AnalysisSessionLogic(){
                 // handle a successful response
                 success : function(json) {
                     // $('#post-text').val(''); // remove the value from the input
-                    console.log(json); // log the returned json to the console
-                    console.log("success"); // another sanity check
+                    // console.log(json); // log the returned json to the console
+                    // console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
+                    setFileName(json['data']['filename']);
                     _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
                         var tr = $(cell).closest('tr');
                         if(!tr.hasClass("modified")) cell.innerHTML = 0;
