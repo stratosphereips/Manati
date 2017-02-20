@@ -15,7 +15,9 @@
                                             <th>#</th>
                                             <th>Name</th>
                                             <th>Created at</th>
+                                            {% if user.is_authenticated %}
                                             <th></th>
+                                            {% endif %}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -25,7 +27,9 @@
                                                     <td>{{ forloop.counter }}</td>
                                                     <td><a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a></td>
                                                     <td>{{ analysis_session.created_at }}</td>
+                                                    {% if user.is_authenticated %}
                                                     <td><a class="btn btn-danger btn-circle" href="{% url 'manati_ui:delete_analysis_session' analysis_session.id %}"><i class="fa fa-times"></i></a></td>
+                                                    {% endif %}
                                                 </tr>
                                             {% endfor %}
                                         {% else %}

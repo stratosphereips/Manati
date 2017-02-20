@@ -22,4 +22,5 @@ urlpatterns = [
     url(r'^analysis_session/get_weblogs', views.get_weblogs, name='get_weblogs_analysis_session'),
     url(r'^analysis_sessions', views.IndexAnalysisSession.as_view(), name='index_analysis_sessions'),
     url(r'^external_modules', views.IndexExternalModules.as_view(), name='index_external_modules'),
+    url(r'^analysis_session/(?P<id>[0-9]+)/publish', views.publish_analysis_session, name='publish_analysis_session'),
 ]

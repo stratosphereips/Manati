@@ -20,6 +20,9 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
 from ipwhois import IPWhois
 import whois
+from share_modules.virustotal import *
+vt = vt()
+
 
 
 # from django.db.models.signals import post_save
@@ -191,6 +194,7 @@ class RegisterStatus(enum.Enum):
 class AnalysisSession(TimeStampedModel):
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
+    public = models.BooleanField(default=False)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -214,6 +218,12 @@ class AnalysisSession(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_analysis_sessions'
+        permissions = (
+            ("read_analysis_session", "Can read an analysis session"),
+            ("edit_analysis_session", "Can edit an analysis session"),
+            ("create_analysis_session", "Can create an analysis session"),
+            ("update_analysis_session", "Can update an analysis session"),
+        )
 
 
 class AnalysisSessionUsers(TimeStampedModel):
@@ -489,13 +499,20 @@ class VTConsult(TimeStampedModel):
     objects = VTConsultManager()
 
     @staticmethod
-    def get_query_info(query_node, user):
+    def get_query_info(query_node, user, query_type):
         vt_consul = VTConsult.objects.filter(query_node=query_node,
                                              created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
         if vt_consul is None:
-            management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
-            vt_consul = VTConsult.objects.filter(query_node=query_node,
-                                                 created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+            if query_type == 'ip':
+                management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
+                vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                                     created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+            elif query_type == 'domain':
+                vt.setkey(AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value)
+                result = vt.getdomain(query_node)
+                vt_consul = VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(result))
+            else:
+                raise ValueError("query_type invalid")
         return vt_consul
 
     class Meta:
@@ -577,6 +594,10 @@ class ModuleAuxWeblog(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_module_aux_weblogs'
+
+
+def get_anonymous_user_instance(User):
+    return User.objects.get(username='anonymous_user_for_metrics')
 
 
 
