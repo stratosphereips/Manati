@@ -44,6 +44,10 @@ def db_table_exists(table_name):
 def __run_background_task_service__():
     path_log_file = os.path.join(settings.BASE_DIR, 'logs')
     logfile_name = os.path.join(path_log_file, "background_tasks.log")
+    if not os.path.isfile(logfile_name):
+        os.makedirs(path_log_file)
+        f = open(logfile_name, "w")
+        print('Creating file: ' + logfile_name)
     logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
     thread = threading.Thread(target=management.call_command, args=('process_tasks',
                                                                     "--sleep", "10",
