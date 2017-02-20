@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'guardian',
     'api_manager',
     'background_task',
     'rest_framework',
@@ -169,7 +170,6 @@ STATIC_URL = '/static/'
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
 
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
-
 IPYTHON_ARGUMENTS = [
     '--ext', 'django_extensions.management.notebook_extension',
 ]
@@ -181,3 +181,10 @@ NOTEBOOK_ARGUMENTS = [
     # disables the browser
     '--no-browser',
 ]
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # this is default
+    'guardian.backends.ObjectPermissionBackend',
+)
+
+GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'

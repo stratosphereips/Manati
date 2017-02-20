@@ -515,7 +515,7 @@ function AnalysisSessionLogic(){
             name: "Whois", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using HTTP URL",
+                    name: "using " + COL_HTTP_URL_STR,
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
@@ -524,7 +524,7 @@ function AnalysisSessionLogic(){
                     }
                 },
                 "fold2-key2": {
-                    name: "using Endpoints Server IP",
+                    name: "using " + COL_END_POINTS_SERVER_STR,
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -660,7 +660,7 @@ function AnalysisSessionLogic(){
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }
         initModal("Virus Total Query: <span>"+query_node+"</span>");
-        var data = {query_node: query_node};
+        var data = {query_node: query_node, query_type: query_type};
         $.ajax({
             type:"GET",
             data: data,

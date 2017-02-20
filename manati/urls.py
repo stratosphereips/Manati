@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.contrib.auth import views
 from login.forms import LoginForm
 from api_manager.core.modules_manager import ModulesManager
+import manati_ui
 import login
 from django.core import management
 import threading
@@ -35,7 +36,7 @@ urlpatterns = [
     url(r'^'+path_name+'/index.html$', login.views.home, name="home"),
     url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
     url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
-    url(r'^', login.views.home, name="home"),
+    url(r'^', manati_ui.views.new_analysis_session_view, name="home"),
 
 ]
 

@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.views import generic
 from .models import *
 from manati_ui.forms import UserProfileForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
 import json, collections
@@ -15,6 +15,7 @@ from utils import *
 from api_manager.core.modules_manager import ModulesManager
 from api_manager.models import *
 from preserialize.serialize import serialize
+from django.db.models import Q
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -33,7 +34,7 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 #     template_name = 'manati_ui/analysis_session/new.html'
 
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
     context = {}
@@ -71,14 +72,17 @@ def create_analysis_session(request):
     #     return render_to_json(request, data)
 
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_virus_total_consult(request):
     try:
         if request.method == 'GET':
             current_user = request.user
             query_node = str(request.GET.get('query_node', ''))
-            vtc_query_set = VTConsult.get_query_info(query_node, current_user)
+            query_type = str(request.GET.get('query_type', ''))
+            if not current_user.is_authenticated():
+                current_user = User.objects.get(username='anonymous_user_for_metrics')
+            vtc_query_set = VTConsult.get_query_info(query_node, current_user,query_type)
             return JsonResponse(dict(query_node=query_node, info_report=vtc_query_set.info_report, msg='VT Consult Done' ))
         else:
             return HttpResponseServerError("Only POST request")
@@ -86,12 +90,15 @@ def make_virus_total_consult(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_whois_consult(request):
     try:
         if request.method == 'GET':
             current_user = request.user
+            if not current_user.is_authenticated():
+                current_user = User.objects.get(username='anonymous_user_for_metrics')
             query_node = str(request.GET.get('query_node', ''))
             query_type = str(request.GET.get('query_type', ''))
             if query_type == "ip":
@@ -125,7 +132,7 @@ def export_metrics(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblog_history(request):
     try:
@@ -171,7 +178,7 @@ def convert(data):
     else:
         return data
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
     try:
@@ -179,12 +186,14 @@ def sync_db(request):
             user = request.user
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
-            if "headers[]" in received_json_data:
-                headers = json.loads(received_json_data['headers[]'])
-                analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-                analysis_session.set_columns_order_by(request.user, headers)
-                print("Headers Updated")
-            data = convert(received_json_data['data'])
+            data = {}
+            if not user.is_anonymous:
+                if "headers[]" in received_json_data:
+                    headers = json.loads(received_json_data['headers[]'])
+                    analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+                    analysis_session.set_columns_order_by(request.user, headers)
+                    print("Headers Updated")
+                data = convert(received_json_data['data'])
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
             json_query_set = serializers.serialize("json", wb_query_set)
@@ -205,12 +214,14 @@ def delete_analysis_session(request, id):
     return HttpResponseRedirect("/manati_ui/analysis_sessions")
 
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_metrics(request):
     try:
         if request.method == 'POST':
             current_user = request.user
+            if not current_user.is_authenticated():
+                current_user = User.objects.get(username='anonymous_user_for_metrics')
             u_measurements = json.loads(request.POST.get('measurements[]', ''))
             u_keys = json.loads(request.POST.get('keys[]', ''))
             Metric.objects.create_bulk_by_user(u_measurements, current_user)
@@ -224,7 +235,7 @@ def sync_metrics(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-@login_required(login_url=REDIRECT_TO_LOGIN)
+# @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblogs(request):
     try:
@@ -246,7 +257,7 @@ def get_weblogs(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-class IndexAnalysisSession(LoginRequiredMixin, generic.ListView):
+class IndexAnalysisSession(generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
@@ -254,11 +265,12 @@ class IndexAnalysisSession(LoginRequiredMixin, generic.ListView):
     context_object_name = 'analysis_sessions'
 
     def get_queryset(self):
-        #Get the analysis session created by the admin (old website) and the current user
+        # Get the analysis session created by the admin (old website) and the current user or analysis session public
         user = self.request.user
-        return AnalysisSession.objects.filter(users__in=[1, user.id])
+        return AnalysisSession.objects.filter(Q(users__in=[1, user.id]) | Q(public=True))
 
-class IndexExternalModules(LoginRequiredMixin, generic.ListView):
+
+class IndexExternalModules(generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = ExternalModule
@@ -269,10 +281,7 @@ class IndexExternalModules(LoginRequiredMixin, generic.ListView):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
 
 
-
-
-
-class EditAnalysisSession(LoginRequiredMixin, generic.DetailView):
+class EditAnalysisSession(generic.DetailView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     model = AnalysisSession
@@ -318,6 +327,8 @@ def update_comment_analysis_session(request, id):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
 def profile_update(request):
     try:
         if request.method == 'POST':
