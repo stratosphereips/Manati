@@ -20,6 +20,7 @@ def create_anonymous_user_for_metrics(apps, schema_editor):
     )
     anonymous.save()
 
+
 class Migration(migrations.Migration):
 
     dependencies = [
