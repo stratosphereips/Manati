@@ -234,6 +234,31 @@ def sync_metrics(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def publish_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            analysis_session = AnalysisSession.objects.get(id=id)
+            publish_data = request.POST.get('publish', '')
+            if publish_data == "True":
+                analysis_session.public = True
+                msg = "the Analysis Session " + analysis_session.name + " was posted"
+            elif publish_data == "False":
+                analysis_session.public = False
+                msg = "the Analysis Session " + analysis_session.name + " is no public "
+            else:
+                raise ValueError("Incorrect Value")
+            analysis_session.save()
+
+            return JsonResponse(dict(msg=msg))
+
+        else:
+            messages.error(request, 'Only GET request')
+            return HttpResponseServerError("Only GET request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
@@ -267,7 +292,7 @@ class IndexAnalysisSession(generic.ListView):
     def get_queryset(self):
         # Get the analysis session created by the admin (old website) and the current user or analysis session public
         user = self.request.user
-        return AnalysisSession.objects.filter(Q(users__in=[1, user.id]) | Q(public=True))
+        return AnalysisSession.objects.filter(Q(users__in=[user.id]) | Q(public=True))
 
 
 class IndexExternalModules(generic.ListView):

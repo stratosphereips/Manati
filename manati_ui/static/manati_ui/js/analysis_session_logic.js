@@ -940,6 +940,24 @@ function AnalysisSessionLogic(){
                 }
                 if(thiz.isSaved()) syncDB(true);
             });
+
+            $("input#share-checkbox").change(function() {
+                $.ajax({
+                    url: '/manati_project/manati_ui/analysis_session/'+thiz.getAnalysisSessionId()+'/publish',
+                    type: 'POST',
+                    data: {'publish':$(this).prop('checked') ? "True": "False" },
+                    dataType: 'json',
+                    success: function (json){
+                        $.notify(json.msg, "info");
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText);
+
+
+                    }
+                })
+            });
         });
     };
 
