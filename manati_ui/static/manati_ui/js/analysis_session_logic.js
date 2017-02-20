@@ -11,6 +11,7 @@ var _size_file,_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
+var _sync_db_interval;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -331,10 +332,15 @@ function AnalysisSessionLogic(){
 
             // handle a non-successful response
             error : function(xhr,errmsg,err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                hideLoading();
+                    $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                        " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    $('#save-table').attr('disabled',false).removeClass('disabled');
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    //NOTIFY A ERROR
+                    clearInterval(_sync_db_interval);
+                    _m.EventAnalysisSessionSavingError(_filename);
+                    hideLoading();
             }
 
         });
@@ -370,9 +376,10 @@ function AnalysisSessionLogic(){
                 // handle a successful response
                 success : function(json) {
                     // $('#post-text').val(''); // remove the value from the input
-                    console.log(json); // log the returned json to the console
-                    console.log("success"); // another sanity check
+                    // console.log(json); // log the returned json to the console
+                    // console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
+                    setFileName(json['data']['filename']);
                     _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
                         var tr = $(cell).closest('tr');
                         if(!tr.hasClass("modified")) cell.innerHTML = 0;
@@ -384,7 +391,7 @@ function AnalysisSessionLogic(){
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
                         "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
-                    setInterval(syncDB, TIME_SYNC_DB ); 
+                    _sync_db_interval = setInterval(syncDB, TIME_SYNC_DB );
                     hideLoading();
                     columns_order_changed = false;
                     $("#weblogfile-name").off('click');
@@ -960,7 +967,6 @@ function AnalysisSessionLogic(){
     };
     thiz.parseData = function(file_rows){
         var completeFn = function (results,file){
-            console.log("Entro");
             if (results && results.errors)
             {
                 if (results.errors)
@@ -1010,7 +1016,6 @@ function AnalysisSessionLogic(){
         //         _m.EventFileUploadingError(file.name);
         //     }
         // }
-
         Papa.parse(file_rows,
             {
                 delimiter: "",

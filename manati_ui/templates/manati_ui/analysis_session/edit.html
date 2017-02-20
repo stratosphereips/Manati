@@ -1,6 +1,6 @@
 {% extends 'manati_ui/base.html' %}
 {% block title %}
-    Analysis Session - {{ analysissession.name }}
+    Analysis Session - <span id="weblogfile-name">{{ analysissession.name }}</span>
     <a id="sync-db-btn" href="#" class="btn btn-success"><i class="fa fa-refresh" aria-hidden="true"></i> Sync</a>
     {% load staticfiles %}
     <img id="loading-img" width="33" src="{% static 'manati_ui/images/ajax-loader.gif' %}"/>
