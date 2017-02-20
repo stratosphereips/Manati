@@ -43,7 +43,7 @@ class ExternalModuleManager(models.Manager):
 
 
 class ExternalModule(TimeStampedModel):
-    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious')
+    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious', 'after_save')
     MODULES_STATUS = Choices('idle', 'running', 'removed')
     module_instance = models.CharField(max_length=20, unique=True)
     module_name = models.CharField(max_length=30, unique=True)

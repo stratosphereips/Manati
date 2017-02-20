@@ -250,6 +250,8 @@ class Weblog(TimeStampedModel):
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
+    whois_related_weblogs = models.ManyToManyField("self", through='WhoisRelatedWeblog',
+                                                   symmetrical=False, related_name='whois_related_weblogs+')
     dt_id = -1
 
     class Meta:
@@ -395,6 +397,14 @@ class Weblog(TimeStampedModel):
 
     def remove_all_aux_weblog(self):
         self.moduleauxweblog_set.clear()
+
+
+class WhoisRelatedWeblog(TimeStampedModel):
+    weblog_domain_a = models.ForeignKey(Weblog, db_column='weblog_domain_a', related_name="weblog_domain_a")
+    weblog_domain_a = models.ForeignKey(Weblog, db_column='weblog_domain_b', related_name="weblog_domain_b")
+
+    class Meta:
+        db_table = 'manati_whois_related_weblogs'
 
 
 class WeblogHistory(TimeStampedModel):

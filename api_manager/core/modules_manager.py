@@ -211,6 +211,10 @@ class ModulesManager:
                 ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling_malicious, weblogs_seed_json)
             aux_weblogs.delete()
 
+    @staticmethod
+    def after_save_attach_event():
+        pass
+
 
     @staticmethod
     def attach_event_after_update_verdict(weblogs_seed_json):
