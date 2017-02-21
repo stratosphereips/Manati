@@ -14,6 +14,7 @@ from django.db.models import Q
 from model_utils import Choices
 from share_modules.constants import Constant
 from tryagain import retries
+from threading import Thread
 
 import threading
 import os
@@ -60,7 +61,7 @@ class ModulesManager:
                 module.save()
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def register_modules():
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
@@ -136,7 +137,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
@@ -163,8 +164,7 @@ class ModulesManager:
         try:
 
             external_modules = ExternalModule.objects.find_by_event(event_name)
-            print(event_name,len(external_modules))
-            if len(external_modules)>0:
+            if len(external_modules) > 0:
                 for external_module in external_modules:
                     ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
         except Exception as e:
@@ -196,7 +196,6 @@ class ModulesManager:
             # thread.daemon = True  # Daemonize thread
             ModulesManager.background_task_thread.start()
 
-
     @staticmethod
     def attach_all_event():
         ModulesManager.__run_background_task_service__()
@@ -212,8 +211,9 @@ class ModulesManager:
             aux_weblogs.delete()
 
     @staticmethod
-    def after_save_attach_event():
-        pass
+    def after_save_attach_event(analysis_session):
+        weblogs_seed_json = serializers.serialize('json', [w.weblog for w in analysis_session.weblogs_set.all()])
+        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save, weblogs_seed_json)
 
 
     @staticmethod

@@ -60,7 +60,7 @@ class AnalysisSessionManager(models.Manager):
             previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
             if previous_exists.count() > 0:
                 count = 1
-                while(previous_exists.count() > 0):
+                while previous_exists.count() > 0:
                     copy_filename = filename + " " + "(" + str(count) + ")"
                     previous_exists = AnalysisSession.objects.filter(name=copy_filename, users__id=current_user.id)
                     count += 1
@@ -87,7 +87,12 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
 
-                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id, register_status=RegisterStatus.READY, id=dt_id, verdict=verdict, attributes=json.dumps(hash_attr), mod_attributes=json.dumps({}))
+                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id,
+                                               register_status=RegisterStatus.READY,
+                                               id=dt_id,
+                                               verdict=verdict,
+                                               attributes=json.dumps(hash_attr),
+                                               mod_attributes=json.dumps({}))
                     wb.clean()
                     wb_list.append(wb)
 
@@ -192,9 +197,15 @@ class RegisterStatus(enum.Enum):
 
 
 class AnalysisSession(TimeStampedModel):
+    TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
+                         ('cisco_file', 'CISCO weblogs Specific File'))
+    INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
+                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
+
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
     public = models.BooleanField(default=False)
+    type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=True)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -264,6 +275,17 @@ class Weblog(TimeStampedModel):
                                                    symmetrical=False, related_name='whois_related_weblogs+')
     dt_id = -1
 
+    @property
+    def attributes_obj(self):
+        attr = self.attributes
+        if attr:
+            if type(attr) == dict:
+                return attr
+            else:
+                return json.loads(attr)
+        else:
+            return json.loads({})
+
     class Meta:
         db_table = 'manati_weblogs'
 
@@ -284,7 +306,6 @@ class Weblog(TimeStampedModel):
                 raise ValidationError(
                     {'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
 
-
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
@@ -303,7 +324,6 @@ class Weblog(TimeStampedModel):
         if save:
             self.clean()
             self.save()
-
 
     @transaction.atomic
     def save_with_history(self, content_object, *args, **kwargs):

@@ -6,19 +6,21 @@ from django.db import migrations, models
 # from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.auth.hashers import make_password
 import datetime
+import json
 
 
 def create_anonymous_user_for_metrics(apps, schema_editor):
     User = apps.get_registered_model('auth', 'User')
-    anonymous = User(
-        username='anonymous_user_for_metrics',
-        email='anonymous_user@admin.com',
-        password=make_password('user for metrics'),
-        is_superuser=False,
-        last_login=datetime.datetime.now(),
-        is_staff=False,
-    )
-    anonymous.save()
+    if not User.objects.filter(username='anonymous_user_for_metrics').exists():
+        anonymous = User(
+            username='anonymous_user_for_metrics',
+            email='anonymous_user@admin.com',
+            password=make_password('user for metrics'),
+            is_superuser=False,
+            last_login=datetime.datetime.now(),
+            is_staff=False,
+        )
+        anonymous.save()
 
 
 class Migration(migrations.Migration):

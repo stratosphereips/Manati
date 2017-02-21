@@ -34,6 +34,19 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 #     template_name = 'manati_ui/analysis_session/new.html'
 
 
+def postpone(function):
+    def decorator(*args, **kwargs):
+        t = Thread(target=function, args=args, kwargs=kwargs)
+        t.daemon = True
+        t.start()
+
+    return decorator
+
+
+@postpone
+def call_after_save_event(analysis_session):
+    ModulesManager.after_save_attach_event(analysis_session)
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
@@ -59,6 +72,7 @@ def create_analysis_session(request):
         else:
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
+            call_after_save_event(analysis_session)
             return JsonResponse(dict(data={'analysis_session_id': analysis_session_id, 'filename': analysis_session.name },
                                      msg='Analysis Session was created .'))
 

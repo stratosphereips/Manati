@@ -11,7 +11,7 @@ import model_utils.fields
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('manati_ui', '0017_comment_user'),
+        ('manati_ui', '0018_analysis_session_public'),
     ]
 
     operations = [
@@ -36,5 +36,19 @@ class Migration(migrations.Migration):
             model_name='weblog',
             name='whois_related_weblogs',
             field=models.ManyToManyField(related_name='_weblog_whois_related_weblogs_+', through='manati_ui.WhoisRelatedWeblog', to='manati_ui.Weblog'),
+        ),
+        migrations.AlterModelOptions(
+            name='analysissession',
+            options={'permissions': (('read_analysis_session', 'Can read an analysis session'),
+                                     ('edit_analysis_session', 'Can edit an analysis session'),
+                                     ('create_analysis_session', 'Can create an analysis session'),
+                                     ('update_analysis_session', 'Can update an analysis session'))},
+        ),
+        migrations.AddField(
+            model_name='analysissession',
+            name='type_file',
+            field=models.CharField(
+                choices=[('bro_http_log', 'BRO weblogs http.log'), ('cisco_file', 'CISCO weblogs Specific File')],
+                max_length=50, null=False, default='cisco_file'),
         ),
     ]

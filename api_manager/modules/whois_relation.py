@@ -12,6 +12,8 @@ class WhoisRelation(Module):
     events = [ModulesManager.MODULES_RUN_EVENTS.after_save]
 
     def run(self, **kwargs):
+        event = kwargs['event_thrown']
+        weblogs_seed = json.loads(kwargs['weblogs_seed'])
         #
         # implement logic
         #
