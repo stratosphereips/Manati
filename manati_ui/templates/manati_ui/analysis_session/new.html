@@ -25,7 +25,9 @@
 {#                    <button onclick="abortRead();">Cancel read</button>#}
 {#                    <div id="progress_bar"><div class="percent">0%</div></div>#}
 {#                    <input type="button" id="upload" class="btn btn-default" value="Upload File"/>#}
-                    <input type="button" id="save-table" class="btn btn-primary" value="Save!" />
+                    {% if user.is_authenticated %}
+                        <input type="button" id="save-table" class="btn btn-primary" value="Save!" />
+                    {% endif %}
 
 
 {#                    <progress></progress>#}
@@ -45,9 +47,10 @@
                         </li>
                         <li id="statical-nav" style="display: none;"><a href="#statical-section" data-toggle="tab">Statistics Section</a>
                         </li>
-
+                        {% if user.is_authenticated %}
                         <li id="coments-as-nav" style="display: none;"><a href="#comment-section" data-toggle="tab">Comments</a>
                         </li>
+                        {% endif %}
                     </ul>
                     <!-- Tab panes -->
                     <div class="tab-content">
@@ -65,6 +68,7 @@
                             </table>
                         </div>
                         <div class="tab-pane fade" id="statical-section"></div>
+                        {% if user.is_authenticated %}
                         <div class="tab-pane fade" id="comment-section">
                             <form  method="POST" id="comment-form" action='' class="form" method="post" role="form">
                                 {% csrf_token %}
@@ -74,6 +78,7 @@
                             <input type="submit" class="btn btn-success" value="Update Comment" />
 
                         </div>
+                        {% endif %}
                     </div>
 
                 </div>
