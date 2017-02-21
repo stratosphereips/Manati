@@ -12,14 +12,11 @@ def add_type_file_all_analysis_session(apps, schema_editor):
     ass = AnalysisSession.objects.all()
     for analysis_session in ass:
         id = analysis_session.weblog_set.first().id
-        try:
-            attr = Weblog.objects.get(id=id).attributes_obj
-            if AnalysisSession.INFO_ATTRIBUTES['cisco_file']['url'] in attr.keys():
-                analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
-            elif AnalysisSession.INFO_ATTRIBUTES['bro_http_log']['url'] in attr.keys():
-                analysis_session.type_file = AnalysisSession.TYPE_FILES.bro_http_log
-        except Exception as e:
-            raise e
+        attr = Weblog.objects.get(id=id).attributes_obj
+        if AnalysisSession.INFO_ATTRIBUTES['cisco_file']['url'] in attr.keys():
+            analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
+        elif AnalysisSession.INFO_ATTRIBUTES['bro_http_log']['url'] in attr.keys():
+            analysis_session.type_file = AnalysisSession.TYPE_FILES.bro_http_log
 
     bulk_update(ass)
 

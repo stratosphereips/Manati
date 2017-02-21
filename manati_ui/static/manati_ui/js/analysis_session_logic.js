@@ -8,6 +8,7 @@ var thiz;
 var _db;
 var _filename = '';
 var _size_file,_type_file;
+var _analysis_session_type_file;
 var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
@@ -92,7 +93,13 @@ function AnalysisSessionLogic(){
     };
     this.isSaved = function (){
         return _analysis_session_id != -1
-    }
+    };
+    this.getAnalysisSessionTypeFile = function(){
+       return _analysis_session_type_file
+    };
+    this.setAnalysisSessionTypeFile = function(type_file){
+      _analysis_session_type_file = type_file
+    };
 
      /************************************************************
                             PRIVATE FUNCTIONS
@@ -365,7 +372,8 @@ function AnalysisSessionLogic(){
             var data = {
                 filename: _filename,
                 "headers[]": JSON.stringify(get_headers_info()),
-                'data[]': JSON.stringify(rows.data().toArray())
+                'data[]': JSON.stringify(rows.data().toArray()),
+                type_file: thiz.getAnalysisSessionTypeFile()
             };
             //send the name of the file, and the first 10 registers
             $.ajax({

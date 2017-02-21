@@ -80,8 +80,11 @@ function ReaderFile(analysis_session_logic_obj){
                   var header = choiceHeaders(possible_headers);
                   rows = rows.slice(i,rows.length-2); // removing the headers and the las #close comment.
                   // in the end of the BRO files
+                  _aslo.setAnalysisSessionTypeFile('bro_http_log');
                   rows.unshift(header);
 
+              }else{
+                  _aslo.setAnalysisSessionTypeFile('cisco_file');
               }
               var file_rows = rows.join('\n');
               _aslo.parseData(file_rows);

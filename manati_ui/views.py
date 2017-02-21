@@ -43,7 +43,7 @@ def postpone(function):
     return decorator
 
 
-@postpone
+# @postpone
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
@@ -64,7 +64,8 @@ def create_analysis_session(request):
         filename = str(request.POST.get('filename', ''))
         u_data_list = json.loads(request.POST.get('data[]',''))
         u_key_list = json.loads(request.POST.get('headers[]',''))
-        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user)
+        type_file = request.POST.get('type_file','')
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,type_file)
 
         if not analysis_session :
             # messages.error(request, 'Analysis Session wasn\'t created .')

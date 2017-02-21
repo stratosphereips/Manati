@@ -53,9 +53,9 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create(self, filename, key_list, weblogs, current_user):
+    def create(self, filename, key_list, weblogs, current_user,type_file):
         try:
-            analysis_session = AnalysisSession()
+            analysis_session = AnalysisSession(type_file=type_file)
             wb_list = []
             previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
             if previous_exists.count() > 0:
@@ -354,6 +354,14 @@ class Weblog(TimeStampedModel):
             self.save()
         # else:
         #     raise ValidationError("Status Assigned is not correct")
+
+    def set_whois_related_weblogs(self, ids_related, save=False):
+        for id in ids_related:
+            self.whois_related_weblogs.add(Weblog.objects.get(id=id))
+        if save:
+            self.clean()
+            self.save()
+
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
         old_verdict = self.verdict
