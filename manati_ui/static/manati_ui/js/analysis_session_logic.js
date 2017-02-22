@@ -454,6 +454,32 @@ function AnalysisSessionLogic(){
             }
         });
     }
+    function getWeblogsWhoisRelated(weblog_id){
+        initModal("Modules Weblogs related by whois information: " + weblog_id);
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/modules_whois_related",
+            success : function(json) {// handle a successful response
+                var whois_related_info = JSON.parse(json['data']);
+                var table = buildTable_WeblogsWhoisRelated(whois_related_info);
+                updateBodyModal(table);
+                // var info_report = JSON.parse(json['info_report']);
+                // var query_node = json['query_node'];
+                // var table = buildTableInfo_VT(info_report);
+                // updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        });
+
+    }
 
     var _bulk_marks_wbs = {};
     var _bulk_verdict;
@@ -567,6 +593,16 @@ function AnalysisSessionLogic(){
                             weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
                             getModulesChangesHistory(weblog_id);
                         }
+                    },
+                    "fold2-key3":{
+                        name: "Find Whois Relation", icon: "fa-search",
+                        callback: function (key, option) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getWeblogsWhoisRelated(weblog_id);
+
+                        }
+
                     }
                 }
             };
@@ -738,7 +774,7 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function buildTableInfo_Mod_attributes(mod_attributes){
+    function buildTableInfo_Mod_attributes(mod_attributes) {
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
         table += "<tbody>";
@@ -746,19 +782,32 @@ function AnalysisSessionLogic(){
         _.each(mod_attributes, function (value, mod_name) {
             var length = _.keys(value).length
             var tr = "<tr>";
-            tr += "<td  rowspan='"+length+"'>" + mod_name +  "</td>";
-             _.each(value, function (parameter_value, key) {
-                 if(tr == null) tr = "<tr>";
-                 tr += "<td>" + key + "</td>";
-                 if(key == 'created_at'){
-                     tr += "<td>" + moment(parameter_value).format('llll')  + "</td>";
-                 }else{
-                     tr += "<td>" + parameter_value + "</td>";
-                 }
-                 tr += "</tr>";
-                 table += tr;
-                 tr = null;
-             });
+            tr += "<td  rowspan='" + length + "'>" + mod_name + "</td>";
+            _.each(value, function (parameter_value, key) {
+                if (tr == null) tr = "<tr>";
+                tr += "<td>" + key + "</td>";
+                if (key == 'created_at') {
+                    tr += "<td>" + moment(parameter_value).format('llll') + "</td>";
+                } else {
+                    tr += "<td>" + parameter_value + "</td>";
+                }
+                tr += "</tr>";
+                table += tr;
+                tr = null;
+            });
+        });
+    }
+    function buildTable_WeblogsWhoisRelated(mod_attributes){
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
+        table += "<tbody>";
+        console.log(mod_attributes);
+        _.each(mod_attributes, function (domain, id) {
+            var tr = "<tr>";
+            tr += "<td>"+id+"</td>";
+            tr += "<td>"+domain+"</td>";
+            tr += "</tr>";
+            table+=tr;
         });
 
 
@@ -861,7 +910,7 @@ function AnalysisSessionLogic(){
     };
     var getFileName = function (){
         return _filename;
-    }
+    };
     function on_ready_fn (){
         $(document).ready(function() {
             $("#edit-input").hide();

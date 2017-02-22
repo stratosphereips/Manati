@@ -21,6 +21,7 @@ from django.core import management
 from ipwhois import IPWhois
 import whois
 from share_modules.virustotal import *
+from share_modules.util import get_domain_by_obj
 vt = vt()
 
 
@@ -273,6 +274,10 @@ class Weblog(TimeStampedModel):
     comments = GenericRelation('Comment')
     whois_related_weblogs = models.ManyToManyField("self", related_name='whois_related_weblogs+')
     dt_id = -1
+
+    @property
+    def domain(self):
+        return get_domain_by_obj(self.attributes_obj)
 
     @property
     def attributes_obj(self):

@@ -20,9 +20,9 @@ class WhoisRelation(Module):
         type_file = analysis_session['fields']['type_file']
         url = ModulesManager.INFO_ATTRIBUTES[type_file]['url']
         ip_dist = ModulesManager.INFO_ATTRIBUTES[type_file]['ip_dist']
-        domains_measured = {}
         domains_joins = []
         for weblog_a in weblogs_seed:
+            domains_measured = {}
             fields_a = weblog_a['fields']
             id_a = weblog_a['pk']
             attributes_a = json.loads(fields_a['attributes'])
@@ -43,8 +43,7 @@ class WhoisRelation(Module):
                         domains_joins.append(join)
                 else:
                     continue
-
-        ModulesManager.update_whois_related_weblogs(domains_measured, id__in=domains_measured.keys())
+            ModulesManager.update_whois_related_weblogs(domains_measured, id__in=domains_measured.keys())
         ModulesManager.module_done(self.module_name)
 
 module_obj = WhoisRelation()
