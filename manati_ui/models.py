@@ -205,7 +205,7 @@ class AnalysisSession(TimeStampedModel):
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
     public = models.BooleanField(default=False)
-    type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=True)
+    type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=False, default=TYPE_FILES.cisco_file)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -271,8 +271,7 @@ class Weblog(TimeStampedModel):
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
-    whois_related_weblogs = models.ManyToManyField("self", through='WhoisRelatedWeblog',
-                                                   symmetrical=False, related_name='whois_related_weblogs+')
+    whois_related_weblogs = models.ManyToManyField("self", related_name='whois_related_weblogs+')
     dt_id = -1
 
     @property
@@ -355,12 +354,9 @@ class Weblog(TimeStampedModel):
         # else:
         #     raise ValidationError("Status Assigned is not correct")
 
-    def set_whois_related_weblogs(self, ids_related, save=False):
+    def set_whois_related_weblogs(self, ids_related):
         for id in ids_related:
             self.whois_related_weblogs.add(Weblog.objects.get(id=id))
-        if save:
-            self.clean()
-            self.save()
 
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
@@ -436,13 +432,6 @@ class Weblog(TimeStampedModel):
     def remove_all_aux_weblog(self):
         self.moduleauxweblog_set.clear()
 
-
-class WhoisRelatedWeblog(TimeStampedModel):
-    weblog_domain_a = models.ForeignKey(Weblog, db_column='weblog_domain_a', related_name="weblog_domain_a")
-    weblog_domain_a = models.ForeignKey(Weblog, db_column='weblog_domain_b', related_name="weblog_domain_b")
-
-    class Meta:
-        db_table = 'manati_whois_related_weblogs'
 
 
 class WeblogHistory(TimeStampedModel):
@@ -617,6 +606,11 @@ class WhoisConsult(TimeStampedModel):
     @staticmethod
     def get_query_info_by_domain(query_node, user):
         return WhoisConsult.__get_query_info__(query_node, user, domain=True)
+
+    @staticmethod
+    def get_query_by_domain(query_node):
+        user = User.objects.get(username='anonymous_user_for_metrics')
+        return WhoisConsult.get_query_info_by_domain(query_node,user).info_report
 
     class Meta:
         db_table = 'manati_whois_consults'

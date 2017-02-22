@@ -26,17 +26,16 @@ class WhoisRelation(Module):
             fields_a = weblog_a['fields']
             id_a = weblog_a['pk']
             attributes_a = json.loads(fields_a['attributes'])
-            print(attributes_a)
             domain_a = ModulesManager.get_domain_by_obj(attributes_a)
             for weblog_b in weblogs_seed:
                 fields_b = weblog_b['fields']
                 id_b = weblog_b['pk']
+                if id_a == id_b:
+                    continue
                 attributes_b = json.loads(fields_b['attributes'])
                 join = [id_a, id_b]
                 domain_b = ModulesManager.get_domain_by_obj(attributes_b)
-                if domain_a == domain_b:
-                    continue
-                elif join not in domains_joins and list(reversed(join)) in domains_joins:
+                if join not in domains_joins and list(reversed(join)) not in domains_joins:
                     distance = ModulesManager.distance_domains(domain_a,domain_b)
                     if distance <= self.CONSTANT_THRESHOLD:
                         domains_measured.setdefault(id_a,[]).append(id_b)

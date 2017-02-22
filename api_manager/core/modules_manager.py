@@ -113,7 +113,7 @@ class ModulesManager:
         return serializers.serialize('json', AnalysisSession.objects.filter(Q(**kwargs)))
 
     @staticmethod
-    def get_whois_info_by_domain(query_node, module=None):
+    def get_whois_info_by_domain_obj(query_node, module=None):
         def make_whois_domain(domain):
             try:
                 return whois.whois(domain)
@@ -122,13 +122,11 @@ class ModulesManager:
                 print(domain, " is not in DB")
                 return None
 
-        return convert_obj_to_json(make_whois_domain(query_node))
+        return make_whois_domain(query_node)
 
     @staticmethod
     def distance_domains(domain_a, domain_b):
-        whois_info_a = ModulesManager.get_whois_info_by_domain(whois.whois(domain_a))
-        whois_info_b = ModulesManager.get_whois_info_by_domain(whois.whois(domain_b))
-        share_modules.whois_distance.distance_domains(whois_info_a, whois_info_b)
+        return share_modules.whois_distance.distance_domains(domain_a, domain_b)
 
     @staticmethod
     @transaction.atomic
@@ -147,7 +145,7 @@ class ModulesManager:
         with transaction.atomic():
             weblogs = Weblog.objects.filter(Q(**kwargs))
             for weblog in weblogs:
-                weblog.set_whois_related_weblogs(whois_related[weblog.id], save=True)
+                weblog.set_whois_related_weblogs(whois_related[weblog.id])
 
     @staticmethod
     def module_done(module_name):

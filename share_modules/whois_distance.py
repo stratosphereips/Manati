@@ -1,5 +1,10 @@
 import Levenshtein
+from share_modules.util import convert_obj_to_json
+import dateutil.parser
 import datetime
+import json
+import whois
+from manati_ui.models import WhoisConsult
 
 KEY_DOMAIN_NAME = 'domain_name'
 KEY_REGISTRAR = 'registrar'
@@ -11,6 +16,122 @@ KEY_EXPIRATION_DATE = 'expiration_date'
 KEY_EMAILS = 'emails'
 
 weights = [0,1,1,1,1,1,1]
+
+
+class WhoisObj:
+
+    def __init__(self, domain):
+        self.domain = domain
+        self.result = WhoisConsult.get_query_by_domain(domain)
+
+    @staticmethod
+    def make_whois_domain(domain):
+        try:
+            return whois.whois(domain)
+        except Exception as e:
+            # print(e)
+            print(domain, " is not in DB")
+            return None
+
+    def get_result_struc(self):
+        if self.result:
+            result = json.loads(self.result)
+        else:
+            result = {}
+        return result
+
+    def get_results_struc_filtered(self):
+        result = self.get_result_struc()
+        result['domain_name'] = self.get_domains_name()[0] if self.get_domains_name() else ''
+        result[KEY_EXPIRATION_DATE] = self.get_str_expiration_date()
+        result[KEY_CREATION_DATE] = self.get_str_creation_date()
+        result['emails'] = self.get_str_emails()
+        return result
+
+    def get_domains_name(self):
+        result = self.get_result_struc()
+        domain_names = result.get('domain_name', [])
+        domain_names = domain_names if domain_names else []
+        domain_names = [dn.lower() for dn in domain_names]
+        return domain_names
+
+    # time to live in days
+    def get_ttl_days(self):
+        cd = self.get_creation_date()
+        ed = self.get_expiration_date()
+        if cd and ed:
+            return abs(cd - ed).days
+        else:
+            return None
+
+    def get_creation_date(self):
+        result = self.get_result_struc()
+        cd = None
+        if KEY_CREATION_DATE in result:
+            creation = result[KEY_CREATION_DATE]
+            if type(creation) is list:
+                cd = creation[1]
+            elif not creation:
+                return None
+            elif 'before' in creation:
+                cd = creation.split(' ')[1]
+            elif creation:
+                cd = creation
+
+            if cd:
+                return dateutil.parser.parse(cd[0:19])
+            else:
+                return None
+        else:
+            return None
+
+    def get_expiration_date(self):
+        result = self.get_result_struc()
+        ed = None
+        if KEY_EXPIRATION_DATE in result:
+            expiration = result[KEY_EXPIRATION_DATE]
+            if type(expiration) is list:
+                ed = expiration[1]
+            elif expiration and not expiration == 'not defined':
+                ed = expiration
+            elif not expiration or expiration == 'not defined':
+                return None
+
+            if ed:
+                return dateutil.parser.parse(ed[0:19])
+            else:
+                return None
+        else:
+            return None
+
+    def get_str_emails(self):
+        return ",".join([str(email) for email in self.get_emails()])
+
+    def get_emails(self):
+        result = self.get_result_struc()
+        emails = result.get('emails', None)
+        if emails:
+            if isinstance(emails, list):
+                return emails
+            else:
+                return [emails]
+        else:
+            return []
+
+
+    def get_str_creation_date(self, format='%d-%m-%Y'):
+        date = self.get_creation_date()
+        if date:
+            return date.strftime(format)
+        else:
+            return ''
+
+    def get_str_expiration_date(self, format='%d-%m-%Y'):
+        date = self.get_expiration_date()
+        if date:
+            return date.strftime(format)
+        else:
+            return ''
 
 
 def dot(v1, v2):
@@ -128,10 +249,16 @@ def features_domains(whois_info_a={}, whois_info_b={}):
                          expiration_date_b, emails_str_b)
 
 
-def distance_domains(whois_info_a, whois_info_b):
+def distance_obj(whois_info_a, whois_info_b):
     feature_values = features_domains(whois_info_a, whois_info_b)
     # multiply = list(np.multiply(feature_values, weights))
     # sum_features = sum(multiply)
     sum_features = dot(feature_values,weights)
     return abs(sum_features)
+
+
+def distance_domains(domain_a, domain_b):
+    whois_info_a = WhoisObj(domain_a).get_results_struc_filtered()
+    whois_info_b = WhoisObj(domain_b).get_results_struc_filtered()
+    return distance_obj(whois_info_a, whois_info_b)
 
