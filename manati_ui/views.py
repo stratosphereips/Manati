@@ -202,7 +202,7 @@ def sync_db(request):
             received_json_data = json.loads(request.body)
             analysis_session_id = received_json_data['analysis_session_id']
             data = {}
-            if not user.is_anonymous:
+            if user.is_authenticated():
                 if "headers[]" in received_json_data:
                     headers = json.loads(received_json_data['headers[]'])
                     analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
