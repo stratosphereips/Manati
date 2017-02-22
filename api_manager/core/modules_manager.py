@@ -168,7 +168,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True

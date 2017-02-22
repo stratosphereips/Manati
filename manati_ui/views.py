@@ -43,7 +43,7 @@ def postpone(function):
     return decorator
 
 
-# @postpone
+@postpone
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
