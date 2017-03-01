@@ -57,7 +57,8 @@ After putting the password you should be logged in in the postgres.
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
 
 ## Run migrate files
-10. python ./manage.py makemigrations background_task
+10a. python ./manage.py makemigrations background_task
+10b. python ./manage.py makemigrations guardian
 11. python ./manage.py migrate
 
 ## Create super user for login in the web system
