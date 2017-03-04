@@ -17,12 +17,16 @@ from share_modules.constants import Constant
 from tryagain import retries
 from share_modules.util import convert_obj_to_json
 import share_modules.whois_distance
+import logging
 
 import threading
 import os
 from django.db import connection
 from django.core import management
 
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
@@ -64,7 +68,7 @@ class ModulesManager:
                 module.save()
 
     @staticmethod
-    @background(schedule=timezone.now())
+    # @background(schedule=timezone.now())
     def register_modules():
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
@@ -82,7 +86,7 @@ class ModulesManager:
                     module.status = ExternalModule.MODULES_STATUS.idle
                     module.save()
             else:
-                exm = ExternalModule.objects.create(module_instance, filename, m.module_name,
+                ExternalModule.objects.create(module_instance, filename, m.module_name,
                                                     m.description, m.version, m.authors,
                                                     m.events)
 
@@ -151,6 +155,7 @@ class ModulesManager:
     def module_done(module_name):
         module = ExternalModule.objects.get(module_name=module_name)
         module.mark_idle(save=True)
+        logger.info("Finishing Module: " + module_name)
         return module
 
     @staticmethod
@@ -170,15 +175,21 @@ class ModulesManager:
     @staticmethod
     @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        assert os.path.isdir(path) is True
-        external_module = ModulesManager.unstable_externa_module_is_free(module_name)
-        module_path = os.path.join(path, external_module.filename)
-        module_instance = external_module.module_instance
-        module = imp.load_source(module_instance, module_path)
-        # external_module.mark_running(save=True)
-        module.module_obj.run(event_thrown=event_thrown,
-                              weblogs_seed=weblogs_seed_json)
+        try:
+            print("Running module: " + module_name)
+            logger.info("Running module: " + module_name)
+            path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+            assert os.path.isdir(path) is True
+            external_module = ExternalModule.objects.get(module_name=module_name)
+            module_path = os.path.join(path, external_module.filename)
+            module_instance = external_module.module_instance
+            module = imp.load_source(module_instance, module_path)
+            # external_module.mark_running(save=True)
+            module.module_obj.run(event_thrown=event_thrown,
+                                  weblogs_seed=weblogs_seed_json)
+        except Exception as es:
+            print(str(es))
+            logger.error(str(es))
         # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
     @staticmethod
@@ -195,6 +206,7 @@ class ModulesManager:
         # try:
 
         external_modules = ExternalModule.objects.find_by_event(event_name)
+        print('Modules', len(external_modules))
         if len(external_modules) > 0:
             for external_module in external_modules:
                 ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
@@ -245,12 +257,18 @@ class ModulesManager:
     @staticmethod
     def after_save_attach_event(analysis_session):
         # try:
-        weblogs_seed_json = serializers.serialize('json', [w for w in analysis_session.weblog_set.all()])
-        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,
-                                      weblogs_seed_json)
+        # weblogs_seed_json = serializers.serialize('json', [w for w in analysis_session.weblog_set.all()])
+        # ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,
+        #                               weblogs_seed_json)
         # except Exception as e:
         #     print(e)
         #     print_exception()
+        pass
+    @staticmethod
+    def get_weblogs_whois_related(current_weblog):
+        weblogs_seed_json = serializers.serialize('json', [current_weblog])
+        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json)
+
 
 
     @staticmethod

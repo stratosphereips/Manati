@@ -464,7 +464,14 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/weblog/modules_whois_related",
             success : function(json) {// handle a successful response
                 var whois_related_info = JSON.parse(json['data']);
-                var table = buildTable_WeblogsWhoisRelated(whois_related_info);
+                var was_whois_related = json['was_whois_related'];
+                if(!was_whois_related){
+                    $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+                            " show the information in the modal.",
+                            "warn", {autoHideDelay: 2000});
+                }
+                var table = buildTable_WeblogsWhoisRelated(whois_related_info,was_whois_related);
+
                 updateBodyModal(table);
                 // var info_report = JSON.parse(json['info_report']);
                 // var query_node = json['query_node'];
@@ -564,6 +571,16 @@ function AnalysisSessionLogic(){
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
                         consultWhois(qn, "ip");
                     }
+                },
+                "fold2-key3":{
+                    name: "Find Weblogs Related by whois info", icon: "fa-search",
+                    callback: function (key, option) {
+                        var weblog_id = bigData[COLUMN_DT_ID].toString();
+                        weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                        getWeblogsWhoisRelated(weblog_id);
+
+                    }
+
                 }
             }
         };
@@ -593,16 +610,6 @@ function AnalysisSessionLogic(){
                             weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
                             getModulesChangesHistory(weblog_id);
                         }
-                    },
-                    "fold2-key3":{
-                        name: "Find Whois Relation", icon: "fa-search",
-                        callback: function (key, option) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                            getWeblogsWhoisRelated(weblog_id);
-
-                        }
-
                     }
                 }
             };
@@ -692,10 +699,12 @@ function AnalysisSessionLogic(){
             $(this).find("#vt_modal_title").html('');
         });
     }
-    function updateBodyModal(table){
+    function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
-        modal_body.find('.table-section').html(table).show();
-        modal_body.find(".loading").hide();
+        if (table != null) {
+            modal_body.find('.table-section').html(table).show();
+            modal_body.find(".loading").hide();
+        }
     }
     function consultVirusTotal(query_node, query_type){
         if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
@@ -797,7 +806,8 @@ function AnalysisSessionLogic(){
             });
         });
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes){
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
+        if(isEmpty(mod_attributes) && was_whois_related == false) return null;
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
         table += "<tbody>";
@@ -809,8 +819,6 @@ function AnalysisSessionLogic(){
             tr += "</tr>";
             table+=tr;
         });
-
-
         table += "</tbody>";
         table += "</table>";
         return table;

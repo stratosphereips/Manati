@@ -43,15 +43,15 @@ class ExternalModuleManager(models.Manager):
 
 
 class ExternalModule(TimeStampedModel):
-    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious', 'after_save')
+    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious', 'after_save', 'by_request')
     MODULES_STATUS = Choices('idle', 'running', 'removed')
-    module_instance = models.CharField(max_length=20, unique=True)
-    module_name = models.CharField(max_length=30, unique=True)
+    module_instance = models.CharField(max_length=50, unique=True)
+    module_name = models.CharField(max_length=50, unique=True)
     description = models.CharField(max_length=200)
-    version = models.CharField(max_length=20)
+    version = models.CharField(max_length=30)
     authors = JSONField(default=json.dumps({}))
     run_in_events = JSONField(default=json.dumps({}))
-    filename = models.CharField(max_length=20, null=True)
+    filename = models.CharField(max_length=50, null=True)
     status = models.CharField(max_length=20, choices=MODULES_STATUS, default=MODULES_STATUS.idle)
 
     objects = ExternalModuleManager()

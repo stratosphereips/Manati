@@ -273,6 +273,7 @@ class Weblog(TimeStampedModel):
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
     whois_related_weblogs = models.ManyToManyField("self", related_name='whois_related_weblogs+')
+    was_whois_related = models.BooleanField(default=False)
     dt_id = -1
 
     @property
