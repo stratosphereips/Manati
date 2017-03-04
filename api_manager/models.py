@@ -27,20 +27,31 @@ class ExternalModuleManager(models.Manager):
         external_module_obj.clean()
         external_module_obj.save()
 
-    def find_by_event(self,event_name):
-        return ExternalModule.objects.filter(run_in_events__contains=event_name, status=ExternalModule.MODULES_STATUS.idle)
+    def find_idle_modules_by_event(self, event_name):
+        return ExternalModule.objects.filter(run_in_events__contains=event_name,
+                                             status=ExternalModule.MODULES_STATUS.idle).distinct()
+
+    def find_by_event(self, event_name):
+        ets= ExternalModule.objects.filter(run_in_events__contains=event_name)\
+            .exclude(status=ExternalModule.MODULES_STATUS.removed).distinct()
+        etss = []
+        for et in ets:
+            run_in_events = json.loads(et.run_in_events)
+            if event_name in run_in_events:
+                etss.append(et)
+        return etss
 
 
 class ExternalModule(TimeStampedModel):
-    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious')
+    MODULES_RUN_EVENTS = Choices('labelling', 'bulk_labelling', 'labelling_malicious', 'after_save', 'by_request')
     MODULES_STATUS = Choices('idle', 'running', 'removed')
-    module_instance = models.CharField(max_length=20, unique=True)
-    module_name = models.CharField(max_length=30, unique=True)
+    module_instance = models.CharField(max_length=50, unique=True)
+    module_name = models.CharField(max_length=50, unique=True)
     description = models.CharField(max_length=200)
-    version = models.CharField(max_length=20)
+    version = models.CharField(max_length=30)
     authors = JSONField(default=json.dumps({}))
     run_in_events = JSONField(default=json.dumps({}))
-    filename = models.CharField(max_length=20, null=True)
+    filename = models.CharField(max_length=50, null=True)
     status = models.CharField(max_length=20, choices=MODULES_STATUS, default=MODULES_STATUS.idle)
 
     objects = ExternalModuleManager()
