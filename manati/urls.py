@@ -40,17 +40,5 @@ urlpatterns = [
 ]
 
 
-def db_table_exists(table_name):
-    return table_name in connection.introspection.table_names()
-
-
-if db_table_exists('manati_externals_modules')\
-        and db_table_exists('background_task')\
-        and db_table_exists('django_content_type'):
-    ModulesManager.checking_modules()
-    ModulesManager.register_modules()
-
-
-
 
 
