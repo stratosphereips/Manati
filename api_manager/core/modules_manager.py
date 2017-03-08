@@ -28,6 +28,16 @@ from django.core import management
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
+def postpone(function):
+    def decorator(*args, **kwargs):
+        t = threading.Thread(target=function, args=args, kwargs=kwargs)
+        t.daemon = True
+        t.start()
+
+    return decorator
+
+
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
     MODULES_RUN_EVENTS = ExternalModule.MODULES_RUN_EVENTS
@@ -68,7 +78,7 @@ class ModulesManager:
                 module.save()
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @postpone
     def register_modules():
         path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
         assert os.path.isdir(path) is True
@@ -226,6 +236,10 @@ class ModulesManager:
                 ModulesManager.db_table_exists('manati_externals_modules') and \
                 ModulesManager.db_table_exists('background_task') and \
                 ModulesManager.db_table_exists('django_content_type'):
+
+            ModulesManager.checking_modules()  # checking modules
+            ModulesManager.register_modules()  # registering new modules
+
             path_log_file = os.path.join(settings.BASE_DIR, 'logs')
             logfile_name = os.path.join(path_log_file, "background_tasks.log")
             if not os.path.isfile(logfile_name):
