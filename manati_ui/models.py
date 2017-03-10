@@ -20,6 +20,10 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
 from ipwhois import IPWhois
 import whois
+from share_modules.virustotal import *
+from share_modules.util import get_domain_by_obj
+vt = vt()
+
 
 
 # from django.db.models.signals import post_save
@@ -50,14 +54,20 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create(self, filename, key_list, weblogs, current_user):
+    def create(self, filename, key_list, weblogs, current_user,type_file):
         try:
-            analysis_session = AnalysisSession()
-            analysis_sessions_users = None
+            analysis_session = AnalysisSession(type_file=type_file)
             wb_list = []
-            previous_exist = AnalysisSession.objects.filter(name=filename).first()
-            if isinstance(previous_exist, AnalysisSession):
-                delete_threading(previous_exist)
+            previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
+            if previous_exists.count() > 0:
+                count = 1
+                while previous_exists.count() > 0:
+                    copy_filename = filename + " " + "(" + str(count) + ")"
+                    previous_exists = AnalysisSession.objects.filter(name=copy_filename, users__id=current_user.id)
+                    count += 1
+
+                filename = copy_filename
+
             with transaction.atomic():
                 analysis_session.name = filename
                 analysis_session.clean()
@@ -78,7 +88,12 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
 
-                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id, register_status=RegisterStatus.READY, id=dt_id, verdict=verdict, attributes=json.dumps(hash_attr), mod_attributes=json.dumps({}))
+                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id,
+                                               register_status=RegisterStatus.READY,
+                                               id=dt_id,
+                                               verdict=verdict,
+                                               attributes=json.dumps(hash_attr),
+                                               mod_attributes=json.dumps({}))
                     wb.clean()
                     wb_list.append(wb)
 
@@ -183,8 +198,15 @@ class RegisterStatus(enum.Enum):
 
 
 class AnalysisSession(TimeStampedModel):
+    TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
+                         ('cisco_file', 'CISCO weblogs Specific File'))
+    INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
+                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
+
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
+    public = models.BooleanField(default=False)
+    type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=False, default=TYPE_FILES.cisco_file)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -208,6 +230,12 @@ class AnalysisSession(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_analysis_sessions'
+        permissions = (
+            ("read_analysis_session", "Can read an analysis session"),
+            ("edit_analysis_session", "Can edit an analysis session"),
+            ("create_analysis_session", "Can create an analysis session"),
+            ("update_analysis_session", "Can update an analysis session"),
+        )
 
 
 class AnalysisSessionUsers(TimeStampedModel):
@@ -244,7 +272,24 @@ class Weblog(TimeStampedModel):
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
+    whois_related_weblogs = models.ManyToManyField("self", related_name='whois_related_weblogs+')
+    was_whois_related = models.BooleanField(default=False)
     dt_id = -1
+
+    @property
+    def domain(self):
+        return get_domain_by_obj(self.attributes_obj)
+
+    @property
+    def attributes_obj(self):
+        attr = self.attributes
+        if attr:
+            if type(attr) == dict:
+                return attr
+            else:
+                return json.loads(attr)
+        else:
+            return json.loads({})
 
     class Meta:
         db_table = 'manati_weblogs'
@@ -266,7 +311,6 @@ class Weblog(TimeStampedModel):
                 raise ValidationError(
                     {'verdict': _('Verdict is incorrect, you should use valid verdicts or merging of valid verdicts')})
 
-
     def weblogs_history(self):
         return WeblogHistory.objects.filter(weblog=self).order_by('-version')
 
@@ -285,7 +329,6 @@ class Weblog(TimeStampedModel):
         if save:
             self.clean()
             self.save()
-
 
     @transaction.atomic
     def save_with_history(self, content_object, *args, **kwargs):
@@ -317,6 +360,11 @@ class Weblog(TimeStampedModel):
         # else:
         #     raise ValidationError("Status Assigned is not correct")
 
+    def set_whois_related_weblogs(self, ids_related):
+        for id in ids_related:
+            self.whois_related_weblogs.add(Weblog.objects.get(id=id))
+
+
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
         old_verdict = self.verdict
         # ADDING LOCK
@@ -328,7 +376,13 @@ class Weblog(TimeStampedModel):
                     user_verdict = merge_verdicts[0]
                 else:
                     user_verdict = self.verdict
-                temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+
+                ctype = ContentType.objects.get(model='user')
+                last_history = self.histories.filter(content_type=ctype)
+                if len(last_history) > 0: # the some verdict in the history in this weblog was labelled by a user
+                    temp_verdict = str(user_verdict) + '_' + str(module_verdict)
+                else:
+                    temp_verdict = str(module_verdict)
                 self.verdict = temp_verdict
             else:
                 self.verdict = module_verdict
@@ -385,9 +439,10 @@ class Weblog(TimeStampedModel):
         self.moduleauxweblog_set.clear()
 
 
+
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
-    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False)
+    weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False, related_name='histories')
     verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
                                default=Weblog.VERDICT_STATUS.undefined, max_length=50, null=False)
     old_verdict = models.CharField(choices=Weblog.VERDICT_STATUS,
@@ -477,13 +532,20 @@ class VTConsult(TimeStampedModel):
     objects = VTConsultManager()
 
     @staticmethod
-    def get_query_info(query_node, user):
+    def get_query_info(query_node, user, query_type):
         vt_consul = VTConsult.objects.filter(query_node=query_node,
                                              created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
         if vt_consul is None:
-            management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
-            vt_consul = VTConsult.objects.filter(query_node=query_node,
-                                                 created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+            if query_type == 'ip':
+                management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
+                vt_consul = VTConsult.objects.filter(query_node=query_node,
+                                                     created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+            elif query_type == 'domain':
+                vt.setkey(AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value)
+                result = vt.getdomain(query_node)
+                vt_consul = VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(result))
+            else:
+                raise ValueError("query_type invalid")
         return vt_consul
 
     class Meta:
@@ -551,6 +613,11 @@ class WhoisConsult(TimeStampedModel):
     def get_query_info_by_domain(query_node, user):
         return WhoisConsult.__get_query_info__(query_node, user, domain=True)
 
+    @staticmethod
+    def get_query_by_domain(query_node):
+        user = User.objects.get(username='anonymous_user_for_metrics')
+        return WhoisConsult.get_query_info_by_domain(query_node,user).info_report
+
     class Meta:
         db_table = 'manati_whois_consults'
 
@@ -565,6 +632,10 @@ class ModuleAuxWeblog(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_module_aux_weblogs'
+
+
+def get_anonymous_user_instance(User):
+    return User.objects.get(username='anonymous_user_for_metrics')
 
 
 

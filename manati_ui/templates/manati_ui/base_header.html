@@ -45,6 +45,7 @@
                     <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-user">
+                    {% if user.is_authenticated %}
                     <li><a href="{% url 'manati_ui:profie_view_user' %}"><i class="fa fa-user fa-fw"></i> User Profile</a>
                     </li>
                     <li><a href="{% url 'manati_ui:index_external_modules' %}"><i class="fa fa-user fa-fw"></i> Modules Page</a>
@@ -54,6 +55,9 @@
                     <li class="divider"></li>
                     <li><a href="{% url 'django.contrib.auth.views.logout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>
+                    {% else %}
+                        <li><a href="/manati_project/login"><i class="fa fa-user fa-fw"></i>Login</a></li>
+                    {% endif %}
                 </ul>
                 <!-- /.dropdown-user -->
             </li>

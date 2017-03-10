@@ -22,6 +22,7 @@ function FilterDataTable(column_verdict, verdicts){
         return _dt;
     };
     function pushingDataTable(){
+        if($.fn.dataTable.ext.search.length) $.fn.dataTable.ext.search.pop();
         $.fn.dataTable.ext.search.push(
             function( settings, data, dataIndex ) {
                 var verdict = checkVerdict(_verdicts, data[_column_verdict]); // use data for the age column
