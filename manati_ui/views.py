@@ -16,6 +16,11 @@ from api_manager.core.modules_manager import ModulesManager
 from api_manager.models import *
 from preserialize.serialize import serialize
 from django.db.models import Q
+import logging
+
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
 # class IndexView(generic.ListView):
@@ -251,8 +256,10 @@ def sync_db(request):
             messages.error(request, 'Only POST request')
             return HttpResponseServerError("Only POST request")
     except Exception as e:
-        print_exception()
-        return HttpResponseServerError("There was a error in the Server " + str(e.message))
+        error = print_exception()
+        logger.error(str(error))
+        logger.error(str(e.message))
+        return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)

@@ -17,12 +17,11 @@ from share_modules.constants import Constant
 from tryagain import retries
 from share_modules.util import convert_obj_to_json
 import share_modules.whois_distance
-import logging
-
 import threading
 import os
 from django.db import connection
 from django.core import management
+import logging
 
 
 # Get an instance of a logger
