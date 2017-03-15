@@ -252,7 +252,7 @@ def sync_db(request):
             return HttpResponseServerError("Only POST request")
     except Exception as e:
         print_exception()
-        return HttpResponseServerError("There was a error in the Server")
+        return HttpResponseServerError("There was a error in the Server " + str(e.message))
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)

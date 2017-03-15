@@ -341,9 +341,10 @@ function AnalysisSessionLogic(){
             error : function(xhr,errmsg,err) {
                     $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    console.error(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    console.error(errmsg);
                     //NOTIFY A ERROR
                     clearInterval(_sync_db_interval);
                     _m.EventAnalysisSessionSavingError(_filename);
