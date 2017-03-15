@@ -11,8 +11,8 @@
 // };
 
 function throw_error_logging(msg){
-    console.log(msg);
-    throw msg;
+    console.error(msg);
+    // throw msg;
 }
 
 var time = moment();
@@ -274,7 +274,7 @@ function Metrics(active, analysis_session_logic){
             AnalysisSessionSavingStarted = false;
             return true;
         }else{
-            throw_error_logging("you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
+            throw_error_logging("EventAnalysisSessionSavingFinished: you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
             return false;
         }
     };
@@ -288,7 +288,7 @@ function Metrics(active, analysis_session_logic){
             AnalysisSessionSavingStarted = false;
             return true;
         }else{
-            throw_error_logging("you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
+            throw_error_logging("EventAnalysisSessionSavingError: you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
             return false;
         }
     };
@@ -332,7 +332,7 @@ function Metrics(active, analysis_session_logic){
             AS_loading_edit_started = false;
             return true;
         }else{
-            throw_error_logging("you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
+            throw_error_logging("EventLoadingEditingError: you cannot throw EventAnalysisSessionSavingFinished before of EventAnalysisSessionSavingStart");
             return false;
         }
     };
