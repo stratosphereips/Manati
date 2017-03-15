@@ -343,8 +343,10 @@ function AnalysisSessionLogic(){
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                     console.error(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
-                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    // $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    $.notify("Oops! We have encountered an error: " +errmsg);
                     console.error(errmsg);
+                    console.error(xhr.responseText);
                     //NOTIFY A ERROR
                     clearInterval(_sync_db_interval);
                     _m.EventAnalysisSessionSavingError(_filename);
