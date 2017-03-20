@@ -439,7 +439,6 @@ class Weblog(TimeStampedModel):
         self.moduleauxweblog_set.clear()
 
 
-
 class WeblogHistory(TimeStampedModel):
     version = models.IntegerField(editable=False, default=0)
     weblog = models.ForeignKey(Weblog, on_delete=models.CASCADE, null=False, related_name='histories')
