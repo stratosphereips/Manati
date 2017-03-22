@@ -653,7 +653,30 @@ function AnalysisSessionLogic(){
             for(var key in info_report){
                 table += "<tr>";
                 table += "<th>"+key+"</th>";
-                table += "<td>" + info_report[key]+ "</td>" ;
+                var info = info_report[key];
+                if (info instanceof Array){
+                    var html_temp = "";
+                    for(var index = 0; index < info.length; index++){
+                        var data = info[index];
+                        if(data instanceof Object){
+                             html_temp += buildTableInfo_VT(data, true) ;
+                        }else if(typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>" ;
+                            break;
+                        }
+
+                    }
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }
+                else if(info instanceof Object){
+                    var html_temp = "";
+                    html_temp += buildTableInfo_VT(info, true) ;
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }
+                else{
+                    table += "<td>" + info + "</td>" ;
+                }
+
                 table += "</tr>";
             }
 
