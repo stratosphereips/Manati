@@ -12,6 +12,7 @@ import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
+from share_modules.util import *
 from api_manager.core.modules_manager import ModulesManager
 from api_manager.models import *
 from preserialize.serialize import serialize
@@ -98,12 +99,16 @@ def make_virus_total_consult(request):
     try:
         if request.method == 'GET':
             current_user = request.user
-            query_node = str(request.GET.get('query_node', ''))
-            query_type = str(request.GET.get('query_type', ''))
+            qn = str(request.GET.get('query_node', ''))
+            query_type, query_node = get_data_from_url(qn)
+            # query_type = str(request.GET.get('query_type', ''))
             if not current_user.is_authenticated():
                 current_user = User.objects.get(username='anonymous_user_for_metrics')
             vtc_query_set = VTConsult.get_query_info(query_node, current_user,query_type)
-            return JsonResponse(dict(query_node=query_node, info_report=vtc_query_set.info_report, msg='VT Consult Done' ))
+
+            return JsonResponse(dict(query_node=query_node,
+                                     info_report=vtc_query_set.info_report,
+                                     msg='VT Consult Done'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -119,8 +124,9 @@ def make_whois_consult(request):
             current_user = request.user
             if not current_user.is_authenticated():
                 current_user = User.objects.get(username='anonymous_user_for_metrics')
-            query_node = str(request.GET.get('query_node', ''))
-            query_type = str(request.GET.get('query_type', ''))
+            qn = str(request.GET.get('query_node', ''))
+            # query_type = str(request.GET.get('query_type', ''))
+            query_type, query_node = get_data_from_url(qn)
             if query_type == "ip":
                 wc_query_set = WhoisConsult.get_query_info_by_ip(query_node, current_user)
             else:

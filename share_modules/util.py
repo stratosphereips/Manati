@@ -1,6 +1,9 @@
 import json
 from constants import Constant
 import re
+import socket
+from urlparse import urlparse
+from tld import get_tld
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -29,6 +32,33 @@ def get_domain_by_obj(attributes_obj):
             return get_domain(str(attributes_obj[key_url]))
     else:
         return None
+
+
+def is_ip(value):
+    """Determine if a value is an IP address.
+
+    :param str value: Value to check
+    :return: Boolean status outling if the value is an IP address
+    """
+    try:
+        socket.inet_aton(value)
+        return True
+    except socket.error:
+        return False
+
+
+def get_data_from_url(url):
+    if is_ip(url):
+        return 'ip', url
+    o = urlparse(url)
+    d = o.netloc
+    if d is None or d == '':
+        return 'domain','none'
+    elif is_ip(d):
+        return 'ip', d
+    else:
+        return 'domain', get_tld('http://www.'+d)
+
 
 
 def get_domain(url):

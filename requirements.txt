@@ -72,6 +72,7 @@ simplejson==3.8.2
 singledispatch==3.4.0.3
 six==1.10.0
 terminado==0.6
+tld==0.7.8
 tornado==4.4.2
 traitlets==4.3.1
 tryagain==1.0

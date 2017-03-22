@@ -180,17 +180,12 @@ function AnalysisSessionLogic(){
                      $("html, body").animate({ scrollTop: 0 }, "slow");
                  });
            },
+             // "sPaginationType": "listbox",
             dom:'<"top"<"row"<"col-md-3"B><"col-md-2"l><"col-md-2 col-md-offset-3"f><"col-md-2"p>>>' +
-            'rt' +
-            '<"bottom"<"row"<"col-md-2"i><"col-md-2 col-md-offset-8"p>>>' +
-            '<"clear">',
-            // deferRender:    true,
-            // scrollY:        300,
-            // scrollCollapse: true,
-            // scroller:       {
-            //     loadingIndicator: true
-            // },
-            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]],
+                'rt' +
+                '<"bottom"<"row"<"col-md-2"i><"col-md-2 col-md-offset-8"p>>>' +
+                '<"clear">',
+            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
@@ -545,16 +540,16 @@ function AnalysisSessionLogic(){
             name: "VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using " + COL_HTTP_URL_STR,
+                    name: "Looking for domain (in column:" + COL_HTTP_URL_STR +")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        var qn = bigData[COLUMN_HTTP_URL];
                         consultVirusTotal(qn, "domain");
 
                     }
                 },
                 "fold2-key2": {
-                    name: "using " + COL_END_POINTS_SERVER_STR,
+                    name: "Looking for ip (column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -567,16 +562,16 @@ function AnalysisSessionLogic(){
             name: "Whois", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using " + COL_HTTP_URL_STR,
+                    name: "Looking for domain (in column:" + COL_HTTP_URL_STR +")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        var qn = bigData[COLUMN_HTTP_URL];
                         consultWhois(qn, "domain");
 
                     }
                 },
                 "fold2-key2": {
-                    name: "using " + COL_END_POINTS_SERVER_STR,
+                    name: "Looking for ip (column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -723,7 +718,7 @@ function AnalysisSessionLogic(){
         else{
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }
-        initModal("Virus Total Query: <span>"+query_node+"</span>");
+        initModal("Virus Total Query: <span>?????</span>");
         var data = {query_node: query_node, query_type: query_type};
         $.ajax({
             type:"GET",
@@ -734,6 +729,7 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
+                initModal("Virus Total Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -750,7 +746,7 @@ function AnalysisSessionLogic(){
         else{
             console.error("Error query_type for WhoisConsultation is incorrect")
         }
-        initModal("Whois Query: <span>"+query_node+"</span>");
+        initModal("Whois Query: <span>????</span>");
         var data = {query_node: query_node, query_type: query_type};
         $.ajax({
             type:"GET",
@@ -761,6 +757,7 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_Whois(info_report);
+                initModal("Whois Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
