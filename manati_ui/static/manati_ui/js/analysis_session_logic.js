@@ -562,7 +562,7 @@ function AnalysisSessionLogic(){
             name: "Whois", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "Looking for domain (in column:" + COL_HTTP_URL_STR +")",
+                    name: "Looking for domain (of column: " + COL_HTTP_URL_STR +")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_HTTP_URL];
@@ -571,7 +571,7 @@ function AnalysisSessionLogic(){
                     }
                 },
                 "fold2-key2": {
-                    name: "Looking for ip (column: " + COL_END_POINTS_SERVER_STR+")",
+                    name: "Looking for ip (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
