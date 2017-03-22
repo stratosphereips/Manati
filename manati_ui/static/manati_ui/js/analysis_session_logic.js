@@ -184,7 +184,6 @@ function AnalysisSessionLogic(){
             'rt' +
             '<"bottom"<"row"<"col-md-2"i><"col-md-2 col-md-offset-8"p>>>' +
             '<"clear">',
-            // dom:'Bfptip',
             // deferRender:    true,
             // scrollY:        300,
             // scrollCollapse: true,
@@ -1244,7 +1243,9 @@ function AnalysisSessionLogic(){
         var worker = new Worker(blobURL);
         worker.addEventListener('message', function(e) {
             var rows_data = e.data;
+            var current_page = _dt.page.info().page;
             _dt.clear().rows.add(rows_data).draw();
+            _dt.page(current_page).draw('page');
             hideLoading();
 	    });
         var rows_data = _dt.rows().data().toArray();
