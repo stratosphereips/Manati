@@ -181,7 +181,7 @@ function AnalysisSessionLogic(){
                  });
            },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"B><"col-md-2"l><"col-md-2 col-md-offset-3"f><"col-md-2"p>>>' +
+            dom:'<"top"<"row"<"col-md-3"B><"col-md-2"l><"col-md-2"f><"col-md-5"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"i><"col-md-2 col-md-offset-8"p>>>' +
                 '<"clear">',
