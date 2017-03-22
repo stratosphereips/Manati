@@ -174,6 +174,12 @@ function AnalysisSessionLogic(){
                     row.attr("data-dbid", str[0]);
                 }
             },
+            drawCallback: function(){
+              $('.paginate_button.next', this.api().table().container())
+                 .on('click', function(){
+                     $("html, body").animate({ scrollTop: 0 }, "slow");
+                 });
+           },
             // deferRender:    true,
             // scrollY:        300,
             // scrollCollapse: true,
