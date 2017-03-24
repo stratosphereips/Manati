@@ -1,0 +1,49 @@
+
+body {
+  font-family: 'Helvetica';
+}
+.fluid-label {
+  position: relative;
+  border: 1px solid lightgray;
+}
+
+.fluid-label input,
+.fluid-label textarea {
+  font-size: 16px;
+  border: none;
+  outline: none;
+  /*background-color:#fafafa;*/
+}
+
+
+.fluid-label label {
+  font-size: 10px;
+  top: 5px;
+}
+
+.fluid-label.focused {
+  /*border-color: #298eea;*/
+}
+
+.fluid-label.focused label {
+  color: #298eea;
+}
+.fluid-label {
+  position: relative;
+  padding: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.fluid-label input, .fluid-label textarea {
+  border: none;
+  outline: none;
+  position: relative;
+}
+
+.fluid-label label {
+    position: absolute;
+    top: 5px;
+    font-weight: 400 !important;
+
+}
