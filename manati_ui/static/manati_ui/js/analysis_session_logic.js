@@ -150,7 +150,7 @@ function AnalysisSessionLogic(){
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
-            buttons: ['copy', 'csv', 'excel','colvis',
+            buttons: ['copy','csv','excel', 'colvis',
                 {
                     text: 'Filter by Verdicts',
                     className: 'filter-verdicts',
@@ -180,13 +180,33 @@ function AnalysisSessionLogic(){
                      $("html, body").animate({ scrollTop: 0 }, "slow");
                  });
            },
+            initComplete:   function(){
+              var div_filter = $("#weblogs-datatable_filter");//.detach();
+              var input_filter = div_filter.find('input').detach();
+              var label_filter = div_filter.find('label').detach();
+              input_filter.attr('placeholder', 'Search:');
+              input_filter.css('width', 260);
+              input_filter.removeClass();
+              label_filter.removeClass();
+              div_filter.addClass('fluid-label');
+              div_filter.append(input_filter);
+              div_filter.append(label_filter);
+
+              // div_filter.appendTo('#new-search-area');
+
+              $('.fluid-label').fluidLabel({
+                focusClass: 'focused'
+              });
+              $('.wrap-buttons').html($('#searching-buttons').detach())
+            },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"B><"col-md-2"l><"col-md-2"f><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-2"f><"col-md-3 wrap-buttons"><"col-md-offset-4 col-md-3"p>>>' +
                 'rt' +
-                '<"bottom"<"row"<"col-md-2"i><"col-md-2 col-md-offset-8"p>>>' +
+                '<"bottom"<"row"<"col-md-2"l><"col-md-3"i><"col-md-3"B><"col-md-2 col-md-offset-2"p>>>' +
                 '<"clear">',
             "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
+
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
             $(this).toggleClass('selected');
@@ -984,15 +1004,23 @@ function AnalysisSessionLogic(){
             // });
 
 
-            //events for verdict buttons
-            $('.btn.verdict').click( function () {
-                var verdict = $(this).data('verdict');
-                var rows_affected = thiz.markVerdict(verdict);
-                _m.EventMultipleLabelingsByButtons(rows_affected,verdict);
+            //filter table
+            $('#searching-buttons .btn').click( function () {
+                var btn = $(this)
+                var verdict = btn.data('verdict');
+                if(btn.hasClass('active')){
+                    _filterDataTable.removeFilter(_dt);
+                    btn.removeClass('active');
+                }
+                else{
+                    _filterDataTable.applyFilter(_dt, verdict);
+                    btn.addClass('active');
+                }
+
             } );
             $('.unselect').on('click', function (ev){
                 ev.preventDefault();
-                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                // _dt.rows('.selected').nodes().to$().removeClass('selected');
             });
 
             contextMenuSettings();
