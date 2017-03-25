@@ -75,28 +75,50 @@ function FilterDataTable(column_verdict, verdicts){
         generatePopIn(offset_pos);
     };
 
-    this.removeFilter = function(dt){
-        var verdicts = _.keys(_list_options);
-        _.each(verdicts,function (value,index) {
-            _list_options[value] = true;
-            var li = $('ul.filtering li[data-verdict="'+value+'"]');
-            if(!li.hasClass('active'))li.addClass('active');
-        });
-        dt.draw();
-    };
-    this.applyFilter = function(dt, verdict){
-        var verdicts = _.keys(_list_options);
-        _.each(verdicts,function (value,index) {
-            if(value.indexOf(verdict) > -1){
+    this.removeFilter = function(dt, verdict){
+        var index = _verdicts_applied.indexOf(verdict);
+        if (index > -1) {
+            _verdicts_applied.splice(index, 1);
+        }
+        if(_verdicts_applied.length>0){
+            auxApplyFilter(dt);
+        }
+        else{
+            var verdicts = _.keys(_list_options);
+            _.each(verdicts,function (value,i) {
                 _list_options[value] = true;
                 var li = $('ul.filtering li[data-verdict="'+value+'"]');
                 if(!li.hasClass('active'))li.addClass('active');
+            });
+            dt.draw();
 
-            }else{
-                _list_options[value] = false;
-                $('ul.filtering li[data-verdict="'+value+'"]').removeClass('active');
-            }
+        }
 
+
+
+    };
+    var _verdicts_applied = [];//["malicious","legitimate","suspicious","falsepositive", "undefined"]
+     // var _verdicts_applyied = {'malicious': false, 'legitimate': false,
+     //                        'suspicious':false, 'falsepositive':false,
+     //                        'undefined': false};
+    this.applyFilter = function(dt, verdict){
+        _verdicts_applied.add(verdict);
+        auxApplyFilter(dt);
+    };
+    var auxApplyFilter=function(dt){
+        var verdicts = _.keys(_list_options);
+        _.each(verdicts,function (value,index) {
+            _list_options[value] = false;
+            $('ul.filtering li[data-verdict="'+value+'"]').removeClass('active');
+        });
+        _.each(verdicts,function (value,index) {
+            _.each(_verdicts_applied, function (verdict_applied, i) {
+                if(value.indexOf(verdict_applied) > -1){
+                    _list_options[value] = true;
+                    var li = $('ul.filtering li[data-verdict="'+value+'"]');
+                    if(!li.hasClass('active'))li.addClass('active');
+                }
+            });
         });
         dt.draw();
     }

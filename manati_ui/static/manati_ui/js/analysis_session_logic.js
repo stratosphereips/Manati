@@ -200,7 +200,7 @@ function AnalysisSessionLogic(){
               $('.wrap-buttons').html($('#searching-buttons').detach())
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-2"f><"col-md-3 wrap-buttons"><"col-md-offset-4 col-md-3"p>>>' +
+            dom:'<"top"<"row"<"col-md-3"f><"col-md-4 wrap-buttons"><"col-md-5"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-3"i><"col-md-3"B><"col-md-2 col-md-offset-2"p>>>' +
                 '<"clear">',
@@ -1009,7 +1009,7 @@ function AnalysisSessionLogic(){
                 var btn = $(this)
                 var verdict = btn.data('verdict');
                 if(btn.hasClass('active')){
-                    _filterDataTable.removeFilter(_dt);
+                    _filterDataTable.removeFilter(_dt,verdict);
                     btn.removeClass('active');
                 }
                 else{
