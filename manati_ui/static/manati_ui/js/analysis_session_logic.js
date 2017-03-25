@@ -197,10 +197,11 @@ function AnalysisSessionLogic(){
               $('.fluid-label').fluidLabel({
                 focusClass: 'focused'
               });
-              $('.wrap-buttons').html($('#searching-buttons').detach())
+              $('.wrap-buttons').html($('#searching-buttons').detach());
+              $('.wrap-select-page').html($('#wrap-page-select').detach());
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-4 wrap-buttons"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-3"i><"col-md-3"B><"col-md-2 col-md-offset-2"p>>>' +
                 '<"clear">',
@@ -231,6 +232,25 @@ function AnalysisSessionLogic(){
              consultVirusTotal(query_node);
 
         });
+
+         // adding options to select datatable's pages
+         // _dt.page.info().pages
+         var list = document.getElementById("page-select");
+         for(var index=0; index<_dt.page.info().pages; index++) {
+             list.add(new Option((index+1).toString(), index));
+         }
+         $('#page-select').change(function (ev) {
+             ev.preventDefault();
+             var elem = $(this);
+
+             _dt.page(parseInt(elem.val())).draw('page');
+
+         });
+         _dt.on( 'page.dt', function () {
+            var info = _dt.page.info();
+            $('#page-select').val(info.page);
+
+        } );
 
     }
     function initData(data, headers) {
