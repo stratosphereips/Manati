@@ -76,9 +76,13 @@ function FilterDataTable(column_verdict, verdicts){
     };
 
     this.removeFilter = function(dt, verdict){
-        var index = _verdicts_applied.indexOf(verdict);
-        if (index > -1) {
-            _verdicts_applied.splice(index, 1);
+        if(verdict != null || verdict!= undefined){
+            var index = _verdicts_applied.indexOf(verdict);
+            if (index > -1) {
+                _verdicts_applied.splice(index, 1);
+            }
+        }else{
+            _verdicts_applied = []
         }
         if(_verdicts_applied.length>0){
             auxApplyFilter(dt);

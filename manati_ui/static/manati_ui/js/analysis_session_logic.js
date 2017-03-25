@@ -1020,7 +1020,8 @@ function AnalysisSessionLogic(){
             } );
             $('.unselect').on('click', function (ev){
                 ev.preventDefault();
-                // _dt.rows('.selected').nodes().to$().removeClass('selected');
+                _filterDataTable.removeFilter(_dt);
+                $('#searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
