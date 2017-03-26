@@ -132,19 +132,6 @@ function AnalysisSessionLogic(){
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
-                // {   "targets": headers.indexOf(COL_HTTP_URL_STR),
-                //     "createdCell": function (td, cellData, rowData, row, col) {
-                //
-                //         $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
-                //
-                //     }
-                // },
-                // {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
-                //     "createdCell": function (td, cellData, rowData, row, col) {
-                //         $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
-                //
-                //     }
-                // }
             ],
             "scrollX": true,
             colReorder: true,
@@ -203,7 +190,8 @@ function AnalysisSessionLogic(){
              // "sPaginationType": "listbox",
             dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
                 'rt' +
-                '<"bottom"<"row"<"col-md-2"l><"col-md-3"i><"col-md-3"B><"col-md-2 col-md-offset-2"p>>>' +
+                '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
+                '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
                 '<"clear">',
             "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
@@ -1154,31 +1142,6 @@ function AnalysisSessionLogic(){
 
             }
         };
-        // {
-        //     config: {
-        //         delimiter: "",
-        //         header: true,
-        //         complete: completeFn,
-        //         worker: true,
-        //         skipEmptyLines: true
-        //     },
-        //     before: function(file, inputElem)
-        //     {
-        //         _size_file = file.size;
-        //         _type_file = file.type;
-        //         setFileName(file.name);
-        //         showLoading();
-        //         _m.EventFileUploadingStart(file.name,_size_file,_type_file);
-        //         console.log("Parsing file...", file);
-        //         $.notify("Parsing file...", "info");
-        //     },
-        //     error: function(err, file, inputElem, reason)
-        //     {
-        //         console.log("ERROR Parsing:", err, file);
-        //         $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
-        //         _m.EventFileUploadingError(file.name);
-        //     }
-        // }
         Papa.parse(file_rows,
             {
                 delimiter: "",
