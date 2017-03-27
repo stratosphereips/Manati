@@ -559,7 +559,8 @@ function AnalysisSessionLogic(){
             icon: "fa-search-plus",
             // disabled: function(){ return !this.data('moreDisabled'); },
             items: {
-            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
+            "fold1-key1": { name:  "By IP (of column: " + COL_END_POINTS_SERVER_STR+")" +
+                                    "("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
@@ -568,7 +569,8 @@ function AnalysisSessionLogic(){
 
                             }
                         },
-            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
+            "fold1-key2": { name: "By Domain (of column:" + COL_HTTP_URL_STR +")" +
+                                    "("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
@@ -592,7 +594,7 @@ function AnalysisSessionLogic(){
                     }
                 },
                 "fold2-key2": {
-                    name: "Looking for ip (of column: " + COL_END_POINTS_SERVER_STR+")",
+                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -614,7 +616,7 @@ function AnalysisSessionLogic(){
                     }
                 },
                 "fold2-key2": {
-                    name: "Looking for ip (of column: " + COL_END_POINTS_SERVER_STR+")",
+                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
