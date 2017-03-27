@@ -184,8 +184,9 @@ function AnalysisSessionLogic(){
               $('.fluid-label').fluidLabel({
                 focusClass: 'focused'
               });
-              $('.wrap-buttons').html($('#searching-buttons').detach());
-              $('.wrap-select-page').html($('#wrap-page-select').detach());
+              $('.wrap-buttons').html($('.searching-buttons').clone());
+
+              $('.wrap-select-page').html($('.wrap-page-select').clone());
             },
              // "sPaginationType": "listbox",
             dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
@@ -222,12 +223,11 @@ function AnalysisSessionLogic(){
         });
 
          // adding options to select datatable's pages
-         // _dt.page.info().pages
-         var list = document.getElementById("page-select");
+         var list = document.getElementsByClassName('page-select')[1];
          for(var index=0; index<_dt.page.info().pages; index++) {
              list.add(new Option((index+1).toString(), index));
          }
-         $('#page-select').change(function (ev) {
+         $('.page-select').change(function (ev) {
              ev.preventDefault();
              var elem = $(this);
 
@@ -236,9 +236,17 @@ function AnalysisSessionLogic(){
          });
          _dt.on( 'page.dt', function () {
             var info = _dt.page.info();
-            $('#page-select').val(info.page);
+            $('.page-select').val(info.page);
 
         } );
+         _dt.on('length.dt',function (){
+             $('.page-select').html('');
+             var list = document.getElementsByClassName('page-select')[1];
+             for(var index=0; index<_dt.page.info().pages; index++) {
+                 list.add(new Option((index+1).toString(), index));
+             }
+
+         });
 
     }
     function initData(data, headers) {
