@@ -670,14 +670,14 @@ function AnalysisSessionLogic(){
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
                 "fold2-key1": {
-                    name: "HTTP URL",
+                    name: "Copy URL (of column: " + COL_HTTP_URL_STR +")",
                     icon: "fa-file-o",
                     callback: function (key, options) {
                         copyTextToClipboard(bigData[COLUMN_HTTP_URL]);
                     }
                 },
                 "fold2-key2": {
-                    name: "Endpoints Server IP",
+                    name: "Copy IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-file-o",
                     callback: function (key, options) {
                         copyTextToClipboard(bigData[COLUMN_END_POINTS_SERVER]);
