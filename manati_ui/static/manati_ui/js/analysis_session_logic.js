@@ -138,13 +138,13 @@ function AnalysisSessionLogic(){
             renderer: "bootstrap",
             responsive: true,
             buttons: ['copy','csv','excel', 'colvis',
-                {
-                    text: 'Filter by Verdicts',
-                    className: 'filter-verdicts',
-                    action: function ( e, dt, node, config ) {
-                        _filterDataTable.showMenuContext(dt,node.offset());
-                    }
-                }
+                // {
+                //     text: 'Filter by Verdicts',
+                //     className: 'filter-verdicts',
+                //     action: function ( e, dt, node, config ) {
+                //         _filterDataTable.showMenuContext(dt,node.offset());
+                //     }
+                // }
             ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
@@ -240,6 +240,13 @@ function AnalysisSessionLogic(){
 
         } );
          _dt.on('length.dt',function (){
+             $('.page-select').html('');
+             var list = document.getElementsByClassName('page-select')[1];
+             for(var index=0; index<_dt.page.info().pages; index++) {
+                 list.add(new Option((index+1).toString(), index));
+             }
+         });
+         _dt.on('search.dt',function (){
              $('.page-select').html('');
              var list = document.getElementsByClassName('page-select')[1];
              for(var index=0; index<_dt.page.info().pages; index++) {
@@ -1021,7 +1028,7 @@ function AnalysisSessionLogic(){
 
 
             //filter table
-            $('#searching-buttons .btn').click( function () {
+            $('body').on('click','.searching-buttons .btn', function () {
                 var btn = $(this)
                 var verdict = btn.data('verdict');
                 if(btn.hasClass('active')){
@@ -1034,7 +1041,7 @@ function AnalysisSessionLogic(){
                 }
 
             } );
-            $('.unselect').on('click', function (ev){
+            $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
                 _filterDataTable.removeFilter(_dt);
                 $('#searching-buttons .btn').removeClass('active')
