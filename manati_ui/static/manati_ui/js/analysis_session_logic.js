@@ -881,6 +881,7 @@ function AnalysisSessionLogic(){
                 tr = null;
             });
         });
+        return table;
     }
     function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
         if(isEmpty(mod_attributes) && was_whois_related == false) return null;
