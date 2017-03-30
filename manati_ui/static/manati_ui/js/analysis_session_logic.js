@@ -445,6 +445,7 @@ function AnalysisSessionLogic(){
                     _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
                     $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
+                    $('#public-btn').show();
                     $('#wrap-form-upload-file').hide();
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
@@ -467,6 +468,7 @@ function AnalysisSessionLogic(){
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
+                    $('#public-btn').hide();
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
                     //NOTIFY A ERROR
                     _m.EventAnalysisSessionSavingError(_filename);
@@ -476,6 +478,7 @@ function AnalysisSessionLogic(){
         }catch(e){
             // thiz.destroyLoading();
             $.notify(e, "error");
+            $('#public-btn').hide();
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
 
@@ -1025,7 +1028,7 @@ function AnalysisSessionLogic(){
               autoHideDelay: 3000
             });
             $('#panel-datatable').hide();
-            $('#save-table').hide();
+            $('#save-table, #public-btn').hide();
             // $('#upload').click(function (){
             //
             // });
