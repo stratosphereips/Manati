@@ -257,6 +257,7 @@ function AnalysisSessionLogic(){
 
     }
     function initData(data, headers) {
+
         _data_uploaded = data;
         _data_headers = headers;
         _data_headers_keys = {};

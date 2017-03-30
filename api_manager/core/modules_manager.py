@@ -45,14 +45,6 @@ class ModulesManager:
     URL_ATTRIBUTES_AVAILABLE = Constant.URL_ATTRIBUTES_AVAILABLE
     background_task_thread = None
 
-    def __init__(self):
-        pass
-
-    @staticmethod
-    @background(schedule=timezone.now())
-    def load_modules():
-        pass
-
     @staticmethod
     @transaction.atomic
     def checking_modules():
