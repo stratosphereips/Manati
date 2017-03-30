@@ -839,7 +839,7 @@ function AnalysisSessionLogic(){
 
     function buildTableInfo_Wbl_History(weblog_history){
         var table = "<table class='table table-bordered table-striped'>";
-        table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
+        table += "<thead><tr><th>User/Module</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
         table += "<tbody>";
             _.each(weblog_history, function (value, index) {
                 table += "<tr>";
