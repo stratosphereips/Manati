@@ -34,10 +34,10 @@ function FilterDataTable(column_verdict, verdicts){
     function generatePopIn (offset_pos){
         var html;
         var dt = getDt();
-        var ul = "<ul class='dt-button-collection dropdown-menu filtering' style='top: "+(offset_pos.top+34)+"px; left: "+offset_pos.left+"px; display: block;'>";
+        var ul = "<ul class='dt-button-collection dropdown-menu filtering' style='top: "+(offset_pos.top-406)+"px; left: "+offset_pos.left+"px; display: block;'>";
         $.each(_.keys(_list_options),function (index, value) {
             var klass =  _list_options[value] ? "active" : "" ;
-            var li = "<li class='dt-button buttons-columnVisibility "+klass+"' tabindex='0' aria-controls='weblogs-datatable'>";
+            var li = "<li data-verdict='"+value+"' class='dt-button buttons-columnVisibility "+klass+"' tabindex='0' aria-controls='weblogs-datatable'>";
             li += "<a href='#'>"+value+"</a>";
             li += "</li>";
             ul += li;
@@ -73,6 +73,58 @@ function FilterDataTable(column_verdict, verdicts){
     this.showMenuContext = function (dt,offset_pos){
         setDt(dt);
         generatePopIn(offset_pos);
+    };
+
+    this.removeFilter = function(dt, verdict){
+        if(verdict != null || verdict!= undefined){
+            var index = _verdicts_applied.indexOf(verdict);
+            if (index > -1) {
+                _verdicts_applied.splice(index, 1);
+            }
+        }else{
+            _verdicts_applied = []
+        }
+        if(_verdicts_applied.length>0){
+            auxApplyFilter(dt);
+        }
+        else{
+            var verdicts = _.keys(_list_options);
+            _.each(verdicts,function (value,i) {
+                _list_options[value] = true;
+                var li = $('ul.filtering li[data-verdict="'+value+'"]');
+                if(!li.hasClass('active'))li.addClass('active');
+            });
+            dt.draw();
+
+        }
+
+
+
+    };
+    var _verdicts_applied = [];//["malicious","legitimate","suspicious","falsepositive", "undefined"]
+     // var _verdicts_applyied = {'malicious': false, 'legitimate': false,
+     //                        'suspicious':false, 'falsepositive':false,
+     //                        'undefined': false};
+    this.applyFilter = function(dt, verdict){
+        _verdicts_applied.add(verdict);
+        auxApplyFilter(dt);
+    };
+    var auxApplyFilter=function(dt){
+        var verdicts = _.keys(_list_options);
+        _.each(verdicts,function (value,index) {
+            _list_options[value] = false;
+            $('ul.filtering li[data-verdict="'+value+'"]').removeClass('active');
+        });
+        _.each(verdicts,function (value,index) {
+            _.each(_verdicts_applied, function (verdict_applied, i) {
+                if(value.indexOf(verdict_applied) > -1){
+                    _list_options[value] = true;
+                    var li = $('ul.filtering li[data-verdict="'+value+'"]');
+                    if(!li.hasClass('active'))li.addClass('active');
+                }
+            });
+        });
+        dt.draw();
     }
 
 

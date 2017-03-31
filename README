@@ -2,7 +2,8 @@
 The goal of the ManaTi project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
 ## Versions
-- Sun Mar  5 00:04:41 CET 2017: Version 0.7
+- Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
+- Sun Mar  5 00:04:41 CEST 2017: Version 0.7
 - Thu Nov 10 12:30:45 CEST 2016: Version 0.6.2.1
 - Wed Oct 12 21:19:21 CEST 2016: Version 0.5.1
 - Wed Sep 21 17:56:40 CEST 2016: Version 0.41
@@ -15,8 +16,8 @@ The goal of the ManaTi project is to develop machine learning techniques to assi
 - Raul B. Netto (raulbeni@gmail.com )
 - Sebastian Garcia (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
 
-## Installation
-Manati is a django project with a postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
+## Settings: for Installation Zero for deployments
+ManaTI is a django project with a postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
 1. git clone git@bitbucket.org:rbenitez/project_manati.git
 2. apt-get install virtualenv
@@ -75,4 +76,13 @@ After this, just open your browser in [http://localhost:8000/manati_ui](http://l
 If you want to open the server in the network, you can do it with:
 
     python ./manage.py runserver <ip-address>:8000
+
+## Settings: Updating version for previous deploys
+cd path/to/project_directory
+1. git pull origin master
+2. pip install -r requirements
+3. python ./manage.py makemigrations background_task
+4. python ./manage.py makemigrations guardian
+5. python ./manage.py migrate
+6. python ./manage.py runserver
 

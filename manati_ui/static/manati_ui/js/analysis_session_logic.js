@@ -132,32 +132,19 @@ function AnalysisSessionLogic(){
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
-                // {   "targets": headers.indexOf(COL_HTTP_URL_STR),
-                //     "createdCell": function (td, cellData, rowData, row, col) {
-                //
-                //         $(td).html("<a href='#' data-info='domain' class='virus-total-consult' title='Make a Virus Total consult, with this domain'>"+rowData[col]+"</a>");
-                //
-                //     }
-                // },
-                // {   "targets": headers.indexOf(COL_END_POINTS_SERVER_STR),
-                //     "createdCell": function (td, cellData, rowData, row, col) {
-                //         $(td).html("<a href='#' data-info='ip-server' class='virus-total-consult' title='Make a Virus Total consult, with this IP'>"+rowData[col]+"</a>");
-                //
-                //     }
-                // }
             ],
             "scrollX": true,
             colReorder: true,
             renderer: "bootstrap",
             responsive: true,
-            buttons: ['copy', 'csv', 'excel','colvis',
-                {
-                    text: 'Filter by Verdicts',
-                    className: 'filter-verdicts',
-                    action: function ( e, dt, node, config ) {
-                        _filterDataTable.showMenuContext(dt,node.offset());
-                    }
-                }
+            buttons: ['copy','csv','excel', 'colvis',
+                // {
+                //     text: 'Filter by Verdicts',
+                //     className: 'filter-verdicts',
+                //     action: function ( e, dt, node, config ) {
+                //         _filterDataTable.showMenuContext(dt,node.offset());
+                //     }
+                // }
             ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
@@ -174,14 +161,42 @@ function AnalysisSessionLogic(){
                     row.attr("data-dbid", str[0]);
                 }
             },
-            // deferRender:    true,
-            // scrollY:        300,
-            // scrollCollapse: true,
-            // scroller:       {
-            //     loadingIndicator: true
-            // },
-            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]],
+            drawCallback: function(){
+              $('.paginate_button.next', this.api().table().container())
+                 .on('click', function(){
+                     $("html, body").animate({ scrollTop: 0 }, "slow");
+                 });
+           },
+            initComplete:   function(){
+              var div_filter = $("#weblogs-datatable_filter");//.detach();
+              var input_filter = div_filter.find('input').detach();
+              var label_filter = div_filter.find('label').detach();
+              input_filter.attr('placeholder', 'Search:');
+              input_filter.css('width', 260);
+              input_filter.removeClass();
+              label_filter.removeClass();
+              div_filter.addClass('fluid-label');
+              div_filter.append(input_filter);
+              div_filter.append(label_filter);
+
+              // div_filter.appendTo('#new-search-area');
+
+              $('.fluid-label').fluidLabel({
+                focusClass: 'focused'
+              });
+              $('.wrap-buttons').html($('.searching-buttons').clone());
+
+              $('.wrap-select-page').html($('.wrap-page-select').clone());
+            },
+             // "sPaginationType": "listbox",
+            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+                'rt' +
+                '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
+                '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
+                '<"clear">',
+            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
+
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
         $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
             $(this).toggleClass('selected');
@@ -207,8 +222,42 @@ function AnalysisSessionLogic(){
 
         });
 
+         // adding options to select datatable's pages
+         var list = document.getElementsByClassName('page-select')[1];
+         for(var index=0; index<_dt.page.info().pages; index++) {
+             list.add(new Option((index+1).toString(), index));
+         }
+         $('.page-select').change(function (ev) {
+             ev.preventDefault();
+             var elem = $(this);
+
+             _dt.page(parseInt(elem.val())).draw('page');
+
+         });
+         _dt.on( 'page.dt', function () {
+            var info = _dt.page.info();
+            $('.page-select').val(info.page);
+
+        } );
+         _dt.on('length.dt',function (){
+             $('.page-select').html('');
+             var list = document.getElementsByClassName('page-select')[1];
+             for(var index=0; index<_dt.page.info().pages; index++) {
+                 list.add(new Option((index+1).toString(), index));
+             }
+         });
+         _dt.on('search.dt',function (){
+             $('.page-select').html('');
+             var list = document.getElementsByClassName('page-select')[1];
+             for(var index=0; index<_dt.page.info().pages; index++) {
+                 list.add(new Option((index+1).toString(), index));
+             }
+
+         });
+
     }
     function initData(data, headers) {
+
         _data_uploaded = data;
         _data_headers = headers;
         _data_headers_keys = {};
@@ -396,6 +445,7 @@ function AnalysisSessionLogic(){
                     _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
                     $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
+                    $('#public-btn').show();
                     $('#wrap-form-upload-file').hide();
                     history.pushState({},
                         "Edit AnalysisSession "  + _analysis_session_id,
@@ -418,6 +468,7 @@ function AnalysisSessionLogic(){
                         " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
                     console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
                     $('#save-table').attr('disabled',false).removeClass('disabled');
+                    $('#public-btn').hide();
                     $.notify(xhr.status + ": " + xhr.responseText, "error");
                     //NOTIFY A ERROR
                     _m.EventAnalysisSessionSavingError(_filename);
@@ -427,6 +478,7 @@ function AnalysisSessionLogic(){
         }catch(e){
             // thiz.destroyLoading();
             $.notify(e, "error");
+            $('#public-btn').hide();
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
 
@@ -511,7 +563,8 @@ function AnalysisSessionLogic(){
             icon: "fa-search-plus",
             // disabled: function(){ return !this.data('moreDisabled'); },
             items: {
-            "fold1-key1": { name: "EndPoints Server ("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
+            "fold1-key1": { name:  "By IP (of column: " + COL_END_POINTS_SERVER_STR+")" +
+                                    "("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_END_POINTS_SERVER_STR,
                             callback: function(key, options) {
@@ -520,7 +573,8 @@ function AnalysisSessionLogic(){
 
                             }
                         },
-            "fold1-key2": { name: "Domain("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
+            "fold1-key2": { name: "By Domain (of column:" + COL_HTTP_URL_STR +")" +
+                                    "("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
                             icon: "fa-paint-brush",
                             className: CLASS_MC_HTTP_URL_STR,
                             callback: function(key, options) {
@@ -535,16 +589,16 @@ function AnalysisSessionLogic(){
             name: "VirusTotal", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using " + COL_HTTP_URL_STR,
+                    name: "Looking for domain (of column:" + COL_HTTP_URL_STR +")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        var qn = bigData[COLUMN_HTTP_URL];
                         consultVirusTotal(qn, "domain");
 
                     }
                 },
                 "fold2-key2": {
-                    name: "using " + COL_END_POINTS_SERVER_STR,
+                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -557,16 +611,16 @@ function AnalysisSessionLogic(){
             name: "Whois", icon: "fa-search",
             items: {
                 "fold2-key1": {
-                    name: "using " + COL_HTTP_URL_STR,
+                    name: "Looking for domain (of column: " + COL_HTTP_URL_STR +")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
-                        var qn = findDomainOfURL(bigData[COLUMN_HTTP_URL]);
+                        var qn = bigData[COLUMN_HTTP_URL];
                         consultWhois(qn, "domain");
 
                     }
                 },
                 "fold2-key2": {
-                    name: "using " + COL_END_POINTS_SERVER_STR,
+                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-paper-plane-o",
                     callback: function (key, options) {
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
@@ -620,14 +674,14 @@ function AnalysisSessionLogic(){
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
                 "fold2-key1": {
-                    name: "HTTP URL",
+                    name: "Copy URL (of column: " + COL_HTTP_URL_STR +")",
                     icon: "fa-file-o",
                     callback: function (key, options) {
                         copyTextToClipboard(bigData[COLUMN_HTTP_URL]);
                     }
                 },
                 "fold2-key2": {
-                    name: "Endpoints Server IP",
+                    name: "Copy IP (of column: " + COL_END_POINTS_SERVER_STR+")",
                     icon: "fa-file-o",
                     callback: function (key, options) {
                         copyTextToClipboard(bigData[COLUMN_END_POINTS_SERVER]);
@@ -648,7 +702,30 @@ function AnalysisSessionLogic(){
             for(var key in info_report){
                 table += "<tr>";
                 table += "<th>"+key+"</th>";
-                table += "<td>" + info_report[key]+ "</td>" ;
+                var info = info_report[key];
+                if (info instanceof Array){
+                    var html_temp = "";
+                    for(var index = 0; index < info.length; index++){
+                        var data = info[index];
+                        if(data instanceof Object){
+                             html_temp += buildTableInfo_VT(data, true) ;
+                        }else if(typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>" ;
+                            break;
+                        }
+
+                    }
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }
+                else if(info instanceof Object){
+                    var html_temp = "";
+                    html_temp += buildTableInfo_VT(info, true) ;
+                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
+                }
+                else{
+                    table += "<td>" + info + "</td>" ;
+                }
+
                 table += "</tr>";
             }
 
@@ -713,7 +790,7 @@ function AnalysisSessionLogic(){
         else{
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }
-        initModal("Virus Total Query: <span>"+query_node+"</span>");
+        initModal("Virus Total Query: <span>?????</span>");
         var data = {query_node: query_node, query_type: query_type};
         $.ajax({
             type:"GET",
@@ -724,6 +801,7 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
+                initModal("Virus Total Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -740,7 +818,7 @@ function AnalysisSessionLogic(){
         else{
             console.error("Error query_type for WhoisConsultation is incorrect")
         }
-        initModal("Whois Query: <span>"+query_node+"</span>");
+        initModal("Whois Query: <span>????</span>");
         var data = {query_node: query_node, query_type: query_type};
         $.ajax({
             type:"GET",
@@ -751,6 +829,7 @@ function AnalysisSessionLogic(){
                 var info_report = JSON.parse(json['info_report']);
                 var query_node = json['query_node'];
                 var table = buildTableInfo_Whois(info_report);
+                initModal("Whois Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -764,7 +843,7 @@ function AnalysisSessionLogic(){
 
     function buildTableInfo_Wbl_History(weblog_history){
         var table = "<table class='table table-bordered table-striped'>";
-        table += "<thead><tr><th>User</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
+        table += "<thead><tr><th>User/Module</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
         table += "<tbody>";
             _.each(weblog_history, function (value, index) {
                 table += "<tr>";
@@ -806,6 +885,7 @@ function AnalysisSessionLogic(){
                 tr = null;
             });
         });
+        return table;
     }
     function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
         if(isEmpty(mod_attributes) && was_whois_related == false) return null;
@@ -948,21 +1028,30 @@ function AnalysisSessionLogic(){
               autoHideDelay: 3000
             });
             $('#panel-datatable').hide();
-            $('#save-table').hide();
+            $('#save-table, #public-btn').hide();
             // $('#upload').click(function (){
             //
             // });
 
 
-            //events for verdict buttons
-            $('.btn.verdict').click( function () {
-                var verdict = $(this).data('verdict');
-                var rows_affected = thiz.markVerdict(verdict);
-                _m.EventMultipleLabelingsByButtons(rows_affected,verdict);
+            //filter table
+            $('body').on('click','.searching-buttons .btn', function () {
+                var btn = $(this)
+                var verdict = btn.data('verdict');
+                if(btn.hasClass('active')){
+                    _filterDataTable.removeFilter(_dt,verdict);
+                    btn.removeClass('active');
+                }
+                else{
+                    _filterDataTable.applyFilter(_dt, verdict);
+                    btn.addClass('active');
+                }
+
             } );
-            $('.unselect').on('click', function (ev){
+            $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
-                _dt.rows('.selected').nodes().to$().removeClass('selected');
+                _filterDataTable.removeFilter(_dt);
+                $('#searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
@@ -1075,31 +1164,6 @@ function AnalysisSessionLogic(){
 
             }
         };
-        // {
-        //     config: {
-        //         delimiter: "",
-        //         header: true,
-        //         complete: completeFn,
-        //         worker: true,
-        //         skipEmptyLines: true
-        //     },
-        //     before: function(file, inputElem)
-        //     {
-        //         _size_file = file.size;
-        //         _type_file = file.type;
-        //         setFileName(file.name);
-        //         showLoading();
-        //         _m.EventFileUploadingStart(file.name,_size_file,_type_file);
-        //         console.log("Parsing file...", file);
-        //         $.notify("Parsing file...", "info");
-        //     },
-        //     error: function(err, file, inputElem, reason)
-        //     {
-        //         console.log("ERROR Parsing:", err, file);
-        //         $.notify("ERROR Parsing:" + " " + err + " "+ file, "error");
-        //         _m.EventFileUploadingError(file.name);
-        //     }
-        // }
         Papa.parse(file_rows,
             {
                 delimiter: "",
@@ -1233,7 +1297,9 @@ function AnalysisSessionLogic(){
         var worker = new Worker(blobURL);
         worker.addEventListener('message', function(e) {
             var rows_data = e.data;
+            var current_page = _dt.page.info().page;
             _dt.clear().rows.add(rows_data).draw();
+            _dt.page(current_page).draw('page');
             hideLoading();
 	    });
         var rows_data = _dt.rows().data().toArray();

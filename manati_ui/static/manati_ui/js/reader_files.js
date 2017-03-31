@@ -47,25 +47,7 @@ function ReaderFile(analysis_session_logic_obj){
         }
     }
     function handleFileSelect(evt) {
-        // Reset progress indicator on new file selection.
-        // _progress.style.width = '0%';
-        // _progress.textContent = '0%';
-
         reader = new FileReader();
-        // reader.onerror = errorHandler;
-        // reader.onprogress = updateProgress;
-        // reader.onabort = function(e) {
-        //       alert('File read cancelled');
-        // };
-        // reader.onloadstart = function(e) {
-        //   document.getElementById('progress_bar').className = 'loading';
-        // };
-        // reader.onload = function(e) {
-        //   // Ensure that the progress bar displays 100% at the end.
-        //   _progress.style.width = '100%';
-        //   _progress.textContent = '100%';
-        //   setTimeout("document.getElementById('progress_bar').className='';", 2000);
-        // };
         reader.onloadend = function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
               var rows = evt.target.result.split('\n');

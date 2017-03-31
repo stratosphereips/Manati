@@ -379,7 +379,8 @@ class Weblog(TimeStampedModel):
 
                 ctype = ContentType.objects.get(model='user')
                 last_history = self.histories.filter(content_type=ctype)
-                if len(last_history) > 0: # the some verdict in the history in this weblog was labelled by a user
+                # the some verdict in the history in this weblog was labelled by a user
+                if len(last_history) > 0 and not str(user_verdict) == str(module_verdict):
                     temp_verdict = str(user_verdict) + '_' + str(module_verdict)
                 else:
                     temp_verdict = str(module_verdict)
