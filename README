@@ -86,3 +86,6 @@ cd path/to/project_directory
 5. python ./manage.py migrate
 6. python ./manage.py runserver
 
+remember always clean the JavaScript cached files. Sometimes the new changes in the JavaScript files
+are not loaded because that
+
