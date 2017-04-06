@@ -18,6 +18,7 @@ from api_manager.models import *
 from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
+from manati_ui.serializers import WeblogSerializer
 
 
 # Get an instance of a logger
@@ -71,7 +72,9 @@ def create_analysis_session(request):
         u_data_list = json.loads(request.POST.get('data[]',''))
         u_key_list = json.loads(request.POST.get('headers[]',''))
         type_file = request.POST.get('type_file','')
-        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,type_file)
+        uuid = request.POST.get('uuid','')
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,
+                                                          type_file,uuid)
 
         if not analysis_session :
             # messages.error(request, 'Analysis Session wasn\'t created .')
@@ -315,8 +318,38 @@ def publish_analysis_session(request, id):
             return JsonResponse(dict(msg=msg))
 
         else:
-            messages.error(request, 'Only GET request')
-            return HttpResponseServerError("Only GET request")
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def change_status_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            current_user = request.user
+            analysis_session = AnalysisSession.objects.get(id=id)
+            status = request.POST.get('status', '')
+            old_status = analysis_session.status
+            if status == AnalysisSession.STATUS.closed:
+                msg = "the Analysis Session " + analysis_session.name + " was closed"
+                Metric.objects.close_analysis_session(current_user, analysis_session)
+            elif status == AnalysisSession.STATUS.open:
+                msg = "the Analysis Session " + analysis_session.name + " was opened "
+                Metric.objects.open_analysis_session(current_user, analysis_session)
+            else:
+                raise ValueError("Incorrect Value")
+            analysis_session.status = status
+            analysis_session.save()
+            return JsonResponse(dict(msg=msg,
+                                     new_status=analysis_session.status,
+                                     old_status=old_status))
+
+        else:
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
@@ -328,10 +361,13 @@ def get_weblogs(request):
         if request.method == 'GET':
             user = request.user
             analysis_session_id = request.GET.get('analysis_session_id', '')
-            analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+            analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
             headers = convert(analysis_session.get_columns_order_by(user))
-            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()),
+            weblogs_qs = analysis_session.weblog_set.all()
+            weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+            return JsonResponse(dict(weblogs=weblogs_json,
                                      analysissessionid=analysis_session_id,
+                                     analysissessionuuid=analysis_session.uuid,
                                      name=analysis_session.name,
                                      headers=json.dumps(headers)))
 

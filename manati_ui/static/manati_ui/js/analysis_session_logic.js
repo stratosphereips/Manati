@@ -16,7 +16,8 @@ var _sync_db_interval;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
-var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
+var _analysis_session_uuid;
+var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT, COLUMN_UUID;
 var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
 var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var CLASS_MC_HTTP_URL_STR, CLASS_MC_END_POINTS_SERVER_STR;
@@ -24,6 +25,7 @@ var REG_STATUS = {modified: 1};
 var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
+var COL_UUID_STR = 'uuid';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","falsepositive", "undefined"];
@@ -88,11 +90,25 @@ function AnalysisSessionLogic(){
     this.getAnalysisSessionId = function () {
         return _analysis_session_id;
     };
+    this.setAnalysisSessionId = function(id){
+        _analysis_session_id = id;
+    };
     this.getAnalysisSessionName = function () {
         return _filename;
     };
     this.isSaved = function (){
-        return _analysis_session_id != -1
+        return _analysis_session_id !== -1
+    };
+    this.generateAnalysisSessionUUID = function(){
+        if (_analysis_session_uuid == undefined || _analysis_session_uuid == null){
+            _analysis_session_uuid = uuid.v4();
+        }
+    };
+    this.setAnalysisSessionUUID = function(uuid){
+        _analysis_session_uuid = uuid;
+    };
+    this.getAnalysisSessionUUID = function(){
+        return _analysis_session_uuid;
     };
     this.getAnalysisSessionTypeFile = function(){
        return _analysis_session_type_file
@@ -132,6 +148,7 @@ function AnalysisSessionLogic(){
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
             colReorder: true,
@@ -266,12 +283,15 @@ function AnalysisSessionLogic(){
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
+                                    var uuid_str = uuid.v4();
                                     values.add('undefined');
                                     values.add(-1);
                                     values.add(_countID.toString());
+                                    values.add(uuid_str);
                                     _data_uploaded[i][COL_VERDICT_STR] = "undefined";
                                     _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
                                     _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
+                                    _data_uploaded[i][COL_UUID_STR] = uuid_str
                                  }
                                 _countID++;
                                 return values
@@ -284,6 +304,7 @@ function AnalysisSessionLogic(){
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
+        COLUMN_UUID = _data_headers_keys[COL_UUID_STR];
 
         for(var index = 0; index < NAMES_HTTP_URL.length; index++){
             var key = NAMES_HTTP_URL[index];
@@ -423,7 +444,8 @@ function AnalysisSessionLogic(){
                 filename: _filename,
                 "headers[]": JSON.stringify(get_headers_info()),
                 'data[]': JSON.stringify(rows.data().toArray()),
-                type_file: thiz.getAnalysisSessionTypeFile()
+                type_file: thiz.getAnalysisSessionTypeFile(),
+                uuid: thiz.getAnalysisSessionUUID()
             };
             //send the name of the file, and the first 10 registers
             $.ajax({
@@ -1113,6 +1135,36 @@ function AnalysisSessionLogic(){
                     }
                 })
             });
+
+            $("button#change-status").on('click',function() {
+                $.ajax({
+                    url: '/manati_project/manati_ui/analysis_session/'+thiz.getAnalysisSessionId()+'/change_status',
+                    type: 'POST',
+                    data: {'status':$(this).data('status') },
+                    dataType: 'json',
+                    success: function (json){
+                        $.notify(json.msg, "info");
+                        var old_status = json.old_status;
+                        var new_status = json.new_status;
+                        var btn = $('#change-status');
+                        btn.removeClass();
+                        btn.addClass('btn btn-special-'+old_status);
+                        btn.data('status',old_status);
+                        var text = new_status === 'open' ? 'Close it !' : 'Open it !';
+                        btn.text(text);
+                        if(new_status == 'closed'){
+                            $.notify("This Analysis Session is done, you will be redirect to the index page ", "info", {autoHideDelay: 3000 });
+                            window.location.href = "/manati_project/manati_ui/analysis_sessions";
+                        }
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText);
+
+
+                    }
+                })
+            });
         });
     };
 
@@ -1154,10 +1206,11 @@ function AnalysisSessionLogic(){
                     rowCount = results.data.length;
                     var data = results.data;
                     var headers = results.meta.fields;
-                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
+                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
                         headers.push(value);
                     });
                     initData(data,headers);
+                    thiz.generateAnalysisSessionUUID();
                     hideLoading();
                     _m.EventFileUploadingFinished(_filename, rowCount);
                 }
@@ -1194,6 +1247,7 @@ function AnalysisSessionLogic(){
                 headers_info.push(COL_VERDICT_STR);
                 headers_info.push(COL_REG_STATUS_STR);
                 headers_info.push(COL_DT_ID_STR);
+                headers_info.push(COL_UUID_STR);
                 thiz.setColumnsOrderFlat(true);
                 headers = headers_info;
             }else{
@@ -1207,11 +1261,11 @@ function AnalysisSessionLogic(){
             //getting data
             var data = [];
             $.each(weblogs, function (index, elem){
-                var id = elem.pk;
-                var attributes = JSON.parse(elem.fields.attributes);
+                var id = elem.id;
+                var attributes = elem.attributes;
                 if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
-                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
-                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_VERDICT_STR] = elem.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.register_status.toString();
                 attributes[COL_DT_ID_STR] = id.toString();
                 var sorted_attributes = {};
                 _.each(headers, function(value, index){
@@ -1240,22 +1294,25 @@ function AnalysisSessionLogic(){
     };
 
     this.callingEditingData = function (analysis_session_id){
-        var data = {'analysis_session_id':analysis_session_id};
+        thiz.setAnalysisSessionId(analysis_session_id);
+
+        var data = {'analysis_session_id': thiz.getAnalysisSessionId()};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
         showLoading();
-        _m.EventLoadingEditingStart(analysis_session_id);
+        _m.EventLoadingEditingStart(thiz.getAnalysisSessionId());
         $.ajax({
                 type:"GET",
                 data: data,
                 dataType: "json",
                 url: "/manati_project/manati_ui/analysis_session/get_weblogs",
                 success : function(json) {// handle a successful response
-                    var weblogs = JSON.parse(json['weblogs']);
+                    var weblogs = json['weblogs'];
                     var analysis_session_id = json['analysissessionid'];
+                    var analysis_session_uuid = json['analysissessionuuid'];
                     var file_name = json['name'];
                     var headers = JSON.parse(json['headers']);
                     setFileName(file_name);
-
+                    thiz.setAnalysisSessionUUID(analysis_session_uuid);
                     initDataEdit(weblogs, analysis_session_id,headers);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },

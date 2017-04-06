@@ -3,7 +3,7 @@ import os
 import imp
 from manati import settings
 import whois
-from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult
+from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult, Metric
 from django.utils import timezone
 from api_manager.models import ExternalModule
 from background_task import background
@@ -135,14 +135,18 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute, **kwargs):
+    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute,query_node, **kwargs):
         with transaction.atomic():
             external_module = ExternalModule.objects.get(module_name=module_name)
             weblogs = Weblog.objects.filter(Q(**kwargs))
+            verdict = mod_attribute.get('verdict', None)
+            if verdict:
+                Metric.objects.labeling_by_module(external_module, weblogs, verdict,query_node)
+
             for weblog in weblogs:
                 weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=True)
-                if 'verdict' in mod_attribute:
-                    weblog.set_verdict_from_module(mod_attribute['verdict'], external_module, save=True)
+                if verdict:
+                    weblog.set_verdict_from_module(verdict, external_module, save=True)
 
     @staticmethod
     @transaction.atomic

@@ -19,6 +19,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
 from ipwhois import IPWhois
+import manati
 import whois
 from share_modules.virustotal import *
 from share_modules.util import get_domain_by_obj
@@ -54,9 +55,9 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create(self, filename, key_list, weblogs, current_user,type_file):
+    def create(self, filename, key_list, weblogs, current_user,type_file, uuid):
         try:
-            analysis_session = AnalysisSession(type_file=type_file)
+            analysis_session = AnalysisSession(type_file=type_file, uuid=str(uuid))
             wb_list = []
             previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
             if previous_exists.count() > 0:
@@ -200,6 +201,7 @@ class RegisterStatus(enum.Enum):
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
                          ('cisco_file', 'CISCO weblogs Specific File'))
+    STATUS = Choices(('open', 'Open'),('closed', 'Closed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
                        TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
 
@@ -207,6 +209,8 @@ class AnalysisSession(TimeStampedModel):
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
     public = models.BooleanField(default=False)
     type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=False, default=TYPE_FILES.cisco_file)
+    uuid = models.CharField(max_length=40, null=True, default='')
+    status = models.CharField(choices=STATUS, max_length=30, null=False, default=STATUS.open)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -495,6 +499,58 @@ class MetricManager(models.Manager):
                 Metric.objects.create(event_name=event_name,
                                       params=json.dumps(measure),
                                       content_object=current_user)
+
+
+    @transaction.atomic
+    @postpone
+    def labeling_by_module(self, module, weblogs, verdict,query_node):
+        if weblogs.count() == 1:
+            event_name = 'single_labeling_by_module'
+        elif weblogs.count() > 1:
+            event_name = 'multiple_labeling_by_module'
+        else:
+            return
+
+        measure = dict()
+        measure['event_produced_by'] = module.module_name
+        measure['version_app'] = str(manati.__version__)
+        measure['event_name'] = event_name
+        measure['created_at'] = str(datetime.datetime.now())
+        measure['created_at_precision'] = str(datetime.datetime.now())
+        measure['amount_wbls'] = str(weblogs.count())
+        measure['new_verdict'] = verdict
+        measure['query_node'] = query_node
+        measure['weblogs_affected'] = [{'uuid': wb.attributes_obj['uuid']} for wb in weblogs]
+        Metric.objects.create(event_name=event_name,
+                              params=json.dumps(measure),
+                              content_object=module)
+
+    def change_status_analysis_session(self,event_name,user, analysis_session):
+        measure = dict()
+        measure['version_app'] = str(manati.__version__)
+        measure['event_name'] = event_name
+        measure['created_at'] = str(datetime.datetime.now())
+        measure['created_at_precision'] = str(datetime.datetime.now())
+        measure['analysis_session_name'] = analysis_session.name
+        measure['analysis_session_id'] = analysis_session.id
+        measure['analysis_session_uuid'] = analysis_session.uuid
+        Metric.objects.create(event_name=event_name,
+                              params=json.dumps(measure),
+                              content_object=user)
+
+    @transaction.atomic
+    @postpone
+    def close_analysis_session(self, user, analysis_session):
+        event_name = 'closing_analysis_session'
+        self.change_status_analysis_session(event_name, user, analysis_session)
+
+    @transaction.atomic
+    @postpone
+    def open_analysis_session(self, user, analysis_session):
+        event_name = 'opening_analysis_session'
+        self.change_status_analysis_session(event_name, user, analysis_session)
+
+
 
 
 class Metric(TimeStampedModel):

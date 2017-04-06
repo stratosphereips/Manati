@@ -29,8 +29,8 @@ class BulkMalicious(Module):
                     'description': 'Labelled to malicious because one weblog before,'
                                    ' with the same domain was marked  malicious'}
 
-                ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,
-                                                                     attributes__contains=domain)
+            ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,domain,
+                                                             attributes__contains=domain)
         ModulesManager.module_done(self.module_name)
 
 module_obj = BulkMalicious()
