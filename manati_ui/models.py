@@ -551,8 +551,6 @@ class MetricManager(models.Manager):
         self.change_status_analysis_session(event_name, user, analysis_session)
 
 
-
-
 class Metric(TimeStampedModel):
     event_name = models.CharField(max_length=200)
     params = JSONField(default='', null=True)
