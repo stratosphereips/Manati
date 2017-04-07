@@ -1244,7 +1244,7 @@ function AnalysisSessionLogic(){
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
         var weblogs_id_uuid = {};
-        var update_uuid_weblogs = False;
+        var update_uuid_weblogs = false;
         if(weblogs.length > 1){
             // sorting header
             var headers;
