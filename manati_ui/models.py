@@ -103,6 +103,17 @@ class AnalysisSessionManager(models.Manager):
             print_exception()
             return None
 
+    @transaction.atomic
+    def update_uuid(self, analysis_session, analysis_session_uuid, weblogs_id, weblogs_uuid):
+        analysis_session.uuid = analysis_session_uuid
+        analysis_session.save()
+        assert len(weblogs_id) == len(weblogs_uuid)
+        for index, id in enumerate(weblogs_id):
+            weblog = analysis_session.weblog_set.filter(id=id)[0]
+            attribute = weblog.attributes_obj
+            attribute['uuid'] = weblogs_uuid[index]
+            weblog.attributes = attribute
+            weblog.save()
 
     @transaction.atomic
     def add_weblogs(self,analysis_session_id,key_list, data):

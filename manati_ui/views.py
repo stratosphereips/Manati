@@ -354,6 +354,31 @@ def change_status_analysis_session(request, id):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def update_uuid_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            current_user = request.user
+            analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=id)
+            uuid = request.POST.get('uuid', '')
+            weblogs_ids = json.loads(request.POST.get('weblogs_ids[]', ''))
+            weblogs_uuids = json.loads(request.POST.get('weblogs_uuids[]', ''))
+            if uuid:
+                AnalysisSession.objects.update_uuid(analysis_session, uuid, weblogs_ids, weblogs_uuids)
+                msg = "the Analysis Session " + analysis_session.name + " UUID updated"
+            else:
+                msg = "the Analysis Session " + analysis_session.name + " UUID not updated"
+            return JsonResponse(dict(msg=msg,
+                                     analysis_session_id=analysis_session.id))
+
+        else:
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblogs(request):

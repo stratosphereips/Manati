@@ -347,7 +347,14 @@ function AnalysisSessionLogic(){
         var rows_affected = [];
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
-            rows_affected.add(d);
+
+            var temp_data = {};
+            temp_data[COL_UUID_STR] = d[COLUMN_UUID];
+            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
+            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
+            temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
+
+            rows_affected.add(temp_data);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
@@ -1236,6 +1243,8 @@ function AnalysisSessionLogic(){
 
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
+        var weblogs_id_uuid = {};
+        var update_uuid_weblogs = False;
         if(weblogs.length > 1){
             // sorting header
             var headers;
@@ -1257,7 +1266,12 @@ function AnalysisSessionLogic(){
                 headers = $.map(headers_info,function(v,i){
                     return v.column_name
                 });
+                if(headers.indexOf(COL_UUID_STR) <= -1){
+                    headers.push(COL_UUID_STR);
+                    update_uuid_weblogs = true;
+                }
             }
+
             //getting data
             var data = [];
             $.each(weblogs, function (index, elem){
@@ -1267,6 +1281,11 @@ function AnalysisSessionLogic(){
                 attributes[COL_VERDICT_STR] = elem.verdict.toString();
                 attributes[COL_REG_STATUS_STR] = elem.register_status.toString();
                 attributes[COL_DT_ID_STR] = id.toString();
+                if (attributes.uuid == undefined || attributes.uuid == null){
+                    var w_uuid = uuid.v4();
+                    attributes[COL_UUID_STR] = w_uuid;
+                    weblogs_id_uuid[id]=w_uuid;
+                }
                 var sorted_attributes = {};
                 _.each(headers, function(value, index){
                     sorted_attributes[value] = attributes[value];
@@ -1285,11 +1304,38 @@ function AnalysisSessionLogic(){
                 setInterval(syncDB, TIME_SYNC_DB ); 
 
             });
+            if(update_uuid_weblogs){
+                updateAnalysisSessionUUID(thiz.getAnalysisSessionId(), weblogs_id_uuid);
+            }
         }else{
             hideLoading();
             $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
         }
 
+
+    };
+    var  updateAnalysisSessionUUID = function (analysis_session_id, weblogs_id_uuid){
+        thiz.generateAnalysisSessionUUID();
+        var ids = _.keys(weblogs_id_uuid);
+        var uuids = _.values(weblogs_id_uuid);
+        $.ajax({
+                url: '/manati_project/manati_ui/analysis_session/'+analysis_session_id+'/update_uuid',
+                type: 'POST',
+                data: {'uuid': thiz.getAnalysisSessionUUID(),
+                    "weblogs_ids[]": JSON.stringify(ids),
+                    "weblogs_uuids[]": JSON.stringify(uuids)
+                },
+                dataType: "json",
+                success: function (json){
+                    $.notify(json.msg,"info");
+                },
+                error : function(xhr,errmsg,err) { // handle a non-successful response
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    _m.EventLoadingEditingError(analysis_session_id);
+
+                }
+        });
 
     };
 
@@ -1312,7 +1358,10 @@ function AnalysisSessionLogic(){
                     var file_name = json['name'];
                     var headers = JSON.parse(json['headers']);
                     setFileName(file_name);
-                    thiz.setAnalysisSessionUUID(analysis_session_uuid);
+                    if (analysis_session_uuid!=null && analysis_session_uuid !== '' ){
+                        thiz.setAnalysisSessionUUID(analysis_session_uuid);
+                    }
+
                     initDataEdit(weblogs, analysis_session_id,headers);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
                 },
