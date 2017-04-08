@@ -21,9 +21,9 @@ class WhoisRelationReq(Module):
         analysis_session = json.loads(ModulesManager.get_filtered_analysis_session_json(id=analysis_session_id))[0]
         analysis_session_weblogs = json.loads(ModulesManager.
                                               get_filtered_weblogs_json(analysis_session_id=analysis_session_id))
-        type_file = analysis_session['fields']['type_file']
-        url = ModulesManager.INFO_ATTRIBUTES[type_file]['url']
-        ip_dist = ModulesManager.INFO_ATTRIBUTES[type_file]['ip_dist']
+        # type_file = analysis_session['fields']['type_file']
+        # url = ModulesManager.INFO_ATTRIBUTES[type_file]['url']
+        # ip_dist = ModulesManager.INFO_ATTRIBUTES[type_file]['ip_dist']
 
         domains_measured = {}
         fields_a = weblog_a['fields']

@@ -297,6 +297,9 @@ class Weblog(TimeStampedModel):
 
     @property
     def domain(self):
+        if self.analysis_session.type_file == '':
+            self.analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
+            self.analysis_session.save()
         key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
         url = self.attributes_obj[key_url]
         d_type, domain = get_data_from_url(url)
@@ -304,6 +307,9 @@ class Weblog(TimeStampedModel):
 
     @property
     def ip(self):
+        if self.analysis_session.type_file == '':
+            self.analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
+            self.analysis_session.save()
         key_ip = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['ip_dist']
         return self.attributes_obj[key_ip]
 
@@ -817,10 +823,9 @@ class WhoisConsult(TimeStampedModel):
     def get_features_info(content_object, url_or_ip):
         query_type, query_node = get_data_from_url(url_or_ip)
         if not query_node:
-            pass
+            return {}
         elif query_type == 'domain':
             whois_objs = WhoisConsult.objects.filter(query_node=query_node, query_type=query_type)
-            whois = None
             if whois_objs.exists():
                 whois = whois_objs.first()
             else:
@@ -831,7 +836,8 @@ class WhoisConsult(TimeStampedModel):
             features = whois.features_info
             return features 
         elif query_type == 'ip':
-            pass
+            # TO-DO IP version
+            return {}
         else:
             pass
 
