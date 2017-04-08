@@ -151,7 +151,7 @@ function AnalysisSessionLogic(){
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
-            colReorder: true,
+            colReorder: false, //true, // TO-DO for now, until prevent an error
             renderer: "bootstrap",
             responsive: true,
             buttons: ['copy','csv','excel', 'colvis',
@@ -271,6 +271,14 @@ function AnalysisSessionLogic(){
              }
 
          });
+         _dt.on( 'column-reorder', function ( e, settings, details ) {
+            for(var i=0; i < settings.aoColumns.length; i++){
+                var name = settings.aoColumns[i].name;
+
+                // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
+            }
+
+        } );
 
     }
     function initData(data, headers) {

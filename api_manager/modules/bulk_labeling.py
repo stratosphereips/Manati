@@ -3,16 +3,17 @@ from api_manager.common.abstracts import Module
 import json
 
 
-class BulkMalicious(Module):
-    module_name = 'bulk_malicious'
-    description = 'Getting the malicious weblogs seed, and find for all the weblogs with the same domain'
-    version = 'v0.2'
+class BulkLabeling(Module):
+    module_name = 'bulk_labeling'
+    description = 'Getting all labeled weblogs seed, and find for all the weblogs with the same domain'
+    version = 'v0.3'
     authors = ['Raul Benitez']
     events = [ModulesManager.MODULES_RUN_EVENTS.bulk_labelling]
 
     def run(self, **kwargs):
         event = kwargs['event_thrown']
         weblogs_seed = json.loads(kwargs['weblogs_seed'])
+        domains = []
         for index in range(len(weblogs_seed)):
             fields = weblogs_seed[index]['fields']
             verdict = fields['verdict']
@@ -24,13 +25,15 @@ class BulkMalicious(Module):
             domain = ModulesManager.get_domain_by_obj(attributes)
 
             if domain != '':
-                mod_attribute = {
+                domains.append(domain)
+        domains = list(set(domains))
+        for domain in domains:  
+            mod_attribute = {
                     'verdict': verdict,
-                    'description': 'Labelled to malicious because one weblog before,'
-                                   ' with the same domain was marked  malicious'}
-
+                    'description': 'Labelled to '+verdict+' because one weblog before,'
+                                   ' with the same domain was labeled with the same verdict'}
             ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,domain,
-                                                             attributes__contains=domain)
+                                                                 attributes__contains=domain)
         ModulesManager.module_done(self.module_name)
 
-module_obj = BulkMalicious()
+module_obj = BulkLabeling()

@@ -190,30 +190,30 @@ def get_weblog_history(request):
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblogs_whois_related(request):
-    try:
-        if request.method == 'GET':
-            # current_user = request.user
-            weblog_id = str(request.GET.get('weblog_id', ''))
-            weblog = Weblog.objects.get(id=weblog_id)
-            weblogs_whois_related = weblog.whois_related_weblogs.all()
-            whois_related = {}
-            orig_was_whois_related = weblog.was_whois_related
-            if not orig_was_whois_related:
-                ModulesManager.get_weblogs_whois_related(weblog)
-                weblog.was_whois_related = True
-                weblog.save()
+    # try:
+    if request.method == 'GET':
+        # current_user = request.user
+        weblog_id = str(request.GET.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
+        weblogs_whois_related = weblog.whois_related_weblogs.all()
+        whois_related = {}
+        orig_was_whois_related = weblog.was_whois_related
+        if not orig_was_whois_related:
+            ModulesManager.get_weblogs_whois_related(weblog)
+            # weblog.was_whois_related = True
+            # weblog.save()
 
-            for w in weblogs_whois_related:
-                whois_related[w.id] = w.domain
+        for w in weblogs_whois_related:
+            whois_related[w.id] = w.domain
 
-            return JsonResponse(dict(data=json.dumps(whois_related), was_whois_related=orig_was_whois_related,
-                                     msg='Getting Weblogs Whois-Related DONE'))
-        else:
-            return HttpResponseServerError("Only POST request")
-    except Exception as e:
-        print(e)
-        print_exception()
-        return HttpResponseServerError("There was a error in the Server")
+        return JsonResponse(dict(data=json.dumps(whois_related), was_whois_related=orig_was_whois_related,
+                                 msg='Getting Weblogs Whois-Related DONE'))
+    else:
+        return HttpResponseServerError("Only POST request")
+    # except Exception as e:
+    #     print(e)
+    #     print_exception()
+    #     return HttpResponseServerError("There was a error in the Server")
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_modules_changes(request):
