@@ -15,11 +15,7 @@
                            data-on="<i class='fa fa-share-alt'></i> is Public"
                            data-off="<i class='fa fa-ban'></i> No Public"
                            data-onstyle="success" data-offstyle="danger" id="share-checkbox" >
-                    {% if analysissession.status == 'open' %}
-                    <button id="change-status" type="button" class="btn btn-warning" data-status="{{ analysissession.status  }}">Close it!</button>
-                {% else %}
-                    <button id="change-status" type="button" class="btn btn-info" data-status="{{ analysissession.status  }}">Open it!</button>
-                {% endif %}
+                    <button id="change-status" type="button" class="btn btn-special-closed" data-status="closed">Close it!</button>
 
                 </div>
             {% endif %}

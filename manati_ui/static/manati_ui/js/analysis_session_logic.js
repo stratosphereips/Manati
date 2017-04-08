@@ -577,6 +577,28 @@ function AnalysisSessionLogic(){
         });
 
     }
+    function labelWeblogsWhoisRelated(weblog_id, verdict){
+        $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+                            " show the information in the modal.",
+                            "warn", {autoHideDelay: 2000});
+        var data = {weblog_id: weblog_id, verdict: verdict};
+        $.ajax({
+            type:"POST",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/label_weblogs_whois_related",
+            success : function(json) {// handle a successful response
+                $.notify(json.msg, "info")
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        });
+
+    }
 
     var _bulk_marks_wbs = {};
     var _bulk_verdict;
@@ -663,24 +685,36 @@ function AnalysisSessionLogic(){
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
                         consultWhois(qn, "ip");
                     }
-                },
-                "fold2-key3":{
-                    name: "Find Weblogs Related by whois info", icon: "fa-search",
-                    callback: function (key, option) {
-                        var weblog_id = bigData[COLUMN_DT_ID].toString();
-                        weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                        getWeblogsWhoisRelated(weblog_id);
-
-                    }
-
                 }
             }
         };
-        items_menu['fold3'] = {
-            name: "External Intelligence", icon: "fa-search",
-            items: items_submenu_external_query
-        };
-        if(thiz.getAnalysisSessionId() != -1) {
+
+        if(thiz.isSaved()) {
+            items_menu['fold1']['items']['fold1-key3'] = {
+                name: "Mark all WHOIS related (of column:" + COL_HTTP_URL_STR +")",
+                icon: "fa-paint-brush",
+                className: CLASS_MC_HTTP_URL_STR,
+                callback: function(key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    labelWeblogsWhoisRelated(weblog_id,_bulk_verdict)
+
+                    // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                    // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
+                }
+
+            };
+            items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
+                name: "Find Weblogs Related by whois info", icon: "fa-search",
+                callback: function (key, option) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getWeblogsWhoisRelated(weblog_id);
+
+                }
+            };
+
+
             items_menu['fold4'] = {
                 name: "Registry History", icon: "fa-search",
                 items: {
@@ -706,6 +740,11 @@ function AnalysisSessionLogic(){
                 }
             };
         }
+
+        items_menu['fold3'] = {
+            name: "External Intelligence", icon: "fa-search",
+            items: items_submenu_external_query
+        };
         items_menu['sep3'] = "-----------";
         items_menu['fold2'] = {
             name: "Copy to clipboard", icon: "fa-files-o",

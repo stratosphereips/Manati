@@ -299,6 +299,29 @@ class ModulesManager:
             print_exception()
 
     @staticmethod
+    @background(schedule=timezone.now())
+    def bulk_labeling_by_whois_relation(weblog_id,verdict):
+        weblog = Weblog.objects.get(id=weblog_id)
+        weblogs_whois_related = weblog.whois_related_weblogs.all()
+        orig_was_whois_related = weblog.was_whois_related
+        if not orig_was_whois_related:
+            ModulesManager.get_weblogs_whois_related(weblog)
+            weblog.was_whois_related = True
+            weblog.save()
+
+        external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
+        mod_attribute = {
+            'verdict': verdict,
+            'description': 'Bulk labeled by WHOIS related function. The seed weblog was: ' + weblog_id +
+                           ' with domain ' + weblog.domain}
+        Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
+                                                 verdict,
+                                                 mod_attribute,
+                                                 external_module,
+                                                 weblog.domain)
+        return weblog
+
+    @staticmethod
     def get_weblogs_whois_related(current_weblog):
         weblogs_seed_json = serializers.serialize('json', [current_weblog])
         ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json, False)

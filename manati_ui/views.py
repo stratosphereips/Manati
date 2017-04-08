@@ -181,7 +181,18 @@ def get_weblog_history(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
+def label_weblogs_whois_related(request):
+    if request.method == 'POST':
+        weblog_id = str(request.POST.get('weblog_id', ''))
+        verdict = str(request.POST.get('verdict', ''))
+        weblog = ModulesManager.bulk_labeling_by_whois_relation(weblog_id, verdict)
+        return JsonResponse(dict(msg='All the weblogs related with ' + weblog.domain + " will be label like " + verdict))
+    else:
+        return HttpResponseServerError("Only POST request")
+
+
 # def get_weblogs_whois_related(request, id):
 #     current_weblog = Weblog.objects.get(id=id)
 #     analysis_session = current_weblog.analysis_session
@@ -200,8 +211,8 @@ def get_weblogs_whois_related(request):
         orig_was_whois_related = weblog.was_whois_related
         if not orig_was_whois_related:
             ModulesManager.get_weblogs_whois_related(weblog)
-            # weblog.was_whois_related = True
-            # weblog.save()
+            weblog.was_whois_related = True
+            weblog.save()
 
         for w in weblogs_whois_related:
             whois_related[w.id] = w.domain
@@ -209,7 +220,7 @@ def get_weblogs_whois_related(request):
         return JsonResponse(dict(data=json.dumps(whois_related), was_whois_related=orig_was_whois_related,
                                  msg='Getting Weblogs Whois-Related DONE'))
     else:
-        return HttpResponseServerError("Only POST request")
+        return HttpResponseServerError("Only GET request")
     # except Exception as e:
     #     print(e)
     #     print_exception()
@@ -259,7 +270,7 @@ def sync_db(request):
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
             json_query_set = serializers.serialize("json", wb_query_set)
-            ModulesManager.attach_all_event() # it will check if will create the task or not
+            # ModulesManager.attach_all_event() # it will check if will create the task or not
             return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
