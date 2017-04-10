@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+from django.contrib.auth.hashers import make_password
 import datetime
 
 
@@ -11,7 +12,7 @@ def create_admin_users(apps, schema_editor):
     admin1 = User(
         username='seba',
         email='eldraco@gmail.com',
-        password='sebapassword2017',
+        password=make_password('sebapassword2017'),
         is_superuser=True,
         last_login=datetime.datetime.now(),
         is_staff=True
@@ -20,7 +21,7 @@ def create_admin_users(apps, schema_editor):
     admin2 = User(
         username='raul',
         email='raulbeni@gmail.com',
-        password='raulpassword2017',
+        password=make_password('raulpassword2017'),
         is_superuser=True,
         last_login=datetime.datetime.now(),
         is_staff=True
