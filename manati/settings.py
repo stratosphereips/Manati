@@ -102,7 +102,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'manati_db',  # Or path to database file if using sqlite3.
+        'NAME': 'manati_db_instance_a',  # Or path to database file if using sqlite3.
         # The following settings are not used with sqlite3:
         'USER': 'manati_db_user',
         'PASSWORD': 'password',
