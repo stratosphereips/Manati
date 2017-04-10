@@ -50,9 +50,11 @@
                     </li>
                     <li><a href="{% url 'manati_ui:index_external_modules' %}"><i class="fa fa-user fa-fw"></i> Modules Page</a>
                     </li>
-                    <li><a href="{% url 'manati_ui:index_hotkeys' %}"><i class="fa fa-user fa-fw"></i>Hotkeys List</a></li>
-                    <li class="divider"></li>
-                    <li><a href="{% url 'manati_ui:export_metrics' %}"><i class="fa  fa-download"></i> Exporting Metrics</a></li>
+                    <li><a href="{% url 'manati_ui:index_hotkeys' %}"><i class="fa fa-user fa-fw"></i> Hotkeys List</a></li>
+                        {% if user.is_superuser %}
+                            <li class="divider"></li>
+                            <li><a href="{% url 'manati_ui:export_metrics' %}"><i class="fa  fa-download"></i> Exporting Metrics</a></li>
+                        {% endif %}
                     <li class="divider"></li>
                     <li><a href="{% url 'django.contrib.auth.views.logout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>
