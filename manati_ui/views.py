@@ -271,7 +271,7 @@ def sync_db(request):
 
             wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
             json_query_set = serializers.serialize("json", wb_query_set)
-            # ModulesManager.attach_all_event() # it will check if will create the task or not
+            ModulesManager.attach_all_event() # it will check if will create the task or not
             return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
         else:
             messages.error(request, 'Only POST request')
