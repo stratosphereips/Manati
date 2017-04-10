@@ -1057,8 +1057,7 @@ function AnalysisSessionLogic(){
                     return {
                         callback: function(key, options) {
                             var verdict = key;
-                            var rows_affected = thiz.markVerdict(verdict);
-                            _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
+                            labelingRows(verdict);
                             return true;
                         },
                         items: generateContextMenuItems($trigger)
@@ -1069,12 +1068,95 @@ function AnalysisSessionLogic(){
 
             });
     }
+    var labelingRows = function (verdict){
+        var rows_affected = thiz.markVerdict(verdict);
+        _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
+    };
+    var executeFilterBtn = function (verdict){
+        $('.searching-buttons .btn').filter('[data-verdict="'+ verdict+'"]').click()
+    };
     var setFileName = function(file_name){
         $("#weblogfile-name").html(file_name);
         _filename = file_name;
     };
     var getFileName = function (){
         return _filename;
+    };
+    var hotkeys_definition = function () {
+        var preventDefault = function (e){
+            if (e.preventDefault) {
+                e.preventDefault();
+            } else {
+                // internet explorer
+                e.returnValue = false;
+            }
+        };
+        // active sync button
+        Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
+            preventDefault(e);
+            if(thiz.isSaved()) syncDB(true);
+        });
+        // mark malicious
+        Mousetrap.bind(['ctrl+m', 'command+m'], function(e) {
+            preventDefault(e);
+            labelingRows('malicious');
+        });
+        // mark legitimate
+        Mousetrap.bind(['ctrl+l', 'command+l'], function(e) {
+            preventDefault(e);
+            labelingRows('legitimate');
+        });
+        // mark suspicious
+        Mousetrap.bind(['ctrl+i', 'command+i'], function(e) {
+            preventDefault(e);
+            labelingRows('suspicious');
+        });
+        // mark false positive
+        Mousetrap.bind(['ctrl+p', 'command+p'], function(e) {
+            preventDefault(e);
+            labelingRows('falsepositive');
+        });
+        // mark undefined
+        Mousetrap.bind(['ctrl+u', 'command+u'], function(e) {
+            preventDefault(e);
+            labelingRows('undefined');
+        });
+        // Filter all Malicious
+        Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('malicious');
+        });
+        // Filter all Legitimate
+        Mousetrap.bind(['ctrl+2', 'command+2'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('legitimate');
+        });
+        // Filter all Suspicious
+        Mousetrap.bind(['ctrl+3', 'command+3'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('suspicious');
+        });
+         // Filter all False Positive
+        Mousetrap.bind(['ctrl+4', 'command+4'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('falsepositive');
+        });
+         // Filter all Undefined
+        Mousetrap.bind(['ctrl+5', 'command+5'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('undefined');
+        });
+        //  // Unfilter everthing
+        // Mousetrap.bind(['ctrl+5', 'command+0'], function(e) {
+        //     preventDefault(e);
+        //     // TO-DO
+        // });
+        //
+        //  // Unfilter everthing
+        // Mousetrap.bind(['space', 'space'], function(e) {
+        //     preventDefault(e);
+        //     // TO-DO
+        // });
     };
     function on_ready_fn (){
         $(document).ready(function() {
@@ -1112,7 +1194,7 @@ function AnalysisSessionLogic(){
 
             //filter table
             $('body').on('click','.searching-buttons .btn', function () {
-                var btn = $(this)
+                var btn = $(this);
                 var verdict = btn.data('verdict');
                 if(btn.hasClass('active')){
                     _filterDataTable.removeFilter(_dt,verdict);
@@ -1162,15 +1244,7 @@ function AnalysisSessionLogic(){
                 })
             });
 
-            Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
-                if (e.preventDefault) {
-                    e.preventDefault();
-                } else {
-                    // internet explorer
-                    e.returnValue = false;
-                }
-                if(thiz.isSaved()) syncDB(true);
-            });
+            hotkeys_definition();
 
             $("input#share-checkbox").change(function() {
                 $.ajax({

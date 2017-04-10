@@ -217,7 +217,8 @@ def get_weblogs_whois_related(request):
         for w in weblogs_whois_related:
             whois_related[w.id] = w.domain
 
-        return JsonResponse(dict(data=json.dumps(whois_related), was_whois_related=orig_was_whois_related,
+        return JsonResponse(dict(data=json.dumps(whois_related),
+                                 was_whois_related=orig_was_whois_related,
                                  msg='Getting Weblogs Whois-Related DONE'))
     else:
         return HttpResponseServerError("Only GET request")
@@ -437,6 +438,29 @@ class IndexExternalModules(generic.ListView):
 
     def get_queryset(self):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
+
+
+class IndexHotkeys(generic.ListView):
+    login_url = REDIRECT_TO_LOGIN
+    redirect_field_name = 'redirect_to'
+    template_name = 'manati_ui/analysis_session/hotkeys_list.html'
+    context_object_name = 'hotkeys'
+
+    def get_queryset(self):
+        hotkeys = [
+            dict(description='Sync up ', command='cmd+s | ctrl+s'),
+            dict(description='Label selected weblog like Malicious', command='cmd+m | ctrl+m'),
+            dict(description='Label selected weblog like Legitimate', command='cmd+l | ctrl+l'),
+            dict(description='Label selected weblog like False Positive', command='cmd+p | ctrl+p'),
+            dict(description='Label selected weblog like Suspicious', command='cmd+i | ctrl+i'),
+            dict(description='Label selected weblog like Undefined', command='cmd+u | ctrl+u'),
+            dict(description='Filter table by Malicious weblog', command='cmd+1 | ctrl+1'),
+            dict(description='Filter table by Legitimate weblog', command='cmd+2 | ctrl+2'),
+            dict(description='Filter table by Suspicious weblog', command='cmd+3 | ctrl+3'),
+            dict(description='Filter table by False Positive weblog', command='cmd+4 | ctrl+4'),
+            dict(description='Filter table by Undefined weblog', command='cmd+5 | ctrl+5'),
+        ]
+        return hotkeys
 
 
 class EditAnalysisSession(generic.DetailView):
