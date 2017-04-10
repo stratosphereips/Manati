@@ -17,9 +17,17 @@ function throw_error_logging(msg){
 
 var time = moment();
 var DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss.SSSSSSZZ";
-function getTimeNow(){
+
+function getTimeNow () {
     return time.format(DATETIME_FORMAT);
 }
+function getTimeNowByPython(){
+    return (window.performance.timing.navigationStart + window.performance.now()) / 1000
+}
+function getTimeNowByJS(){
+    return (window.performance.timing.navigationStart + window.performance.now())
+}
+
 
 function EventReg(params, as_logic){
     var key;
@@ -32,7 +40,10 @@ function EventReg(params, as_logic){
             paramenters = {};
         }
         paramenters['created_at'] = getTimeNow();
+        paramenters['created_at_precision'] = getTimeNowByPython();
+        paramenters['created_at_precision_js'] = getTimeNowByJS();
         paramenters['analysis_session_id'] = as_logic.getAnalysisSessionId();
+        paramenters['analysis_session_uuid'] = as_logic.getAnalysisSessionUUID();
         paramenters['analysis_session_name'] = SHA256(as_logic.getAnalysisSessionName());
         paramenters['version_app'] = VERSION_APP;
     };
@@ -67,6 +78,7 @@ function Metrics(active, analysis_session_logic){
                         "if(d!=null)r[key] = SHA256(d);"+
                     "};"+
                     "r['dt_id']=row['dt_id'];"+
+                    "r['uuid']=row['uuid'];"+
                     "rows_affected_new[i] = r;"+
                 "};"+
                 "self.postMessage(rows_affected_new);" +

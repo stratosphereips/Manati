@@ -19,9 +19,14 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core import management
 from ipwhois import IPWhois
+import manati
 import whois
 from share_modules.virustotal import *
-from share_modules.util import get_domain_by_obj
+from share_modules.util import get_domain_by_obj, get_data_from_url
+import dateutil.parser
+import re
+import pythonwhois
+from pythonwhois.shared import WhoisException
 vt = vt()
 
 
@@ -54,9 +59,9 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create(self, filename, key_list, weblogs, current_user,type_file):
+    def create(self, filename, key_list, weblogs, current_user,type_file, uuid):
         try:
-            analysis_session = AnalysisSession(type_file=type_file)
+            analysis_session = AnalysisSession(type_file=type_file, uuid=str(uuid))
             wb_list = []
             previous_exists = AnalysisSession.objects.filter(name=filename, users__id=current_user.id)
             if previous_exists.count() > 0:
@@ -102,6 +107,17 @@ class AnalysisSessionManager(models.Manager):
             print_exception()
             return None
 
+    @transaction.atomic
+    def update_uuid(self, analysis_session, analysis_session_uuid, weblogs_id, weblogs_uuid):
+        analysis_session.uuid = analysis_session_uuid
+        analysis_session.save()
+        assert len(weblogs_id) == len(weblogs_uuid)
+        for index, id in enumerate(weblogs_id):
+            weblog = analysis_session.weblog_set.filter(id=id)[0]
+            attribute = weblog.attributes_obj
+            attribute['uuid'] = weblogs_uuid[index]
+            weblog.attributes = attribute
+            weblog.save()
 
     @transaction.atomic
     def add_weblogs(self,analysis_session_id,key_list, data):
@@ -200,6 +216,7 @@ class RegisterStatus(enum.Enum):
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
                          ('cisco_file', 'CISCO weblogs Specific File'))
+    STATUS = Choices(('open', 'Open'),('closed', 'Closed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
                        TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
 
@@ -207,6 +224,8 @@ class AnalysisSession(TimeStampedModel):
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
     public = models.BooleanField(default=False)
     type_file = models.CharField(choices=TYPE_FILES, max_length=50, null=False, default=TYPE_FILES.cisco_file)
+    uuid = models.CharField(max_length=40, null=True, default='')
+    status = models.CharField(choices=STATUS, max_length=30, null=False, default=STATUS.open)
 
     objects = AnalysisSessionManager()
     comments = GenericRelation('Comment')
@@ -278,7 +297,21 @@ class Weblog(TimeStampedModel):
 
     @property
     def domain(self):
-        return get_domain_by_obj(self.attributes_obj)
+        if self.analysis_session.type_file == '':
+            self.analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
+            self.analysis_session.save()
+        key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
+        url = self.attributes_obj[key_url]
+        d_type, domain = get_data_from_url(url)
+        return domain
+
+    @property
+    def ip(self):
+        if self.analysis_session.type_file == '':
+            self.analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
+            self.analysis_session.save()
+        key_ip = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['ip_dist']
+        return self.attributes_obj[key_ip]
 
     @property
     def attributes_obj(self):
@@ -363,6 +396,20 @@ class Weblog(TimeStampedModel):
     def set_whois_related_weblogs(self, ids_related):
         for id in ids_related:
             self.whois_related_weblogs.add(Weblog.objects.get(id=id))
+    
+    @staticmethod
+    @transaction.atomic
+    def bulk_verdict_and_attr_from_module(weblogs,module_verdict,mod_attribute,external_module,query_node):
+        with transaction.atomic():
+            if module_verdict:
+                Metric.objects.labeling_by_module(external_module, weblogs, module_verdict,query_node)
+
+            for weblog in weblogs:
+                weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=False)
+                if module_verdict:
+                    weblog.set_verdict_from_module(module_verdict, external_module, save=False)       
+                
+                weblog.save()
 
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
@@ -497,6 +544,56 @@ class MetricManager(models.Manager):
                                       content_object=current_user)
 
 
+    @transaction.atomic
+    @postpone
+    def labeling_by_module(self, module, weblogs, verdict,query_node):
+        if weblogs.count() == 1:
+            event_name = 'single_labeling_by_module'
+        elif weblogs.count() > 1:
+            event_name = 'multiple_labeling_by_module'
+        else:
+            return
+
+        measure = dict()
+        measure['event_produced_by'] = module.module_name
+        measure['version_app'] = str(manati.__version__)
+        measure['event_name'] = event_name
+        measure['created_at'] = str(datetime.datetime.now())
+        measure['created_at_precision'] = str(datetime.datetime.now())
+        measure['amount_wbls'] = str(weblogs.count())
+        measure['new_verdict'] = verdict
+        measure['query_node'] = query_node
+        measure['weblogs_affected'] = [{'uuid': wb.attributes_obj.get('uuid', '')} for wb in weblogs]
+        Metric.objects.create(event_name=event_name,
+                              params=json.dumps(measure),
+                              content_object=module)
+
+    def change_status_analysis_session(self,event_name,user, analysis_session):
+        measure = dict()
+        measure['version_app'] = str(manati.__version__)
+        measure['event_name'] = event_name
+        measure['created_at'] = str(datetime.datetime.now())
+        measure['created_at_precision'] = str(datetime.datetime.now())
+        measure['analysis_session_name'] = analysis_session.name
+        measure['analysis_session_id'] = analysis_session.id
+        measure['analysis_session_uuid'] = analysis_session.uuid
+        Metric.objects.create(event_name=event_name,
+                              params=json.dumps(measure),
+                              content_object=user)
+
+    @transaction.atomic
+    @postpone
+    def close_analysis_session(self, user, analysis_session):
+        event_name = 'closing_analysis_session'
+        self.change_status_analysis_session(event_name, user, analysis_session)
+
+    @transaction.atomic
+    @postpone
+    def open_analysis_session(self, user, analysis_session):
+        event_name = 'opening_analysis_session'
+        self.change_status_analysis_session(event_name, user, analysis_session)
+
+
 class Metric(TimeStampedModel):
     event_name = models.CharField(max_length=200)
     params = JSONField(default='', null=True)
@@ -565,11 +662,184 @@ class AppParameter(TimeStampedModel):
 
 
 class WhoisConsult(TimeStampedModel):
+    QUERY_TYPES = Choices(('ip','IP'),('domain','Domain'),)
     query_node = models.CharField(max_length=100, null=False)
-    info_report = JSONField(default=json.dumps({}), null=False)
-    user = models.ForeignKey(User)
+    query_type = models.CharField(max_length=20, null=False, choices=QUERY_TYPES)
+    info_report = JSONField(null=True)
+    features_info = JSONField(null=True)  # pythonwhois
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # User or ExternalModule
+    object_id = models.IntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    def __process_result_by_domain__(self,domain):  # python whois lib
+        d = domain
+        try:
+            if not self.info_report and d:
+                r = pythonwhois.get_whois(d)
+                self.info_report = r
+                self.save()
+            elif not d:
+                print("PW, domain null " + str(d) + " " + str(self.id))
+                self.info_report = {}
+                self.save()
+        except WhoisException as e:
+            print("PW rejects " + str(d)+ " " + str(self.id) + ", ERROR TRACE " + e.message)
+            self.info_report = {}
+            self.save()
+        except:
+            self.info_report = {}
+            self.save()
+            print("PW rejects " + str(d) + " " + str(self.id))
 
 
+    # python whois
+    def process_features_by_domain(self, domain):
+        if not self.info_report:
+            self.__process_result_by_domain__(domain)
+
+        result = self.info_report
+        raw = result.get('raw', None)
+        raw = raw[0].split('\n') if not raw is None else []
+        raw = ','.join(raw).encode('utf-8').strip().split(',')
+        # self.features_info_pw
+
+        def get_dict(dict_obj, key, default):
+            value = dict_obj.get(key, type(default))
+            if not isinstance(value, type(default)) and not type(default) == None:
+                return default
+            else:
+                return value
+
+        def get_emails():
+            emails = result.get('emails', [])
+            emails = [] if emails is None else emails
+            emails = emails.split(',') if not isinstance(emails, list) else emails
+            return emails
+
+        def get_domain_name():
+            pattern = r'^.*Domain Name:.*$'
+            indices = [i for i, x in enumerate(raw) if re.search(pattern, x)]
+            fields = str(raw[indices[0]]).split(':') if len(indices) > 0 else []
+            domain_name = fields[1].strip() if len(fields) > 0 else ''
+            if not domain_name or domain_name == '':
+                _, domain_name = get_data_from_url(self.query_node)
+                domain_name = domain_name if domain_name else ''
+            return domain_name
+
+        def get_name_servers():
+            ns = result.get('nameservers', [])
+            ns = ns.split(',') if isinstance(ns, basestring) else ns
+            return ns
+
+        def get_registrar():
+            registrar = result.get('registrar', '')
+            if not registrar or registrar == '':
+                pattern = r'^.*Registrar:.*$'
+                indices = [i for i, x in enumerate(raw) if re.search(pattern, x)]
+                fields = str(raw[indices[0]]).split(':') if len(indices) > 0 else []
+                registrar = fields[1].strip() if len(fields) > 0 else ''
+            return registrar[0] if isinstance(registrar, list) else registrar
+
+        def get_name():
+            contacts = get_dict(result, 'contacts', {})
+            name_admin = get_dict(contacts, 'admin', {}).get('name', '')
+            name_tech = get_dict(contacts, 'tech', {}).get('name', '')
+            name_registrant = get_dict(contacts, 'registrant', {}).get('name', '')
+            names = list(set([name_admin, name_tech, name_registrant]))
+            names = [n for n in names if n or not n == '']
+            name = names[0] if len(names) > 0 else ''
+            if not name or name == '':
+                pattern = r'^.*name:.*$'
+                indices = [i for i, x in enumerate(raw) if re.search(pattern, x)]
+                names = []
+                for indice in indices:
+                    fields = str(raw[indice]).split(':') if len(indices) > 0 else []
+                    names.append(fields[1].strip() if len(fields) > 0 else '')
+                return names[0] if len(names) > 0 else ''
+            else:
+                return name
+
+        def get_creation_date():
+            cd_str = result.get('creation_date', [])
+            if cd_str and len(cd_str) > 0:
+                if isinstance(cd_str[0], basestring):
+                    try:
+                        return dateutil.parser.parse(cd_str[0])
+                    except:
+                        print("Date Invalid ", self.id, cd_str[0])
+                        return None
+                elif isinstance(cd_str[0], datetime.datetime):
+                    return cd_str[0]
+            else:
+                return None
+
+        def get_expiration_date():
+            ed_str = result.get('expiration_date', [])
+            if ed_str and len(ed_str) > 0:
+                if isinstance(ed_str[0], basestring):
+                    try:
+                        return dateutil.parser.parse(ed_str[0])
+                    except:
+                        print("Date Invalid ", self.id, ed_str[0])
+                        return None
+                elif isinstance(ed_str[0], datetime.datetime):
+                    return ed_str[0]
+            else:
+                return None
+
+        def get_zipcodes():
+            contacts = get_dict(result, 'contacts', {})
+            postalcode_admin = get_dict(contacts, 'admin', {}).get('postalcode', '')
+            postalcode_tech = get_dict(contacts, 'tech', {}).get('postalcode', '')
+            postalcode_registrant = get_dict(contacts, 'registrant', {}).get('postalcode', '')
+            return list(set([postalcode_admin, postalcode_tech, postalcode_registrant]))
+
+        def get_orgs():
+            contacts = get_dict(result, 'contacts', {})
+            org_admin = get_dict(contacts, 'admin', {}).get('organization', '')
+            org_tech = get_dict(contacts, 'tech', {}).get('organization', '')
+            org_registrant = get_dict(contacts, 'registrant', {}).get('organization', '')
+            return list(set([org_admin, org_tech, org_registrant]))
+
+        if not self.features_info:
+            features = dict(
+                emails= get_emails(),
+                domain_name=get_domain_name(),
+                name_servers=get_name_servers(),
+                registrar=get_registrar(),
+                name=get_name(),
+                creation_date=get_creation_date(),
+                expiration_date=get_expiration_date(),
+                zipcode=get_zipcodes(),
+                org=get_orgs()
+            )
+            self.features_info = features
+            self.save()
+
+    def process_features_by_ip(self, ip):
+        pass
+
+    @staticmethod
+    def get_features_info(content_object, url_or_ip):
+        query_type, query_node = get_data_from_url(url_or_ip)
+        if not query_node:
+            return {}
+        elif query_type == 'domain':
+            whois_objs = WhoisConsult.objects.filter(query_node=query_node, query_type=query_type)
+            if whois_objs.exists():
+                whois = whois_objs.first()
+            else:
+                whois = WhoisConsult.objects.create(query_node=query_node, query_type=query_type, content_object=content_object)
+
+            if not whois.features_info:
+                whois.process_features_by_domain(query_node)
+            features = whois.features_info
+            return features 
+        elif query_type == 'ip':
+            # TO-DO IP version
+            return {}
+        else:
+            pass
 
     @staticmethod
     def __get_query_info__(query_node, user, **kwargs ):
@@ -590,15 +860,13 @@ class WhoisConsult(TimeStampedModel):
                 obj = IPWhois(query_node)
                 results = obj.lookup()
                 whois_consult = WhoisConsult.objects.create(query_node=query_node,
-                                                            info_report=json.dumps(results,
-                                                                                   cls=ComplexEncoder),
-                                                            user=user)
+                                                            info_report=results,
+                                                            content_object=user)
             elif 'domain' in kwargs:
-                w = whois.whois(query_node)
+                w = pythonwhois.get_whois(query_node)
                 whois_consult = WhoisConsult.objects.create(query_node=query_node,
-                                                            info_report=json.dumps(w,
-                                                                                   cls=ComplexEncoder),
-                                                            user=user)
+                                                            info_report=w,
+                                                            content_object=user)
             else:
                 raise ValueError("you must determine is you want to do a domain or ip consultation by __get_query_info" +
                                  "__('query', SomeUser, domain=True or ip=True")
@@ -623,6 +891,8 @@ class WhoisConsult(TimeStampedModel):
 
     def __unicode__(self):
         return unicode(self.info_report) or u''
+
+
 
 
 class ModuleAuxWeblog(TimeStampedModel):

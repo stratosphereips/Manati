@@ -46,14 +46,33 @@ def is_ip(value):
     except socket.error:
         return False
 
+def get_top_level_domain(self):
+    try:
+        if is_ip(self.domain) or not self.domain or self.domain == '':
+            return None
+        d = get_tld('http://www.'+self.domain)
+        if d.find('www.') >= 0:
+            return d.split('www.')[1]
+        else:
+            return d
+    except:
+        return None
+
 
 def get_data_from_url(url):
+    if not url or url == '':
+        return 'domain', None
+
     if is_ip(url):
         return 'ip', url
     o = urlparse(url)
     d = o.netloc
-    if d is None or d == '':
-        return 'domain','none'
+    if not d or d == '':
+        domain = get_tld('http://www.' + url)
+        if not domain or domain == '':
+            return 'domain',None
+        else:
+            return 'domain',domain
     elif is_ip(d):
         return 'ip', d
     else:

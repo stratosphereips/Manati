@@ -3,7 +3,7 @@ import os
 import imp
 from manati import settings
 import whois
-from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult
+from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult, Metric
 from django.utils import timezone
 from api_manager.models import ExternalModule
 from background_task import background
@@ -15,7 +15,7 @@ from django.db.models import Q
 from model_utils import Choices
 from share_modules.constants import Constant
 from tryagain import retries
-from share_modules.util import convert_obj_to_json
+from manati_ui.serializers import WeblogSerializer
 import share_modules.whois_distance
 import threading
 import os
@@ -130,19 +130,33 @@ class ModulesManager:
         return make_whois_domain(query_node)
 
     @staticmethod
-    def distance_domains(domain_a, domain_b):
-        return share_modules.whois_distance.distance_domains(domain_a, domain_b)
+    def get_whois_features_of(module_name, domains):
+        try:
+            external_module = ExternalModule.objects.get(module_name=module_name)
+            return share_modules.whois_distance.get_whois_information_features_of(external_module, domains)
+        except Exception as e:
+            print(e)
+            print_exception()
+            return None
+
+    @staticmethod
+    def distance_domains(module_name, domain_a, domain_b):
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        return share_modules.whois_distance.distance_domains(external_module,domain_a, domain_b)
+
+    @staticmethod
+    def distance_related_domains(module_name, domain_a, domain_b):
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        return share_modules.whois_distance.distance_related_by_whois_obj(external_module, domain_a, domain_b)
 
     @staticmethod
     @transaction.atomic
-    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute, **kwargs):
+    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute,query_node, **kwargs):
         with transaction.atomic():
             external_module = ExternalModule.objects.get(module_name=module_name)
-            weblogs = Weblog.objects.filter(Q(**kwargs))
-            for weblog in weblogs:
-                weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=True)
-                if 'verdict' in mod_attribute:
-                    weblog.set_verdict_from_module(mod_attribute['verdict'], external_module, save=True)
+            weblogs = Weblog.objects.prefetch_related('histories').filter(Q(**kwargs))
+            verdict = mod_attribute.get('verdict', None)
+            Weblog.bulk_verdict_and_attr_from_module(weblogs,verdict,mod_attribute,external_module,query_node)
 
     @staticmethod
     @transaction.atomic
@@ -176,22 +190,38 @@ class ModulesManager:
     @staticmethod
     @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
-        try:
-            print("Running module: " + module_name)
-            logger.info("Running module: " + module_name)
-            path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-            assert os.path.isdir(path) is True
-            external_module = ExternalModule.objects.get(module_name=module_name)
-            module_path = os.path.join(path, external_module.filename)
-            module_instance = external_module.module_instance
-            module = imp.load_source(module_instance, module_path)
-            # external_module.mark_running(save=True)
-            module.module_obj.run(event_thrown=event_thrown,
-                                  weblogs_seed=weblogs_seed_json)
-        except Exception as es:
-            print(str(es))
-            logger.error(str(es))
+        # try:
+        print("Running module: " + module_name)
+        logger.info("Running module: " + module_name)
+        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+        assert os.path.isdir(path) is True
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        # external_module.mark_running(save=True)
+        module.module_obj.run(event_thrown=event_thrown,
+                              weblogs_seed=weblogs_seed_json)
+        # except Exception as es:
+        #     print(str(es))
+        #
+        #     print_exception()
         # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
+
+    @staticmethod
+    def __run_modules_sync(event_thrown, module_name, weblogs_seed_json):
+        # try:
+        print("Running module: " + module_name)
+        logger.info("Running module: " + module_name)
+        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+        assert os.path.isdir(path) is True
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        # external_module.mark_running(save=True)
+        module.module_obj.run(event_thrown=event_thrown,
+                              weblogs_seed=weblogs_seed_json)
 
     @staticmethod
     @retries(max_attempts=10, exceptions=(Exception), wait=5)
@@ -203,14 +233,13 @@ class ModulesManager:
             raise Exception("The module is not free")
 
     @staticmethod
-    def __attach_event(event_name, weblogs_seed_json):
+    def __attach_event(event_name, weblogs_seed_json, async=True):
         # try:
-
         external_modules = ExternalModule.objects.find_by_event(event_name)
-        print('Modules', len(external_modules))
+        run_method = ModulesManager.__run_modules if async else ModulesManager.__run_modules_sync
         if len(external_modules) > 0:
             for external_module in external_modules:
-                ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
+                run_method(event_name, external_module.module_name, weblogs_seed_json)
         # except Exception as e:
         #     print(e)
         #     print_exception()
@@ -261,18 +290,41 @@ class ModulesManager:
 
     @staticmethod
     def after_save_attach_event(analysis_session):
-        # try:
-        # weblogs_seed_json = serializers.serialize('json', [w for w in analysis_session.weblog_set.all()])
-        # ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,
-        #                               weblogs_seed_json)
-        # except Exception as e:
-        #     print(e)
-        #     print_exception()
-        pass
+        try:
+            weblogs_qs = analysis_session.weblog_set.all()
+            weblogs_json = json.dumps(WeblogSerializer(weblogs_qs, many=True).data)
+            ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,weblogs_json)
+        except Exception as e:
+            print(e)
+            print_exception()
+
+    @staticmethod
+    @background(schedule=timezone.now())
+    def bulk_labeling_by_whois_relation(weblog_id,verdict):
+        weblog = Weblog.objects.get(id=weblog_id)
+        weblogs_whois_related = weblog.whois_related_weblogs.all()
+        orig_was_whois_related = weblog.was_whois_related
+        if not orig_was_whois_related:
+            ModulesManager.get_weblogs_whois_related(weblog)
+            weblog.was_whois_related = True
+            weblog.save()
+
+        external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
+        mod_attribute = {
+            'verdict': verdict,
+            'description': 'Bulk labeled by WHOIS related function. The seed weblog was: ' + weblog_id +
+                           ' with domain ' + weblog.domain}
+        Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
+                                                 verdict,
+                                                 mod_attribute,
+                                                 external_module,
+                                                 weblog.domain)
+        return weblog
+
     @staticmethod
     def get_weblogs_whois_related(current_weblog):
         weblogs_seed_json = serializers.serialize('json', [current_weblog])
-        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json)
+        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json, False)
 
 
 
