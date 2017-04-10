@@ -51,6 +51,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_type_file_all_analysis_session),
+        # migrations.RunPython(add_type_file_all_analysis_session), # TO-DO Repair method, dont use AnalysisSession model
 
     ]
