@@ -90,7 +90,7 @@ class Migration(migrations.Migration):
 
     operations = [
         ## updating Weblogs IDs and updating copying old attributes to new parameter IDs
-        migrations.RunPython(update_weblogs),
+        # migrations.RunPython(update_weblogs), # TO - DO repair this method without using django model Weblog
         migrations.RunSQL('SET CONSTRAINTS ALL IMMEDIATE',
                           reverse_sql=migrations.RunSQL.noop),
 
