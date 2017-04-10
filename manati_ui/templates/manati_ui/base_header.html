@@ -35,9 +35,15 @@
             </ul>
 
             <ul class="nav navbar-top-links navbar-right">
+                {% if user.is_authenticated %}
+                <li>
+                    Welcome, <b>{{   user.username  }}</b>
+
+                </li>
+                {% endif %}
                 <li>
                      <a href="{% url 'manati_ui:new_analysis_session' %}">
-                         Version {% version_app %}
+                         v{% version_app %}
                       </a>
                 </li>
             <li class="dropdown">

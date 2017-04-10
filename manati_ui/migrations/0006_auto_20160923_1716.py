@@ -19,7 +19,7 @@ def create_admin_user(apps, schema_editor):
     admin = User(
         username='root',
         email='admin@manati.com',
-        password='Rootpassword2017',
+        password=make_password('Rootpassword2017'),
         is_superuser=True,
         last_login=datetime.datetime.now(),
         is_staff=True
