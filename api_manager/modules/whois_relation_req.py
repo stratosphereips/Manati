@@ -31,11 +31,10 @@ class WhoisRelationReq(Module):
         attributes_a = json.loads(fields_a['attributes'])
         domain_a = ModulesManager.get_domain_by_obj(attributes_a)
         for weblog_b in analysis_session_weblogs:
-            fields_b = weblog_b['fields']
-            id_b = weblog_b['pk']
+            id_b = weblog_b['id']
             if id_a == id_b:
                 continue
-            attributes_b = json.loads(fields_b['attributes'])
+            attributes_b = weblog_b['attributes']
             domain_b = ModulesManager.get_domain_by_obj(attributes_b)
             related = ModulesManager.distance_related_domains(self.module_name, domain_a,domain_b)
             if related:

@@ -107,11 +107,15 @@ class ModulesManager:
 
     @staticmethod
     def get_all_weblogs_json():
-        return serializers.serialize('json', Weblog.objects.all())
+        weblogs_qs = Weblog.objects.all()
+        weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+        return json.dumps(weblogs_json)
 
     @staticmethod
     def get_filtered_weblogs_json(**kwargs):
-        return serializers.serialize('json', Weblog.objects.filter(Q(**kwargs)))
+        weblogs_qs = Weblog.objects.filter(Q(**kwargs))
+        weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+        return json.dumps(weblogs_json)
 
     @staticmethod
     def get_filtered_analysis_session_json(**kwargs):
@@ -301,10 +305,9 @@ class ModulesManager:
     @staticmethod
     @background(schedule=timezone.now())
     def bulk_labeling_by_whois_relation(weblog_id,verdict):
-        weblog = Weblog.objects.get(id=weblog_id)
+        weblog = Weblog.objects.prefetch_related('whois_related_weblogs').get(id=weblog_id)
         weblogs_whois_related = weblog.whois_related_weblogs.all()
-        orig_was_whois_related = weblog.was_whois_related
-        if not orig_was_whois_related:
+        if not weblog.was_whois_related:
             ModulesManager.get_weblogs_whois_related(weblog)
             weblog.was_whois_related = True
             weblog.save()

@@ -156,12 +156,29 @@ def init_keys(domain_name, registrar, name, org, zipcode, creation_date, expirat
 
 
 def __levenshtein__(str1,str2):
-    str1 = str1.encode('utf-8')
-    str2 = str2.encode('utf-8')
-    return Levenshtein.distance(str1.lower(),str2.lower())
+    try:
+        str1 = str1.encode('utf-8')
+    except UnicodeDecodeError as e:
+        try:
+            str1 = str1.encode('ascii', 'ignore').decode('ascii')
+        except UnicodeDecodeError as e:
+            str1 = str1
+
+    try:
+        str2 = str2.encode('utf-8')
+    except UnicodeDecodeError as e:
+        try:
+            str2 = str2.encode('ascii', 'ignore').decode('ascii')
+        except UnicodeDecodeError as e:
+            str2 = str2
+    try:
+        return Levenshtein.distance(str(str1).lower(),str(str2).lower())
+    except Exception as e:
+        print(e)
+        return 100
 
 def __dist_domain__name__(domain_name_a, domain_name_b):
-    return __levenshtein__(str(domain_name_a).lower(), str(domain_name_b).lower())
+    return __levenshtein__(domain_name_a, domain_name_b)
 
 
 def __dist_registrar__(registrar_a, registrar_b):
@@ -171,11 +188,11 @@ def __dist_registrar__(registrar_a, registrar_b):
     registrar_b = registrar_b if not registrar_b is None else ''
     registrar_a = registrar_a.encode('utf-8')
     registrar_b = registrar_b.encode('utf-8')
-    return __levenshtein__(str(registrar_a).lower(), str(registrar_b).lower())
+    return __levenshtein__(registrar_a, registrar_b)
 
 
 def __dist_name__(name_a, name_b):
-    return __levenshtein__(str(name_a).lower(), str(name_b).lower())
+    return __levenshtein__(name_a, name_b)
 
 
 def __dist_org_by_min_dist__(orgs_a=[], orgs_b=[]):
@@ -188,12 +205,10 @@ def __dist_org_by_min_dist__(orgs_a=[], orgs_b=[]):
     elif not orgs_file:
         orgs_file = ['']
 
-    dist_org = __levenshtein__(str(orgs_seed[0]), str(orgs_file[0]))
+    dist_org = __levenshtein__(orgs_seed[0], orgs_file[0])
     for org_s in orgs_seed:
-        org_s = org_s.encode('utf-8')
         for org_f in orgs_file:
-            org_f = org_f.encode('utf-8')
-            dist_org = min(str(dist_org), str(__levenshtein__(str(org_s), str(org_f))))
+            dist_org = min(dist_org, __levenshtein__(org_s, org_f))
     return float(dist_org)
 
 
@@ -232,14 +247,14 @@ def get_diff_ttl(creation_date_a, creation_date_b,expiration_date_a, expiration_
     else:
         try:
             cd_a = datetime.datetime.strptime(creation_date_a, '%d-%m-%Y') if not isinstance(creation_date_a, datetime.datetime) else creation_date_a
-            ed_a = datetime.datetime.strptime(expiration_date_a, '%d-%m-%Y') if not isinstance(expiration_date_a, datetime.datetime) else creation_date_a
-            cd_b = datetime.datetime.strptime(creation_date_b, '%d-%m-%Y') if not isinstance(creation_date_b, datetime.datetime) else creation_date_a
-            ed_b = datetime.datetime.strptime(expiration_date_b, '%d-%m-%Y') if not isinstance(expiration_date_b, datetime.datetime) else creation_date_a
+            ed_a = datetime.datetime.strptime(expiration_date_a, '%d-%m-%Y') if not isinstance(expiration_date_a, datetime.datetime) else expiration_date_a
+            cd_b = datetime.datetime.strptime(creation_date_b, '%d-%m-%Y') if not isinstance(creation_date_b, datetime.datetime) else creation_date_b
+            ed_b = datetime.datetime.strptime(expiration_date_b, '%d-%m-%Y') if not isinstance(expiration_date_b, datetime.datetime) else expiration_date_b
         except Exception as e:
-            cd_a = dateutil.parser.parse(creation_date_a)
-            ed_a = dateutil.parser.parse(expiration_date_a)
-            cd_b = dateutil.parser.parse(creation_date_b)
-            ed_b = dateutil.parser.parse(expiration_date_b)
+            cd_a = dateutil.parser.parse(creation_date_a) if not isinstance(creation_date_a, datetime.datetime) else creation_date_a
+            ed_a = dateutil.parser.parse(expiration_date_a) if not isinstance(expiration_date_a, datetime.datetime) else expiration_date_a
+            cd_b = dateutil.parser.parse(creation_date_b) if not isinstance(creation_date_b, datetime.datetime) else creation_date_b
+            ed_b = dateutil.parser.parse(expiration_date_b)  if not isinstance(expiration_date_b, datetime.datetime) else expiration_date_b
 
         ttl_days_b = float(abs(cd_b - ed_b).days)  # time to live
         ttl_days_a = float(abs(cd_a - ed_a).days)
@@ -260,10 +275,10 @@ def get_diff_emails_by_min_dist(emails_a=[], emails_b=[]):
     elif not emails_file:
         emails_file = ['']
 
-    dist_email = __levenshtein__(str(emails_seed[0]), str(emails_file[0]))
+    dist_email = __levenshtein__(emails_seed[0], emails_file[0])
     for email_s in emails_seed:
         for email_f in emails_file:
-            dist_email = min(str(dist_email), str(__levenshtein__(str(email_s), str(email_f))))
+            dist_email = min(dist_email, __levenshtein__(email_s, email_f))
     return float(dist_email)
 
 
@@ -413,12 +428,21 @@ def distance_related(whois_info_a, whois_info_b,weigths=None):
 
 # linear regression alg
 def distance_related_by_whois_obj(external_module,domain_a, domain_b,weigths=None):
-    whois_info_a = WhoisConsult.get_features_info(external_module, domain_a)
-    whois_info_b = WhoisConsult.get_features_info(external_module, domain_b)
+    result = WhoisConsult.get_features_info_by_set_url(external_module, [domain_a,domain_b])
+    # whois_info_a = WhoisConsult.get_features_info(external_module, domain_a)
+    # whois_info_b = WhoisConsult.get_features_info(external_module, domain_b)
+    domains = result.keys()
+    try:
+        whois_info_a = result[domains[0]]
+        whois_info_b = result[domains[1]]
+    except Exception as e:
+        whois_info_a = result[domains[0]]
+        whois_info_b = result[domains[0]]
     return distance_related(whois_info_a, whois_info_b,weigths)
 
 
 def get_whois_information_features_of(external_module, domains):
-    for domain in domains:
-        WhoisConsult.get_features_info(external_module,domain)
+    WhoisConsult.get_features_info_by_set_url(external_module, domains)
+    # for domain in domains:
+    #     WhoisConsult.get_features_info(external_module,domain)
 
