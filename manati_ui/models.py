@@ -700,7 +700,11 @@ class WhoisConsult(TimeStampedModel):
         result = self.info_report
         raw = result.get('raw', None)
         raw = raw[0].split('\n') if not raw is None else []
-        raw = ','.join(raw).encode('utf-8').strip().split(',')
+        try:
+            raw = ','.join(raw).encode('utf-8').strip().split(',')
+        except UnicodeDecodeError as e:
+            print(raw)
+            raw = ','.join(raw).encode('ascii', 'ignore').decode('ascii').strip().split(',')
         # self.features_info_pw
 
         def get_dict(dict_obj, key, default):
@@ -819,6 +823,46 @@ class WhoisConsult(TimeStampedModel):
     def process_features_by_ip(self, ip):
         pass
 
+    def check_features_info(self):
+        if not self.features_info:
+            self.process_features_by_domain(self.query_node)
+        return self.features_info
+
+    @staticmethod
+    def get_features_info_by_set_url(content_object, urls_or_ips):
+        query_ips = []
+        query_domains = []
+        result = {}
+        for url_or_ip in urls_or_ips:
+            query_type,query_node = get_data_from_url(url_or_ip)
+            if query_type == 'ip':
+                query_ips.append(query_node)
+            elif query_type == 'domain':
+                query_domains.append(query_node)
+            result[query_node] = {}
+
+        #domain
+        whois_objs = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='domain')
+        for whois_obj in whois_objs:
+            result[whois_obj.query_node] = whois_obj.check_features_info()
+
+        new_whois = list(set(query_domains) - set(result.keys()))
+        whois_objs = []
+        for query_node in new_whois:
+            whois_objs.append(WhoisConsult(query_node=query_node,
+                                           query_type='domain',
+                                           content_object=content_object))
+        WhoisConsult.objects.bulk_create(whois_objs)
+        for whois_obj in whois_objs:
+            result[whois_obj.query_node] = whois_obj.check_features_info()
+
+        #ip TO-DO by IP
+        # whois_objs_ip = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='ip')
+        for query_node in query_ips:
+            result[query_node] = {}
+
+        return result
+
     @staticmethod
     def get_features_info(content_object, url_or_ip):
         query_type, query_node = get_data_from_url(url_or_ip)
@@ -829,7 +873,8 @@ class WhoisConsult(TimeStampedModel):
             if whois_objs.exists():
                 whois = whois_objs.first()
             else:
-                whois = WhoisConsult.objects.create(query_node=query_node, query_type=query_type, content_object=content_object)
+                whois = WhoisConsult.objects.create(query_node=query_node, query_type=query_type,
+                                                    content_object=content_object)
 
             if not whois.features_info:
                 whois.process_features_by_domain(query_node)
