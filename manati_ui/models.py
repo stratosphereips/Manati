@@ -700,7 +700,11 @@ class WhoisConsult(TimeStampedModel):
         result = self.info_report
         raw = result.get('raw', None)
         raw = raw[0].split('\n') if not raw is None else []
-        raw = ','.join(raw).encode('utf-8').strip().split(',')
+        try:
+            raw = ','.join(raw).encode('utf-8').strip().split(',')
+        except UnicodeDecodeError as e:
+            print(raw)
+            raw = ','.join(raw).encode('ascii', 'ignore').decode('ascii').strip().split(',')
         # self.features_info_pw
 
         def get_dict(dict_obj, key, default):
@@ -819,7 +823,6 @@ class WhoisConsult(TimeStampedModel):
     def process_features_by_ip(self, ip):
         pass
 
-    @staticmethod
     def get_features_info(content_object, url_or_ip):
         query_type, query_node = get_data_from_url(url_or_ip)
         if not query_node:

@@ -186,8 +186,9 @@ def get_weblog_history(request):
 def label_weblogs_whois_related(request):
     if request.method == 'POST':
         weblog_id = str(request.POST.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
         verdict = str(request.POST.get('verdict', ''))
-        weblog = ModulesManager.bulk_labeling_by_whois_relation(weblog_id, verdict)
+        ModulesManager.bulk_labeling_by_whois_relation(weblog_id, verdict)
         return JsonResponse(dict(msg='All the weblogs related with ' + weblog.domain + " will be label like " + verdict))
     else:
         return HttpResponseServerError("Only POST request")
