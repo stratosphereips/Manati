@@ -1371,7 +1371,7 @@ function AnalysisSessionLogic(){
             var headers;
             if(_.isEmpty(headers_info)){
                 var elem = weblogs[0];
-                var attributes = JSON.parse(elem.fields.attributes);
+                var attributes = elem.attributes;
                 if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
                 headers_info = _.keys(attributes);
                 headers_info.push(COL_VERDICT_STR);
