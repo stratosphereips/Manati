@@ -839,6 +839,7 @@ class WhoisConsult(TimeStampedModel):
                 query_ips.append(query_node)
             elif query_type == 'domain':
                 query_domains.append(query_node)
+            result[query_node] = {}
 
         #domain
         whois_objs = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='domain')

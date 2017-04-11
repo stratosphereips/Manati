@@ -192,7 +192,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         # try:
         print("Running module: " + module_name)
@@ -303,12 +303,11 @@ class ModulesManager:
             print_exception()
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def bulk_labeling_by_whois_relation(weblog_id,verdict):
         weblog = Weblog.objects.prefetch_related('whois_related_weblogs').get(id=weblog_id)
         weblogs_whois_related = weblog.whois_related_weblogs.all()
-        orig_was_whois_related = weblog.was_whois_related
-        if not orig_was_whois_related:
+        if not weblog.was_whois_related:
             ModulesManager.get_weblogs_whois_related(weblog)
             weblog.was_whois_related = True
             weblog.save()

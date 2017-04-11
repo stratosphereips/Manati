@@ -428,12 +428,21 @@ def distance_related(whois_info_a, whois_info_b,weigths=None):
 
 # linear regression alg
 def distance_related_by_whois_obj(external_module,domain_a, domain_b,weigths=None):
-    whois_info_a = WhoisConsult.get_features_info(external_module, domain_a)
-    whois_info_b = WhoisConsult.get_features_info(external_module, domain_b)
+    result = WhoisConsult.get_features_info_by_set_url(external_module, [domain_a,domain_b])
+    # whois_info_a = WhoisConsult.get_features_info(external_module, domain_a)
+    # whois_info_b = WhoisConsult.get_features_info(external_module, domain_b)
+    domains = result.keys()
+    try:
+        whois_info_a = result[domains[0]]
+        whois_info_b = result[domains[1]]
+    except Exception as e:
+        whois_info_a = result[domains[0]]
+        whois_info_b = result[domains[0]]
     return distance_related(whois_info_a, whois_info_b,weigths)
 
 
 def get_whois_information_features_of(external_module, domains):
-    for domain in domains:
-        WhoisConsult.get_features_info(external_module,domain)
+    WhoisConsult.get_features_info_by_set_url(external_module, domains)
+    # for domain in domains:
+    #     WhoisConsult.get_features_info(external_module,domain)
 
