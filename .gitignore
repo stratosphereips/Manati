@@ -3,8 +3,6 @@
 .idea
 */*.pyc
 *.pyc
-/logs/*.log
 *.ipynb
 /.ipynb_checkpoints/
-*.log
 *.mwb.bak
