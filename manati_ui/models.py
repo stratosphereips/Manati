@@ -27,6 +27,7 @@ import dateutil.parser
 import re
 import pythonwhois
 from pythonwhois.shared import WhoisException
+from bulk_update.helper import bulk_update
 vt = vt()
 
 
@@ -671,33 +672,34 @@ class WhoisConsult(TimeStampedModel):
     object_id = models.IntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
-    def __process_result_by_domain__(self,domain):  # python whois lib
+    def __process_result_by_domain__(self,domain, save=True):  # python whois lib
         d = domain
         try:
             if not self.info_report and d:
                 r = pythonwhois.get_whois(d)
                 self.info_report = r
-                self.save()
             elif not d:
                 print("PW, domain null " + str(d) + " " + str(self.id))
                 self.info_report = {}
-                self.save()
         except WhoisException as e:
             print("PW rejects " + str(d)+ " " + str(self.id) + ", ERROR TRACE " + e.message)
             self.info_report = {}
-            self.save()
         except:
             self.info_report = {}
-            self.save()
             print("PW rejects " + str(d) + " " + str(self.id))
+
+        if save:
+            self.save()
+
+    def check_info_report(self, domain, save=True):
+        if not self.info_report:
+            self.__process_result_by_domain__(domain, save=save)
+        return self.info_report
 
 
     # python whois
-    def process_features_by_domain(self, domain):
-        if not self.info_report:
-            self.__process_result_by_domain__(domain)
-
-        result = self.info_report
+    def process_features_by_domain(self, domain, save=True):
+        result = self.check_info_report(domain, save=save)
         raw = result.get('raw', None)
         raw = raw[0].split('\n') if not raw is None else []
         try:
@@ -818,14 +820,15 @@ class WhoisConsult(TimeStampedModel):
                 org=get_orgs()
             )
             self.features_info = features
-            self.save()
+            if save:
+                self.save()
 
     def process_features_by_ip(self, ip):
         pass
 
-    def check_features_info(self):
+    def check_features_info(self, save=True):
         if not self.features_info:
-            self.process_features_by_domain(self.query_node)
+            self.process_features_by_domain(self.query_node,save=save)
         return self.features_info
 
     @staticmethod
@@ -841,25 +844,30 @@ class WhoisConsult(TimeStampedModel):
                 query_domains.append(query_node)
             result[query_node] = {}
 
-        #domain
-        whois_objs = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='domain')
-        for whois_obj in whois_objs:
-            result[whois_obj.query_node] = whois_obj.check_features_info()
+        with transaction.atomic():
+            #domain
+            whois_objs = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='domain')
+            query_node_created = []
+            for whois_obj in whois_objs:
+                result[whois_obj.query_node] = whois_obj.check_features_info()
+                query_node_created.append(whois_obj.query_node)
 
-        new_whois = list(set(query_domains) - set(result.keys()))
-        whois_objs = []
-        for query_node in new_whois:
-            whois_objs.append(WhoisConsult(query_node=query_node,
-                                           query_type='domain',
-                                           content_object=content_object))
-        WhoisConsult.objects.bulk_create(whois_objs)
-        for whois_obj in whois_objs:
-            result[whois_obj.query_node] = whois_obj.check_features_info()
+            whois_objs = []
+            for query_node in query_domains:
+                if not query_node in query_node_created:
+                    whois_objs.append(WhoisConsult(query_node=query_node,
+                                                   query_type='domain',
+                                                   content_object=content_object))
+            WhoisConsult.objects.bulk_create(whois_objs)
+            for whois_obj in whois_objs:
+                result[whois_obj.query_node] = whois_obj.check_features_info(save=False)
 
-        #ip TO-DO by IP
-        # whois_objs_ip = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='ip')
-        for query_node in query_ips:
-            result[query_node] = {}
+            bulk_update(whois_objs)
+
+            #ip TO-DO by IP
+            # whois_objs_ip = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='ip')
+            for query_node in query_ips:
+                result[query_node] = {}
 
         return result
 
@@ -915,6 +923,7 @@ class WhoisConsult(TimeStampedModel):
             else:
                 raise ValueError("you must determine is you want to do a domain or ip consultation by __get_query_info" +
                                  "__('query', SomeUser, domain=True or ip=True")
+        whois_consult.check_info_report(query_node, save=True)
 
         return whois_consult
 
