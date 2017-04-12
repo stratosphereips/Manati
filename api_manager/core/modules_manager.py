@@ -275,7 +275,6 @@ class ModulesManager:
                     os.makedirs(path_log_dir)
                 f = open(logfile_name, "w")
                 print('Creating file: ' + logfile_name)
-            logfile_task_manager = os.path.join(path_log_dir, "creating_task.log")
             ModulesManager.background_task_thread = threading.Thread(target=management.call_command, args=('process_tasks',
                                                                             "--sleep", "10",
                                                                             "--log-level", "DEBUG",
