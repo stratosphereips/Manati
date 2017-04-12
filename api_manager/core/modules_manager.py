@@ -240,10 +240,14 @@ class ModulesManager:
     def __attach_event(event_name, weblogs_seed_json, async=True):
         # try:
         external_modules = ExternalModule.objects.find_by_event(event_name)
-        run_method = ModulesManager.__run_modules if async else ModulesManager.__run_modules_sync
         if len(external_modules) > 0:
-            for external_module in external_modules:
-                run_method(event_name, external_module.module_name, weblogs_seed_json)
+            if async:
+                for external_module in external_modules:
+                    ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
+            else:
+                for external_module in external_modules:
+                    ModulesManager.__run_modules_sync(event_name, external_module.module_name, weblogs_seed_json)
+
         # except Exception as e:
         #     print(e)
         #     print_exception()
