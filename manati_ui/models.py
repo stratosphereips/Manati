@@ -860,9 +860,9 @@ class WhoisConsult(TimeStampedModel):
                                                    content_object=content_object))
             WhoisConsult.objects.bulk_create(whois_objs)
             for whois_obj in whois_objs:
-                result[whois_obj.query_node] = whois_obj.check_features_info(save=False)
+                result[whois_obj.query_node] = whois_obj.check_features_info()
 
-            bulk_update(whois_objs)
+            # bulk_update(whois_objs)
 
             #ip TO-DO by IP
             # whois_objs_ip = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='ip')
