@@ -819,18 +819,21 @@ function AnalysisSessionLogic(){
                 table += "<tr>";
                 table += "<th>"+key+"</th>";
                 var info = info_report[key];
-                if (info instanceof Array){
+                if (info instanceof Array) {
                     var html_temp = "";
-                    for(var index = 0; index < info.length; index++){
+                    for (var index = 0; index < info.length; index++) {
                         var data = info[index];
-                        if(data instanceof Object){
-                             html_temp += buildTableInfo_Whois(data, true) ;
-                        }else if(typeof(data) == "string") {
-                            table += "<td>" + info.join(", ") + "</td>" ;
+                        if (data instanceof Object) {
+                            html_temp += buildTableInfo_Whois(data, true);
+                        } else if (typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>";
                             break;
                         }
-
                     }
+                    if (html_temp != "") table += "<td>" + html_temp + "</td>";
+                }else if(info instanceof Object){
+                    var html_temp = "";
+                    html_temp += buildTableInfo_Whois(info, false) ;
                     if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
                 }else{
                     table += "<td>" + info + "</td>" ;
@@ -902,7 +905,7 @@ function AnalysisSessionLogic(){
             dataType: "json",
             url: "/manati_project/manati_ui/consult_whois",
             success : function(json) {// handle a successful response
-                var info_report = JSON.parse(json['info_report']);
+                var info_report = json['info_report'];
                 var query_node = json['query_node'];
                 var table = buildTableInfo_Whois(info_report);
                 initModal("Whois Query: <span>"+query_node+"</span>");
