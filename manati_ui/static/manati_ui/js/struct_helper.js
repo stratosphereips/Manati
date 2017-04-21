@@ -2,18 +2,19 @@
  * Created by raulbeniteznetto on 9/27/16.
  */
 
-function FlowsProcessed(flows_grouped,col_host_str,co_ip_str){
+function FlowsProcessed(col_host_str,co_ip_str){
     var thiz = this;
     var COL_HOST_STR = col_host_str;
     var COL_IP_STR = co_ip_str;
-    var flows_grouped = flows_grouped;
+    var _int_flows_grouped = {};
     var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
     var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
     function groupingFlow(key_flow, key_group, value){
-        if(key_flow == null || key_group == null || value == null) return false;
-        if(!(flows_grouped[key_flow] instanceof Object))flows_grouped[key_flow] = {};
-        if(!(flows_grouped[key_flow][key_group] instanceof Array))flows_grouped[key_flow][key_group] = [];
-        flows_grouped[key_flow][key_group].push(value);
+        if(key_flow === null || key_group === null || value === null) return false;
+        if(!(_int_flows_grouped[key_flow] instanceof Object))_int_flows_grouped[key_flow] = {};
+        if(!(_int_flows_grouped[key_flow][key_group] instanceof Array))_int_flows_grouped[key_flow][key_group] = [];
+        _int_flows_grouped[key_flow][key_group].push(value);
+
         return true;
 
     }
@@ -31,13 +32,16 @@ function FlowsProcessed(flows_grouped,col_host_str,co_ip_str){
         return ip;
     }
     this.getFlowsGrouped = function(){
-        return flows_grouped;
+        return _int_flows_grouped;
+    };
+    this.setFlowsGrouped = function (flows_grouped) {
+        _int_flows_grouped = flows_grouped;
     };
     this.getFlowsGroupedBy = function (key_group, key_flow) {
-        if(key_flow == null || key_group == null) return [];
-        if((flows_grouped[key_group] instanceof Object)){
-            if((flows_grouped[key_group][key_flow] instanceof Array)){
-                return flows_grouped[key_group][key_flow];
+        if(key_flow === null || key_group === null) return [];
+        if((_int_flows_grouped[key_group] instanceof Object)){
+            if((_int_flows_grouped[key_group][key_flow] instanceof Array)){
+                return _int_flows_grouped[key_group][key_flow];
             }
             else return [];
         }
@@ -57,8 +61,16 @@ function FlowsProcessed(flows_grouped,col_host_str,co_ip_str){
         });
 
     };
+    this.addBulkFlows = function (flows){
+        for(var i = 0; i< flows.length; i++) {
+            thiz.addFlows(flows[i]);
+        }
+    };
 
-    this.makeStaticalSection= function () {
+    this.makeStaticalSection= function (flows_grouped) {
+        if(flows_grouped!==undefined){
+            _int_flows_grouped=flows_grouped;
+        }
         var table = document.createElement('table');
         table.setAttribute("id", "statistics_table");
         table.classList = ["table"];
@@ -77,9 +89,9 @@ function FlowsProcessed(flows_grouped,col_host_str,co_ip_str){
         thead.appendChild(tr);
         table.appendChild(thead);
         var tbody = document.createElement('tbody');
-        $.each(_.keys(flows_grouped),function (index,key_group) {
+        $.each(_.keys(_int_flows_grouped),function (index, key_group) {
             // var tr = document.createElement('tr');
-            var key_flows = _.keys(flows_grouped[key_group]);
+            var key_flows = _.keys(_int_flows_grouped[key_group]);
             // var td1 = document.createElement('td');
             // var text = document.createTextNode(key_group);
             // td1.rowSpan = key_flows.length;

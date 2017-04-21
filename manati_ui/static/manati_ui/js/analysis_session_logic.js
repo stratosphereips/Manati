@@ -304,7 +304,7 @@ function AnalysisSessionLogic(){
                                 _countID++;
                                 return values
                             });
-        processingFlows_WORKER(_data_uploaded);
+
         $.each(_data_headers,function(i, v){
             _data_headers_keys[v] = i;
         });
@@ -328,6 +328,7 @@ function AnalysisSessionLogic(){
                 break;
             }
         }
+        processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
         // COL_HTTP_URL_STR = "http.url";
         // COL_END_POINTS_SERVER_STR = "endpoints.server";
         COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
@@ -1283,7 +1284,7 @@ function AnalysisSessionLogic(){
                         btn.data('status',old_status);
                         var text = new_status === 'open' ? 'Close it !' : 'Open it !';
                         btn.text(text);
-                        if(new_status == 'closed'){
+                        if(new_status === 'closed'){
                             $.notify("This Analysis Session is done, you will be redirect to the index page ", "info", {autoHideDelay: 3000 });
                             window.location.href = "/manati_project/manati_ui/analysis_sessions";
                         }
@@ -1537,7 +1538,7 @@ function AnalysisSessionLogic(){
             COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin, COLUMN_REG_STATUS, REG_STATUS]);
     };
 
-    var processingFlows_WORKER = function (flows) {
+    var processingFlows_WORKER = function (flows,col_host_str, col_ip_str) {
          $("#statical-section").html('');
         _flows_grouped = {};
         var blob = new Blob([ "onmessage = function(e) { " +
@@ -1548,8 +1549,8 @@ function AnalysisSessionLogic(){
             "var co_ip_str = e.data[4];"+
             "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
             "self.importScripts(origin+'/static/manati_ui/js/struct_helper.js');"+
-            "var helper = new FlowsProcessed(flows_grouped,col_host_str,co_ip_str);"+
-            "for(var i = 0; i< flows.length; i++) helper.addFlows(flows[i]);"+
+            "var helper = new FlowsProcessed(col_host_str,co_ip_str);"+
+            "helper.addBulkFlows(flows);"+
             "self.postMessage(helper.getFlowsGrouped());" +
         "}"]);
 
@@ -1560,11 +1561,12 @@ function AnalysisSessionLogic(){
         worker.addEventListener('message', function(e) {
             worker.terminate();
             _flows_grouped = e.data;
-            _helper = new FlowsProcessed(_flows_grouped,COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR);
+            _helper = new FlowsProcessed(col_host_str, col_ip_str);
+            _helper.setFlowsGrouped(_flows_grouped);
             _helper.makeStaticalSection();
             console.log("Worker Done");
 	    });
-        worker.postMessage([_flows_grouped,flows,document.location.origin, COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR]);
+        worker.postMessage([_flows_grouped,flows,document.location.origin, col_host_str, col_ip_str]);
 
     };
 
