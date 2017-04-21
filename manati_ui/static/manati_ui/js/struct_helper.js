@@ -2,8 +2,10 @@
  * Created by raulbeniteznetto on 9/27/16.
  */
 
-function FlowsProcessed(flows_grouped){
+function FlowsProcessed(flows_grouped,col_host_str,co_ip_str){
     var thiz = this;
+    var COL_HOST_STR = col_host_str;
+    var COL_IP_STR = co_ip_str;
     var flows_grouped = flows_grouped;
     var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
     var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
@@ -44,10 +46,13 @@ function FlowsProcessed(flows_grouped){
 
     this.addFlows = function(flow){
         _.each(flow, function (v,k){
-            var d;
-            if((d = findDomainOfURL(v)) != null){
-                groupingFlow(k,d,flow);
+            if(k === COL_HOST_STR || k === COL_IP_STR){
+                var d;
+                if((d = findDomainOfURL(v)) !== null){
+                    groupingFlow(k,d,flow);
+                }
             }
+
             // if((d = findIP(v)) != null) groupingFlow(k,d,flow); d == null;
         });
 
