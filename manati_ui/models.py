@@ -314,6 +314,33 @@ class Weblog(TimeStampedModel):
         key_ip = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['ip_dist']
         return self.attributes_obj[key_ip]
 
+    @transaction.atomic
+    def create_IOCs(self):
+        if not self.ioc_set.all():
+            key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
+            url = self.attributes_obj[key_url]
+            try:
+                d_type, domain = get_data_from_url(url)
+                if not domain:
+                    raise Exception("Domain value cannot be None")
+                else:
+                    ioc_domain = IOC.objects.create(domain, d_type, self)
+            except:
+                logger.error("Error creating domain IOC , weblog-id " + str(self.id))
+
+            try:
+                ip = self.ip
+                if not ip:
+                    raise Exception("IP value cannot be None")
+                else:
+                    ioc_ip = IOC.objects.create(ip, 'ip', self)
+            except:
+                logger.error("Error creating IP IOC , weblog-id " + str(self.id))
+
+
+
+
+
     @property
     def attributes_obj(self):
         attr = self.attributes
@@ -486,6 +513,36 @@ class Weblog(TimeStampedModel):
 
     def remove_all_aux_weblog(self):
         self.moduleauxweblog_set.clear()
+
+
+class IOCManager(models.Manager):
+
+    @transaction.atomic
+    def create(self, value, ioc_type, weblog):
+        if not value or not ioc_type or not weblog:
+            return None
+
+        iocs = IOC.objects.filter(value=value, ioc_type=ioc_type)
+        if not iocs:
+            ioc = IOC.objects.create(value=value, ioc_type=ioc_type)
+        else:
+            ioc = iocs[0]
+
+        ioc.weblogs.add(weblog)
+        return ioc
+
+
+class IOC(TimeStampedModel):
+    value = models.CharField(max_length=256, null=False, unique=True)
+    IOC_TYPES = Choices(('domain', 'Domain Name'),
+                        ('ip', 'IP Address'),)
+    ioc_type = models.CharField(choices=IOC_TYPES, max_length=20, null=False)
+    weblogs = models.ManyToManyField(Weblog)
+
+    objects = IOCManager()
+
+    class Meta:
+        db_table = 'manati_indicators_of_compromise'
 
 
 class WeblogHistory(TimeStampedModel):
@@ -945,8 +1002,6 @@ class WhoisConsult(TimeStampedModel):
 
     def __unicode__(self):
         return unicode(self.info_report) or u''
-
-
 
 
 class ModuleAuxWeblog(TimeStampedModel):

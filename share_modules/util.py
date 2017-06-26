@@ -68,7 +68,11 @@ def get_data_from_url(url):
     o = urlparse(url)
     d = o.netloc
     if not d or d == '':
-        domain = get_tld('http://www.' + url)
+        try:
+            domain = get_tld('http://www.' + url)
+        except Exception as e:
+            print("Error with the url= " + url)
+            raise e
         if not domain or domain == '':
             return 'domain',None
         else:
