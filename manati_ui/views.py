@@ -83,7 +83,10 @@ def create_analysis_session(request):
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
             call_after_save_event(analysis_session)
-            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id, 'filename': analysis_session.name },
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id,
+                                           'filename': analysis_session.name,
+                                           'data_length': analysis_session.weblog_set.count()
+                                           },
                                      msg='Analysis Session was created .'))
 
     else:
@@ -210,10 +213,10 @@ def get_weblogs_whois_related(request):
         weblogs_whois_related = weblog.whois_related_weblogs.all()
         whois_related = {}
         orig_was_whois_related = weblog.was_whois_related
-        if not orig_was_whois_related:
-            ModulesManager.get_weblogs_whois_related(weblog)
-            weblog.was_whois_related = True
-            weblog.save()
+        # if not orig_was_whois_related:
+        #     ModulesManager.get_weblogs_whois_related(weblog)
+        #     weblog.was_whois_related = True
+        #     weblog.save()
 
         for w in weblogs_whois_related:
             whois_related[w.id] = w.domain

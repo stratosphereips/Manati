@@ -30,6 +30,7 @@ djangorestframework==3.4.7
 dnspython==1.15.0
 entrypoints==0.2.2
 enum34==1.1.6
+ez-setup==0.9
 functools32==3.2.3.post2
 future==0.16.0
 idna==2.5
@@ -57,7 +58,9 @@ notebook==4.2.3
 numpy==1.12.1
 ordereddict==1.1
 packaging==16.8
+passivetotal==1.0.30
 pathlib2==2.1.0
+peewee==2.10.1
 pexpect==4.2.1
 pickleshare==0.7.4
 prompt-toolkit==1.0.8

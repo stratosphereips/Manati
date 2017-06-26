@@ -36,7 +36,7 @@ class WhoisRelationReq(Module):
                 continue
             attributes_b = weblog_b['attributes']
             domain_b = ModulesManager.get_domain_by_obj(attributes_b)
-            related = ModulesManager.distance_related_domains(self.module_name, domain_a,domain_b)
+            related, distance_numeric = ModulesManager.distance_related_domains(self.module_name, domain_a,domain_b)
             if related:
                 domains_measured.setdefault(id_a,[]).append(id_b)
                 domains_measured.setdefault(id_b,[]).append(id_a)

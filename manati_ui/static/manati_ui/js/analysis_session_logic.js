@@ -691,29 +691,29 @@ function AnalysisSessionLogic(){
         };
 
         if(thiz.isSaved()) {
-            // items_menu['fold1']['items']['fold1-key3'] = {
-            //     name: "Mark all WHOIS related (of column:" + COL_HTTP_URL_STR +")",
-            //     icon: "fa-paint-brush",
-            //     className: CLASS_MC_HTTP_URL_STR,
-            //     callback: function(key, options) {
-            //         var weblog_id = bigData[COLUMN_DT_ID].toString();
-            //         weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-            //         labelWeblogsWhoisRelated(weblog_id,_bulk_verdict)
-            //
-            //         // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
-            //         // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
-            //     }
-            //
-            // };
-            // items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
-            //     name: "Find Weblogs Related by whois info", icon: "fa-search",
-            //     callback: function (key, option) {
-            //         var weblog_id = bigData[COLUMN_DT_ID].toString();
-            //         weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-            //         getWeblogsWhoisRelated(weblog_id);
-            //
-            //     }
-            // };
+            items_menu['fold1']['items']['fold1-key3'] = {
+                name: "Mark all WHOIS related (of column:" + COL_HTTP_URL_STR +")",
+                icon: "fa-paint-brush",
+                className: CLASS_MC_HTTP_URL_STR,
+                callback: function(key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    labelWeblogsWhoisRelated(weblog_id,_bulk_verdict)
+
+                    // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                    // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
+                }
+
+            };
+            items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
+                name: "Find Weblogs Related by whois info", icon: "fa-search",
+                callback: function (key, option) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getWeblogsWhoisRelated(weblog_id);
+
+                }
+            };
 
 
             items_menu['fold4'] = {
