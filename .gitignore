@@ -6,3 +6,4 @@
 *.ipynb
 /.ipynb_checkpoints/
 *.mwb.bak
+/logs/*
