@@ -248,6 +248,16 @@ class AnalysisSession(TimeStampedModel):
         asu.columns_order = json.dumps(columns_order)
         asu.save()
 
+    def __get_all_IOCs__(self, ioc_type):
+        weblogs_ids = self.weblog_set.values_list('id', flat=True)
+        return IOC.objects.filter(weblogs__in=weblogs_ids, ioc_type=ioc_type).distinct()
+
+    def get_all_IOCs_domain(self):
+        return self.__get_all_IOCs__(IOC.IOC_TYPES.domain)
+
+    def get_all_IOCs_ip(self):
+        return self.__get_all_IOCs__(IOC.IOC_TYPES.ip)
+
     class Meta:
         db_table = 'manati_analysis_sessions'
         permissions = (
