@@ -323,7 +323,7 @@ class ModulesManager:
         weblog = Weblog.objects.prefetch_related('whois_related_weblogs').get(id=weblog_id)
         weblogs_whois_related = weblog.whois_related_weblogs.all()
         if not weblog.was_whois_related:
-            ModulesManager.get_weblogs_whois_related(weblog)
+            ModulesManager.find_whois_related_domains(weblog)
             weblog.was_whois_related = True
             weblog.save()
 
@@ -340,10 +340,29 @@ class ModulesManager:
         return weblog
 
     @staticmethod
-    def get_weblogs_whois_related(current_weblog):
-        weblogs_seed_json = serializers.serialize('json', [current_weblog])
-        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json, False)
+    # @background(schedule=timezone.now())
+    def __run_find_whois_related_domains__(analysis_session_id, domains_json):
+        # special cases of running after events. re-do it now is a HACK!!!
+        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+        module_name = external_module.module_name
+        event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
 
+        print("Running module: " + module_name)
+        logger.info("Running module: " + module_name)
+        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+        assert os.path.isdir(path) is True
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        module.module_obj.run(event_thrown=event_name,
+                              analysis_session_id=analysis_session_id,
+                              domains=domains_json)
+
+    @staticmethod
+    def find_whois_related_domains(analysis_session_id, domains):
+        domains_json = json.dumps(domains)
+        ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
 
 
     @staticmethod

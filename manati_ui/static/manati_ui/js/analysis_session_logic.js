@@ -545,8 +545,34 @@ function AnalysisSessionLogic(){
             }
         });
     }
+    var refreshIntervalId;
+    function refreshingDomainsWhoisRelatedModal(weblog_id){
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
+            success : function(json) {// handle a successful response
+                var whois_related_domains = json['whois_related_domains'];
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+        });
+
+
+
+    }
     function getWeblogsWhoisRelated(weblog_id){
-        initModal("Modules Weblogs related by whois information: " + weblog_id);
+        var closingModal = function(){
+            clearInterval(refreshIntervalId);
+        };
+        initModal("Modules Weblogs related by whois information: " + weblog_id, closingModal);
         var data = {weblog_id: weblog_id};
         $.ajax({
             type:"GET",
@@ -554,20 +580,19 @@ function AnalysisSessionLogic(){
             dataType: "json",
             url: "/manati_project/manati_ui/analysis_session/weblog/modules_whois_related",
             success : function(json) {// handle a successful response
-                var whois_related_info = JSON.parse(json['data']);
-                var was_whois_related = json['was_whois_related'];
-                if(!was_whois_related){
-                    $.notify("One request for the DB was realized, maybe it will take time to process it and" +
-                            " show the information in the modal.",
-                            "warn", {autoHideDelay: 2000});
-                }
-                var table = buildTable_WeblogsWhoisRelated(whois_related_info,was_whois_related);
-
-                updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
+               // / var whois_related_domains = json['whois_related_domains'];
+                $.notify(json['msg'], "info");
+                // var was_whois_related = json['was_whois_related'];
+                // if(!was_whois_related){
+                //     $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+                //             " show the information in the modal.",
+                //             "warn", {autoHideDelay: 2000});
+                // }
+                // var table = buildTable_WeblogsWhoisRelated(whois_related_domains);
                 // updateBodyModal(table);
+                refreshIntervalId = setInterval(refreshingDomainsWhoisRelatedModal, 3000,weblog_id)
+
+
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -848,13 +873,17 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function initModal(title){
+    function initModal(title, after_hidden_function){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
+            if(after_hidden_function !== undefined && after_hidden_function !== null){
+                after_hidden_function();
+            }
+
         });
     }
     function updateBodyModal(table) {
@@ -967,18 +996,20 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
-        if(isEmpty(mod_attributes) && was_whois_related == false) return null;
+    function buildTable_WeblogsWhoisRelated(mod_attributes){
+        if(isEmpty(mod_attributes)) return null;
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
         table += "<tbody>";
         console.log(mod_attributes);
-        _.each(mod_attributes, function (domain, id) {
+        var count = 1;
+        _.each(mod_attributes, function (domain) {
             var tr = "<tr>";
-            tr += "<td>"+id+"</td>";
+            tr += "<td>"+count+"</td>";
             tr += "<td>"+domain+"</td>";
             tr += "</tr>";
             table+=tr;
+            count++;
         });
         table += "</tbody>";
         table += "</table>";

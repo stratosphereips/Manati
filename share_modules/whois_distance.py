@@ -52,8 +52,8 @@ def __dist_domain__name__(domain_name_a, domain_name_b):
 def __dist_registrar__(registrar_a, registrar_b):
     registrar_a = registrar_a if not registrar_a is None else ''
     registrar_b = registrar_b if not registrar_b is None else ''
-    registrar_a = registrar_a.encode('utf-8')
-    registrar_b = registrar_b.encode('utf-8')
+    registrar_a = registrar_a.encode('utf-8') if not isinstance(registrar_a, list) else registrar_a[0].encode('utf-8')
+    registrar_b = registrar_b.encode('utf-8') if not isinstance(registrar_b, list) else registrar_b[0].encode('utf-8')
     return __levenshtein__(str(registrar_a).lower(), str(registrar_b).lower())
 
 
@@ -113,10 +113,17 @@ def get_diff_ttl(creation_date_a, creation_date_b,expiration_date_a, expiration_
     elif not creation_date_a or not creation_date_b or not expiration_date_a or not expiration_date_b:
         return float(1)
     else:
-        cd_a = datetime.datetime.strptime(creation_date_a, '%d-%m-%Y') if not isinstance(creation_date_a, datetime.datetime) else creation_date_a
-        ed_a = datetime.datetime.strptime(expiration_date_a, '%d-%m-%Y') if not isinstance(expiration_date_a, datetime.datetime) else creation_date_a
-        cd_b = datetime.datetime.strptime(creation_date_b, '%d-%m-%Y') if not isinstance(creation_date_b, datetime.datetime) else creation_date_a
-        ed_b = datetime.datetime.strptime(expiration_date_b, '%d-%m-%Y') if not isinstance(expiration_date_b, datetime.datetime) else creation_date_a
+        try:
+            cd_a = datetime.datetime.strptime(creation_date_a, '%d-%m-%Y') if not isinstance(creation_date_a,datetime.datetime) else creation_date_a
+            ed_a = datetime.datetime.strptime(expiration_date_a, '%d-%m-%Y') if not isinstance(expiration_date_a,datetime.datetime) else creation_date_a
+            cd_b = datetime.datetime.strptime(creation_date_b, '%d-%m-%Y') if not isinstance(creation_date_b,datetime.datetime) else creation_date_a
+            ed_b = datetime.datetime.strptime(expiration_date_b, '%d-%m-%Y') if not isinstance(expiration_date_b,datetime.datetime) else creation_date_a
+        except Exception as ex:
+            cd_a = dateutil.parser.parse(creation_date_a)
+            ed_a = dateutil.parser.parse(expiration_date_a)
+            cd_b = dateutil.parser.parse(creation_date_b)
+            ed_b = dateutil.parser.parse(expiration_date_b)
+
         ttl_days_b = float(abs(cd_b - ed_b).days)  # time to live
         ttl_days_a = float(abs(cd_a - ed_a).days)
         if ttl_days_b == ttl_days_b:
@@ -247,6 +254,9 @@ def distance_related_by_whois_obj(external_module,domain_a, domain_b):
         whois_info_a = result[domains[0]]
         whois_info_b = result[domains[0]]
 
+    print(whois_info_a)
+    print("##########################")
+    print(whois_info_b)
     distance = get_whois_distance(whois_info_a,whois_info_b)
     return distance <= RELATION_THRESHOLD,distance
 

@@ -204,32 +204,43 @@ def label_weblogs_whois_related(request):
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
-def get_weblogs_whois_related(request):
+def find_domains_whois_related(request): # BY DOMAIN
     # try:
     if request.method == 'GET':
         # current_user = request.user
         weblog_id = str(request.GET.get('weblog_id', ''))
         weblog = Weblog.objects.get(id=weblog_id)
-        weblogs_whois_related = weblog.whois_related_weblogs.all()
-        whois_related = {}
-        orig_was_whois_related = weblog.was_whois_related
-        # if not orig_was_whois_related:
-        #     ModulesManager.get_weblogs_whois_related(weblog)
-        #     weblog.was_whois_related = True
-        #     weblog.save()
+        domain_ioc = weblog.domain_ioc
+        if not domain_ioc:
+            return HttpResponseServerError("The selected weblogs, does not have domain in the given URL or host")
 
-        for w in weblogs_whois_related:
-            whois_related[w.id] = w.domain
-
-        return JsonResponse(dict(data=json.dumps(whois_related),
-                                 was_whois_related=orig_was_whois_related,
-                                 msg='Getting Weblogs Whois-Related DONE'))
+        ModulesManager.find_whois_related_domains(weblog.analysis_session_id, [domain_ioc.value])
+        whois_related_domains = domain_ioc.get_all_values_related_by(weblog.analysis_session_id)
+        return JsonResponse(dict(whois_related_domains=whois_related_domains,
+                                 msg='Starting Module to process the relationship between domains...'))
     else:
         return HttpResponseServerError("Only GET request")
-    # except Exception as e:
-    #     print(e)
-    #     print_exception()
-    #     return HttpResponseServerError("There was a error in the Server")
+
+@csrf_exempt
+def refreshing_domains_whois_related(request):
+    if request.method == 'GET':
+
+        weblog_id = str(request.GET.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
+        domain_ioc = weblog.domain_ioc
+        if not domain_ioc:
+            whois_related_domains = []
+            msg = 'It does not have a IOC domain assigned'
+        else:
+            msg = 'Refreshing WHOIS related domains'
+            whois_related_domains = domain_ioc.get_all_values_related_by(weblog.analysis_session_id)
+        return JsonResponse(dict(whois_related_domains=whois_related_domains,msg=msg))
+
+    else:
+        return HttpResponseServerError("Only GET request")
+
+
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_modules_changes(request):

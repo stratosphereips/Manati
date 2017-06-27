@@ -83,7 +83,10 @@ class ExternalModule(TimeStampedModel):
         db_table = 'manati_externals_modules'
 #
 #
-# class HistoryExternalModule(models.Model):
+# class QueueExternalModule(TimeStampedModel):
+#
+#     class Meta:
+#         db_table = 'manati_queue_externals_modules'
 #
 #     external_module = models.ForeignKey(ExternalModule, on_delete=models.CASCADE, null=False)
 #     start_running = AutoCreatedField(_('start_running'))

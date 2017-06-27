@@ -315,6 +315,16 @@ class Weblog(TimeStampedModel):
         return domain
 
     @property
+    def domain_ioc(self):
+        iocs = self.ioc_set.filter(ioc_type=IOC.IOC_TYPES.domain)
+        if not iocs:
+            self.create_IOCs()
+            iocs = self.ioc_set.filter(ioc_type=IOC.IOC_TYPES.domain)
+            if not iocs:
+                return None
+        return iocs.first()
+
+    @property
     def ip(self):
         if self.analysis_session.type_file == '':
             self.analysis_session.type_file = AnalysisSession.TYPE_FILES.cisco_file
@@ -555,11 +565,16 @@ class IOC(TimeStampedModel):
         exclude_list = []
         for ioc in iocs:
             exclude_list.append(ioc.id)
-            for ioc_b in iocs.exclude(id__in=exclude_list):     # the relation is simmetric,
+            for ioc_b in iocs.exclude(id__in=exclude_list):     # the relation is symmetric,
                                                                 # it is not necessary to re join relationships
                 ioc.whois_related_iocs.add(ioc_b)
 
         return iocs
+
+    def get_all_values_related_by(self, analysis_session_id):
+        wris = self.whois_related_iocs.filter(ioc_type=self.ioc_type,
+                                              weblogs__analysis_session_id=analysis_session_id).distinct()
+        return [wri.value for wri in wris]
 
 
     class Meta:
