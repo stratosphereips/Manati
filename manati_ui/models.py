@@ -302,8 +302,6 @@ class Weblog(TimeStampedModel):
     register_status = enum.EnumField(RegisterStatus, default=RegisterStatus.READY, null=True)
     mod_attributes = JSONField(default=json.dumps({}), null=True)
     comments = GenericRelation('Comment')
-    whois_related_weblogs = models.ManyToManyField("self", related_name='whois_related_weblogs+')
-    was_whois_related = models.BooleanField(default=False)
     dt_id = -1
 
     @property
@@ -334,18 +332,18 @@ class Weblog(TimeStampedModel):
                 if not domain:
                     raise Exception("Domain value cannot be None")
                 else:
-                    ioc_domain = IOC.objects.create(domain, d_type, self)
-            except:
-                logger.error("Error creating domain IOC , weblog-id " + str(self.id))
+                    ioc_domain = IOC.objects.create_IOC_from_weblog(domain, d_type, self)
+            except Exception as ex:
+                logger.error("Error creating domain IOC , weblog-id " + str(self.id) + " | " + str(ex))
 
             try:
                 ip = self.ip
                 if not ip:
                     raise Exception("IP value cannot be None")
                 else:
-                    ioc_ip = IOC.objects.create(ip, 'ip', self)
+                    ioc_ip = IOC.objects.create_IOC_from_weblog(ip, 'ip', self)
             except:
-                logger.error("Error creating IP IOC , weblog-id " + str(self.id))
+                logger.error("Error creating IP IOC , weblog-id " + str(self.id)+ " | " + str(ex))
 
 
 
@@ -430,10 +428,6 @@ class Weblog(TimeStampedModel):
             self.save()
         # else:
         #     raise ValidationError("Status Assigned is not correct")
-
-    def set_whois_related_weblogs(self, ids_related):
-        for id in ids_related:
-            self.whois_related_weblogs.add(Weblog.objects.get(id=id))
     
     @staticmethod
     @transaction.atomic
@@ -528,7 +522,7 @@ class Weblog(TimeStampedModel):
 class IOCManager(models.Manager):
 
     @transaction.atomic
-    def create(self, value, ioc_type, weblog):
+    def create_IOC_from_weblog(self, value, ioc_type, weblog):
         if not value or not ioc_type or not weblog:
             return None
 
@@ -548,8 +542,25 @@ class IOC(TimeStampedModel):
                         ('ip', 'IP Address'),)
     ioc_type = models.CharField(choices=IOC_TYPES, max_length=20, null=False)
     weblogs = models.ManyToManyField(Weblog)
+    whois_related_iocs = models.ManyToManyField("self", related_name='whois_related_iocs+')
 
     objects = IOCManager()
+
+    @staticmethod
+    def add_whois_related_domains(domains_related=[]):
+        if len(domains_related) <= 1:
+            return None
+        iocs = IOC.objects.prefetch_related('whois_related_iocs').filter(value__in=domains_related,
+                                                                         ioc_type='domain').distinct()
+        exclude_list = []
+        for ioc in iocs:
+            exclude_list.append(ioc.id)
+            for ioc_b in iocs.exclude(id__in=exclude_list):     # the relation is simmetric,
+                                                                # it is not necessary to re join relationships
+                ioc.whois_related_iocs.add(ioc_b)
+
+        return iocs
+
 
     class Meta:
         db_table = 'manati_indicators_of_compromise'

@@ -15,32 +15,18 @@ class WhoisRelationReq(Module):
 
     def run(self, **kwargs):
         event = kwargs['event_thrown']
-        weblogs_seed = json.loads(kwargs['weblogs_seed'])
-        weblog_a = weblogs_seed[0]
-        analysis_session_id = weblog_a['fields']['analysis_session']
-        analysis_session = json.loads(ModulesManager.get_filtered_analysis_session_json(id=analysis_session_id))[0]
-        analysis_session_weblogs = json.loads(ModulesManager.
-                                              get_filtered_weblogs_json(analysis_session_id=analysis_session_id))
-        # type_file = analysis_session['fields']['type_file']
-        # url = ModulesManager.INFO_ATTRIBUTES[type_file]['url']
-        # ip_dist = ModulesManager.INFO_ATTRIBUTES[type_file]['ip_dist']
+        domain_primary = json.loads(kwargs['domains'])[0]
+        analysis_session_id = kwargs['analysis_session_id']
+        domains_list = ModulesManager.get_all_IOC_by(analysis_session_id)
 
-        domains_measured = {}
-        fields_a = weblog_a['fields']
-        id_a = weblog_a['pk']
-        attributes_a = json.loads(fields_a['attributes'])
-        domain_a = ModulesManager.get_domain_by_obj(attributes_a)
-        for weblog_b in analysis_session_weblogs:
-            id_b = weblog_b['id']
-            if id_a == id_b:
-                continue
-            attributes_b = weblog_b['attributes']
-            domain_b = ModulesManager.get_domain_by_obj(attributes_b)
-            related, distance_numeric = ModulesManager.distance_related_domains(self.module_name, domain_a,domain_b)
+        for domain_b in domains_list:
+            related, distance_numeric = ModulesManager.distance_related_domains(self.module_name,
+                                                                                domain_primary,
+                                                                                domain_b)
             if related:
-                domains_measured.setdefault(id_a,[]).append(id_b)
-                domains_measured.setdefault(id_b,[]).append(id_a)
-        ModulesManager.update_whois_related_weblogs(domains_measured, id__in=domains_measured.keys())
+                ModulesManager.set_whois_related_domains(self.module_name,
+                                                         analysis_session_id,
+                                                        [domain_primary,domain_b])
         ModulesManager.module_done(self.module_name)
 
 module_obj = WhoisRelationReq()

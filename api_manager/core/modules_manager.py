@@ -3,7 +3,7 @@ import os
 import imp
 from manati import settings
 import whois
-from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult, Metric
+from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, IOC
 from django.utils import timezone
 from api_manager.models import ExternalModule
 from background_task import background
@@ -119,7 +119,7 @@ class ModulesManager:
 
     @staticmethod
     def get_filtered_analysis_session_json(**kwargs):
-        return serializers.serialize('json', AnalysisSession.objects.filter(Q(**kwargs)))
+        return AnalysisSession.objects.filter(Q(**kwargs))
 
     @staticmethod
     def get_whois_info_by_domain_obj(query_node, module=None):
@@ -164,11 +164,9 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def update_whois_related_weblogs(whois_related, **kwargs):
+    def set_whois_related_domains(module_name, analysis_session_id, domains_related):
         with transaction.atomic():
-            weblogs = Weblog.objects.filter(Q(**kwargs))
-            for weblog in weblogs:
-                weblog.set_whois_related_weblogs(whois_related[weblog.id])
+            IOC.add_whois_related_domains(domains_related)
 
     @staticmethod
     def module_done(module_name):
@@ -235,6 +233,19 @@ class ModulesManager:
             return em
         else:
             raise Exception("The module is not free")
+
+    @staticmethod
+    @transaction.atomic
+    def get_all_IOC_by(analysis_session_id, ioc_type='domain'):
+        analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
+        if ioc_type == 'domain':
+            iocs = analysis_session.get_all_IOCs_domain()
+        elif ioc_type == 'ip':
+            iocs = analysis_session.get_all_IOCs_ip()
+        else:
+            logger.error('ioc_type is not correct ' + str(ioc_type))
+            return None
+        return [ioc.value for ioc in iocs]
 
     @staticmethod
     def __attach_event(event_name, weblogs_seed_json, async=True):
