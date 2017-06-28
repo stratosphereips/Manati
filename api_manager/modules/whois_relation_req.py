@@ -27,7 +27,9 @@ class WhoisRelationReq(Module):
                 ModulesManager.set_whois_related_domains(self.module_name,
                                                          analysis_session_id,
                                                         [domain_primary,domain_b])
-        ModulesManager.module_done(self.module_name)
+        ModulesManager.whois_similarity_distance_module_done(self.module_name,
+                                                             analysis_session_id,
+                                                             domain_primary)
 
 module_obj = WhoisRelationReq()
 

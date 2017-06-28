@@ -576,6 +576,17 @@ class IOC(TimeStampedModel):
                                               weblogs__analysis_session_id=analysis_session_id).distinct()
         return [wri.value for wri in wris]
 
+    def get_all_weblogs_from(self, analysis_session_id):
+        return self.weblogs.filter(analysis_session_id=analysis_session_id).distinct()
+
+    @staticmethod
+    def get_all_weblogs_WHOIS_related(domain, analysis_session_id):
+        iocs = IOC.objects.prefetch_related('whois_related_iocs').filter(ioc_type='domain', value=domain)
+        iocs_id = iocs.values_list('whois_related_iocs__id', flat=True)
+        return Weblog.objects.filter(ioc__in=iocs_id, analysis_session_id=analysis_session_id)
+
+
+
 
     class Meta:
         db_table = 'manati_indicators_of_compromise'

@@ -556,8 +556,13 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
             success : function(json) {// handle a successful response
                 var whois_related_domains = json['whois_related_domains'];
-                var table = buildTable_WeblogsWhoisRelated(whois_related_domains);
+                var was_related = json['was_related'];
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related);
                 updateBodyModal(table);
+                if (was_related) {
+                    closingModal()
+
+                }
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -569,11 +574,12 @@ function AnalysisSessionLogic(){
 
 
     }
+    var closingModal = function(){
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = null;
+    };
     function getWeblogsWhoisRelated(weblog_id){
-        var closingModal = function(){
-            clearInterval(refreshIntervalId);
-            refreshIntervalId = null;
-        };
+
         updateFooterModal('<a id="search-domain-selected" class="btn btn-info" data-dismiss="modal">Search Selected</a>');
         initModal("Activating WHOIS Similarity Distance Module..." , closingModal);
         var data = {weblog_id: weblog_id};
@@ -721,7 +727,7 @@ function AnalysisSessionLogic(){
 
         if(thiz.isSaved()) {
             items_menu['fold1']['items']['fold1-key3'] = {
-                name: "Mark all WHOIS related (of column:" + COL_HTTP_URL_STR +")",
+                name: "Mark all WBs WHOIS related (domain from column:" + COL_HTTP_URL_STR +")",
                 icon: "fa-paint-brush",
                 className: CLASS_MC_HTTP_URL_STR,
                 callback: function(key, options) {
@@ -1008,22 +1014,31 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes){
-        if(isEmpty(mod_attributes)) return null;
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related){
+        if(was_related == undefined || was_related == null) was_related = false;
+        if(isEmpty(mod_attributes) && !was_related) return null;
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
         table += "<tbody>";
         console.log(mod_attributes);
         var count = 1;
-        _.each(mod_attributes, function (domain) {
+        if(isEmpty(mod_attributes) && was_related){
             var tr = "<tr>";
-            tr += "<td>"+count+"</td>";
-            tr += "<td>"+domain+"</td>";
-            tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
-            tr += "</tr>";
+            tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
             table+=tr;
-            count++;
-        });
+        }else{
+            _.each(mod_attributes, function (domain) {
+                var tr = "<tr>";
+                tr += "<td>"+count+"</td>";
+                tr += "<td>"+domain+"</td>";
+                tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
+                tr += "</tr>";
+                table+=tr;
+                count++;
+            });
+
+        }
+
         table += "</tbody>";
         table += "</table>";
         return table;
@@ -1216,8 +1231,11 @@ function AnalysisSessionLogic(){
                     if(aux == '') aux = '|';
                 });
                 query_search += ")";
-                $("#weblogs-datatable_filter input[type='search']").html(query_search);
-                _dt.search(query_search).draw();
+                if(query_search.length > 2){
+                    $("#weblogs-datatable_filter input[type='search']").html(query_search);
+                    _dt.search(query_search).draw();
+                }
+
 
             });
             $("#edit-input").hide();
