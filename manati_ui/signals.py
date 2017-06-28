@@ -7,3 +7,8 @@ def check_id(sender, **kwargs):
     instance = kwargs.get('instance')
     if len(instance.id.split(':')) <= 1:
         instance.id = str(instance.analysis_session_id)+":"+str(instance.id)
+
+@receiver(post_save, sender=Weblog)
+def create_ioc(sender, **kwargs):
+    instance = kwargs.get('instance')
+    instance.create_IOCs()

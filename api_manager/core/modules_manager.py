@@ -3,9 +3,9 @@ import os
 import imp
 from manati import settings
 import whois
-from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult, Metric
+from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, IOC
 from django.utils import timezone
-from api_manager.models import ExternalModule
+from api_manager.models import ExternalModule, IOC_WHOIS_RelatedExecuted
 from background_task import background
 from django.core import serializers
 from django.db import transaction
@@ -119,7 +119,7 @@ class ModulesManager:
 
     @staticmethod
     def get_filtered_analysis_session_json(**kwargs):
-        return serializers.serialize('json', AnalysisSession.objects.filter(Q(**kwargs)))
+        return AnalysisSession.objects.filter(Q(**kwargs))
 
     @staticmethod
     def get_whois_info_by_domain_obj(query_node, module=None):
@@ -164,11 +164,9 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def update_whois_related_weblogs(whois_related, **kwargs):
+    def set_whois_related_domains(module_name, analysis_session_id, domains_related):
         with transaction.atomic():
-            weblogs = Weblog.objects.filter(Q(**kwargs))
-            for weblog in weblogs:
-                weblog.set_whois_related_weblogs(whois_related[weblog.id])
+            IOC.add_whois_related_domains(domains_related)
 
     @staticmethod
     def module_done(module_name):
@@ -235,6 +233,19 @@ class ModulesManager:
             return em
         else:
             raise Exception("The module is not free")
+
+    @staticmethod
+    @transaction.atomic
+    def get_all_IOC_by(analysis_session_id, ioc_type='domain'):
+        analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
+        if ioc_type == 'domain':
+            iocs = analysis_session.get_all_IOCs_domain()
+        elif ioc_type == 'ip':
+            iocs = analysis_session.get_all_IOCs_ip()
+        else:
+            logger.error('ioc_type is not correct ' + str(ioc_type))
+            return None
+        return [ioc.value for ioc in iocs]
 
     @staticmethod
     def __attach_event(event_name, weblogs_seed_json, async=True):
@@ -306,33 +317,59 @@ class ModulesManager:
             print(e)
             print_exception()
 
+
     @staticmethod
     @background(schedule=timezone.now())
-    def bulk_labeling_by_whois_relation(weblog_id,verdict):
-        weblog = Weblog.objects.prefetch_related('whois_related_weblogs').get(id=weblog_id)
-        weblogs_whois_related = weblog.whois_related_weblogs.all()
-        if not weblog.was_whois_related:
-            ModulesManager.get_weblogs_whois_related(weblog)
-            weblog.was_whois_related = True
-            weblog.save()
-
+    def bulk_labeling_by_whois_relation(username, analysis_session_id, domain,verdict):
+        ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
         external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
         mod_attribute = {
             'verdict': verdict,
-            'description': 'Bulk labeled by WHOIS related function. The seed weblog was: ' + weblog_id +
-                           ' with domain ' + weblog.domain}
+            'description': 'Bulk labeled by WHOIS related function. The seed domain was: ' + domain +
+                           ' by the user: ' + username}
+
+        weblogs_whois_related = IOC.get_all_weblogs_WHOIS_related(domain, analysis_session_id)
         Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
                                                  verdict,
                                                  mod_attribute,
                                                  external_module,
-                                                 weblog.domain)
-        return weblog
+                                                 domain)
 
     @staticmethod
-    def get_weblogs_whois_related(current_weblog):
-        weblogs_seed_json = serializers.serialize('json', [current_weblog])
-        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json, False)
+    @background(schedule=timezone.now())
+    def __run_find_whois_related_domains__(analysis_session_id, domains_json):
+        # special cases of running after events. re-do it now is a HACK!!!
+        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+        module_name = external_module.module_name
+        event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
 
+        print("Running module: " + module_name)
+        logger.info("Running module: " + module_name)
+        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+        assert os.path.isdir(path) is True
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        module.module_obj.run(event_thrown=event_name,
+                              analysis_session_id=analysis_session_id,
+                              domains=domains_json)
+
+    # only for the module whois_relation_req
+    @staticmethod
+    def whois_similarity_distance_module_done(module_name,analysis_session_id,domain):
+        module = ExternalModule.objects.get(module_name=module_name)
+        module.mark_idle(save=True)
+        IOC_WHOIS_RelatedExecuted.finish(analysis_session_id, domain)
+        logger.info("Finishing Module: " + module_name)
+        return module
+
+    @staticmethod
+    def find_whois_related_domains(analysis_session_id, domains):
+        for domain in domains:
+            IOC_WHOIS_RelatedExecuted.start(analysis_session_id, domain)
+            domains_json = json.dumps([domain])
+            ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
 
 
     @staticmethod
@@ -355,6 +392,11 @@ class ModulesManager:
                 return ModulesManager.get_domain(str(attributes_obj[key_url]))
         else:
             return None
+
+    @staticmethod
+    def check_to_WHOIS_relate_domain(analysis_session_id, domain):
+        if not IOC_WHOIS_RelatedExecuted.relation_perfomed_by_domain(analysis_session_id, domain):
+            ModulesManager.find_whois_related_domains(analysis_session_id, [domain])
 
     @staticmethod
     def get_domain(url):

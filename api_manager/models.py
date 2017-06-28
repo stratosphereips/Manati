@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
-from manati_ui.models import TimeStampedModel
+from manati_ui.models import TimeStampedModel, IOC, AnalysisSession
 from model_utils.fields import AutoCreatedField,AutoLastModifiedField
 from django.utils.translation import ugettext_lazy as _
 from jsonfield import JSONField
@@ -81,9 +81,48 @@ class ExternalModule(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_externals_modules'
+
+
+class IOC_WHOIS_RelatedExecuted(TimeStampedModel):
+    ioc = models.ForeignKey(IOC)
+    analysis_session = models.ForeignKey(AnalysisSession)
+    MODULES_STATUS = Choices('finished', 'running', 'removed', 'error')
+    status = models.CharField(max_length=20, choices=MODULES_STATUS, default=MODULES_STATUS.running)
+
+    @staticmethod
+    def relation_perfomed_by_domain(analysis_session_id, domain):
+        return IOC_WHOIS_RelatedExecuted.objects.filter(analysis_session_id=analysis_session_id,
+                                                 ioc__value=domain,
+                                                 ioc__ioc_type=IOC.IOC_TYPES.domain).exists()
+
+    @staticmethod
+    def finished(analysis_session_id, domain):
+        return IOC_WHOIS_RelatedExecuted.objects.filter(analysis_session_id=analysis_session_id,
+                                                        status= IOC_WHOIS_RelatedExecuted.MODULES_STATUS.finished,
+                                                        ioc__value=domain,
+                                                        ioc__ioc_type=IOC.IOC_TYPES.domain).exists()
+    @staticmethod
+    def start(analysis_session_id, domain):
+        ioc = IOC.objects.get(value=domain,ioc_type=IOC.IOC_TYPES.domain)
+        IOC_WHOIS_RelatedExecuted.objects.create(analysis_session_id=analysis_session_id,
+                                                 ioc=ioc, status= IOC_WHOIS_RelatedExecuted.MODULES_STATUS.running)
+
+    @staticmethod
+    def finish(analysis_session_id, domain):
+        ioc = IOC.objects.get(value=domain,ioc_type=IOC.IOC_TYPES.domain)
+        iwr = IOC_WHOIS_RelatedExecuted.objects.get(analysis_session_id=analysis_session_id, ioc=ioc)
+        iwr.status=IOC_WHOIS_RelatedExecuted.MODULES_STATUS.finished
+        iwr.save()
+
+
+    class Meta:
+        db_table = 'manati_ioc_whois_related_executed'
 #
 #
-# class HistoryExternalModule(models.Model):
+# class QueueExternalModule(TimeStampedModel):
+#
+#     class Meta:
+#         db_table = 'manati_queue_externals_modules'
 #
 #     external_module = models.ForeignKey(ExternalModule, on_delete=models.CASCADE, null=False)
 #     start_running = AutoCreatedField(_('start_running'))

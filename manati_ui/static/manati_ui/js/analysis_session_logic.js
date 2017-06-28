@@ -13,6 +13,7 @@ var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
 var _sync_db_interval;
+var refreshIntervalId;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -545,8 +546,42 @@ function AnalysisSessionLogic(){
             }
         });
     }
+
+    function refreshingDomainsWhoisRelatedModal(weblog_id){
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
+            success : function(json) {// handle a successful response
+                var whois_related_domains = json['whois_related_domains'];
+                var was_related = json['was_related'];
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related);
+                updateBodyModal(table);
+                if (was_related) {
+                    closingModal()
+
+                }
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+        });
+
+
+
+    }
+    var closingModal = function(){
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = null;
+    };
     function getWeblogsWhoisRelated(weblog_id){
-        initModal("Modules Weblogs related by whois information: " + weblog_id);
+
+        updateFooterModal('<a id="search-domain-selected" class="btn btn-info" data-dismiss="modal">Search Selected</a>');
+        initModal("Activating WHOIS Similarity Distance Module..." , closingModal);
         var data = {weblog_id: weblog_id};
         $.ajax({
             type:"GET",
@@ -554,20 +589,20 @@ function AnalysisSessionLogic(){
             dataType: "json",
             url: "/manati_project/manati_ui/analysis_session/weblog/modules_whois_related",
             success : function(json) {// handle a successful response
-                var whois_related_info = JSON.parse(json['data']);
-                var was_whois_related = json['was_whois_related'];
-                if(!was_whois_related){
-                    $.notify("One request for the DB was realized, maybe it will take time to process it and" +
-                            " show the information in the modal.",
-                            "warn", {autoHideDelay: 2000});
-                }
-                var table = buildTable_WeblogsWhoisRelated(whois_related_info,was_whois_related);
-
-                updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
+               // / var whois_related_domains = json['whois_related_domains'];
+                $.notify(json['msg'], "info");
+                updateTitleModal("List of domains WHOIS related with: " + json['domain_primary']);
+                // var was_whois_related = json['was_whois_related'];
+                // if(!was_whois_related){
+                //     $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+                //             " show the information in the modal.",
+                //             "warn", {autoHideDelay: 2000});
+                // }
+                // var table = buildTable_WeblogsWhoisRelated(whois_related_domains);
                 // updateBodyModal(table);
+                refreshIntervalId = setInterval(refreshingDomainsWhoisRelatedModal, 3000,weblog_id)
+
+
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -692,7 +727,7 @@ function AnalysisSessionLogic(){
 
         if(thiz.isSaved()) {
             items_menu['fold1']['items']['fold1-key3'] = {
-                name: "Mark all WHOIS related (of column:" + COL_HTTP_URL_STR +")",
+                name: "Mark all WBs WHOIS related (domain from column:" + COL_HTTP_URL_STR +")",
                 icon: "fa-paint-brush",
                 className: CLASS_MC_HTTP_URL_STR,
                 callback: function(key, options) {
@@ -848,14 +883,22 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function initModal(title){
+    function initModal(title, after_hidden_function){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
+            if(after_hidden_function !== undefined && after_hidden_function !== null){
+                after_hidden_function();
+            }
+
         });
+    }
+    function updateTitleModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
+
     }
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
@@ -863,6 +906,10 @@ function AnalysisSessionLogic(){
             modal_body.find('.table-section').html(table).show();
             modal_body.find(".loading").hide();
         }
+    }
+    function updateFooterModal(html_append){
+        var modal_footer = $('#vt_consult_screen .modal-footer .append');
+        modal_footer.html(html_append)
     }
     function consultVirusTotal(query_node, query_type){
         if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
@@ -967,19 +1014,31 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
-        if(isEmpty(mod_attributes) && was_whois_related == false) return null;
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related){
+        if(was_related == undefined || was_related == null) was_related = false;
+        if(isEmpty(mod_attributes) && !was_related) return null;
         var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
+        table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
         table += "<tbody>";
         console.log(mod_attributes);
-        _.each(mod_attributes, function (domain, id) {
+        var count = 1;
+        if(isEmpty(mod_attributes) && was_related){
             var tr = "<tr>";
-            tr += "<td>"+id+"</td>";
-            tr += "<td>"+domain+"</td>";
-            tr += "</tr>";
+            tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
             table+=tr;
-        });
+        }else{
+            _.each(mod_attributes, function (domain) {
+                var tr = "<tr>";
+                tr += "<td>"+count+"</td>";
+                tr += "<td>"+domain+"</td>";
+                tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
+                tr += "</tr>";
+                table+=tr;
+                count++;
+            });
+
+        }
+
         table += "</tbody>";
         table += "</table>";
         return table;
@@ -1164,6 +1223,21 @@ function AnalysisSessionLogic(){
     };
     function on_ready_fn (){
         $(document).ready(function() {
+            $(document).on('click', '#search-domain-selected', function(ev){
+                var query_search = "(";
+                var aux = '';
+                $('#vt_consult_screen input[name="search_domain_table[]"]:checked').each(function (obj) {
+                    query_search += aux + $(this).val();
+                    if(aux == '') aux = '|';
+                });
+                query_search += ")";
+                if(query_search.length > 2){
+                    $("#weblogs-datatable_filter input[type='search']").html(query_search);
+                    _dt.search(query_search).draw();
+                }
+
+
+            });
             $("#edit-input").hide();
             $("#weblogfile-name").on('click',function(){
                 var _thiz = $(this);
