@@ -216,7 +216,7 @@ def find_domains_whois_related(request): # BY DOMAIN
 
         ModulesManager.find_whois_related_domains(weblog.analysis_session_id, [domain_ioc.value])
         whois_related_domains = domain_ioc.get_all_values_related_by(weblog.analysis_session_id)
-        return JsonResponse(dict(whois_related_domains=whois_related_domains,
+        return JsonResponse(dict(whois_related_domains=whois_related_domains,domain_primary=domain_ioc.value,
                                  msg='Starting Module to process the relationship between domains...'))
     else:
         return HttpResponseServerError("Only GET request")

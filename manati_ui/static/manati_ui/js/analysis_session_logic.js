@@ -582,6 +582,7 @@ function AnalysisSessionLogic(){
             success : function(json) {// handle a successful response
                // / var whois_related_domains = json['whois_related_domains'];
                 $.notify(json['msg'], "info");
+                updateTitleModal("Modules Weblogs related by whois information: " + json['domain_primary']);
                 // var was_whois_related = json['was_whois_related'];
                 // if(!was_whois_related){
                 //     $.notify("One request for the DB was realized, maybe it will take time to process it and" +
@@ -885,6 +886,10 @@ function AnalysisSessionLogic(){
             }
 
         });
+    }
+    function updateTitleModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
+
     }
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
