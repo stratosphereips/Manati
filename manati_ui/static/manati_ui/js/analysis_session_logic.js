@@ -574,7 +574,8 @@ function AnalysisSessionLogic(){
             clearInterval(refreshIntervalId);
             refreshIntervalId = null;
         };
-        initModal("Modules Weblogs related by whois information: " + weblog_id, closingModal);
+        updateFooterModal('<a id="search-domain-selected" class="btn btn-info" data-dismiss="modal">Search Selected</a>');
+        initModal("Activating WHOIS Similarity Distance Module..." , closingModal);
         var data = {weblog_id: weblog_id};
         $.ajax({
             type:"GET",
@@ -584,7 +585,7 @@ function AnalysisSessionLogic(){
             success : function(json) {// handle a successful response
                // / var whois_related_domains = json['whois_related_domains'];
                 $.notify(json['msg'], "info");
-                updateTitleModal("Modules Weblogs related by whois information: " + json['domain_primary']);
+                updateTitleModal("List of domains WHOIS related with: " + json['domain_primary']);
                 // var was_whois_related = json['was_whois_related'];
                 // if(!was_whois_related){
                 //     $.notify("One request for the DB was realized, maybe it will take time to process it and" +
@@ -900,6 +901,10 @@ function AnalysisSessionLogic(){
             modal_body.find(".loading").hide();
         }
     }
+    function updateFooterModal(html_append){
+        var modal_footer = $('#vt_consult_screen .modal-footer .append');
+        modal_footer.html(html_append)
+    }
     function consultVirusTotal(query_node, query_type){
         if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
         else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
@@ -1006,7 +1011,7 @@ function AnalysisSessionLogic(){
     function buildTable_WeblogsWhoisRelated(mod_attributes){
         if(isEmpty(mod_attributes)) return null;
         var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
+        table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
         table += "<tbody>";
         console.log(mod_attributes);
         var count = 1;
@@ -1014,6 +1019,7 @@ function AnalysisSessionLogic(){
             var tr = "<tr>";
             tr += "<td>"+count+"</td>";
             tr += "<td>"+domain+"</td>";
+            tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
             tr += "</tr>";
             table+=tr;
             count++;
@@ -1202,6 +1208,18 @@ function AnalysisSessionLogic(){
     };
     function on_ready_fn (){
         $(document).ready(function() {
+            $(document).on('click', '#search-domain-selected', function(ev){
+                var query_search = "(";
+                var aux = '';
+                $('#vt_consult_screen input[name="search_domain_table[]"]:checked').each(function (obj) {
+                    query_search += aux + $(this).val();
+                    if(aux == '') aux = '|';
+                });
+                query_search += ")";
+                $("#weblogs-datatable_filter input[type='search']").html(query_search);
+                _dt.search(query_search).draw();
+
+            });
             $("#edit-input").hide();
             $("#weblogfile-name").on('click',function(){
                 var _thiz = $(this);
