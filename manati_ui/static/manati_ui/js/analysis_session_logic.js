@@ -13,6 +13,7 @@ var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
 var _sync_db_interval;
+var refreshIntervalId;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -545,7 +546,7 @@ function AnalysisSessionLogic(){
             }
         });
     }
-    var refreshIntervalId;
+
     function refreshingDomainsWhoisRelatedModal(weblog_id){
         var data = {weblog_id: weblog_id};
         $.ajax({
@@ -571,6 +572,7 @@ function AnalysisSessionLogic(){
     function getWeblogsWhoisRelated(weblog_id){
         var closingModal = function(){
             clearInterval(refreshIntervalId);
+            refreshIntervalId = null;
         };
         initModal("Modules Weblogs related by whois information: " + weblog_id, closingModal);
         var data = {weblog_id: weblog_id};
