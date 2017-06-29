@@ -498,6 +498,7 @@ class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
             dict(description='Open VirusTotal Pop-up by IP', command='cmd+shift+i | ctrl+shift+i'),
             dict(description='Open WHOIS Pop-up by DOMAIN', command='cmd+shift+p | ctrl+shift+p'),
             dict(description='Open WHOIS Pop-up by IP', command='cmd+shift+o | ctrl+shift+o'),
+            dict(description='Open WHOIS related domains Pop-up', command='command+shift+d | ctrl+shift+d'),
         ]
         return hotkeys
 

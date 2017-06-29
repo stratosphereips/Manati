@@ -742,7 +742,8 @@ function AnalysisSessionLogic(){
 
             };
             items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
-                name: "Find Weblogs Related by whois info", icon: "fa-search",
+                name: "Find WHOIS related domains (from column:" + COL_HTTP_URL_STR +")",
+                icon: "fa-search",
                 callback: function (key, option) {
                     var weblog_id = bigData[COLUMN_DT_ID].toString();
                     weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
@@ -1284,6 +1285,16 @@ function AnalysisSessionLogic(){
             var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
             consultWhois(qn, "ip");
         });
+        Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
+            preventDefault(e);
+            var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
+            weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
+            getWeblogsWhoisRelated(weblog_id);
+        });
+
+
+
+
     };
     function on_ready_fn (){
         $(document).ready(function() {
