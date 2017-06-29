@@ -88,4 +88,4 @@ cd path/to/project_directory
 
 
 # BACKUP DB
-pg_dump -U manati_db_user -F p manati_db > backup.sql # plain text
+pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text
