@@ -1027,10 +1027,12 @@ function AnalysisSessionLogic(){
                 var node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
                 if(query_type === 'ip'){
-                    query_node = "<a target='_blank' href='https://virustotal.com/en/ip-address/"+node+"/information/'>"+node+"</a>"
+                    query_node = "<a target='_blank' href='https://virustotal" +
+                        ".com/en/ip-address/"+node+"/information/'>"+node+"</a>"
                 }
                 else if(query_type === 'domain'){
-                    query_node = "<a target='_blank' href='https://virustotal.com/en/domain/"+node+"/information/'>"+node+"</a>"
+                    query_node = "<a target='_blank' href='https://virustotal" +
+                        ".com/en/domain/"+node+"/information/'>"+node+"</a>"
                 }
                 initModal("Virus Total Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
