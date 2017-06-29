@@ -89,3 +89,6 @@ cd path/to/project_directory
 
 # BACKUP DB
 pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text
+
+# RESTORE DB
+psql manati_db -f backup.sql
