@@ -1260,6 +1260,30 @@ function AnalysisSessionLogic(){
         //     preventDefault(e);
         //     // TO-DO
         // });
+         // open VirusTotal Modal By domain, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            consultVirusTotal(qn, "domain");
+        });
+         // open WHOIS Modal By domain, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            consultWhois(qn, "domain");
+        });
+         // open VirusTotal Modal By IP, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
+            consultVirusTotal(qn, "ip");
+        });
+         // open WHOIS Modal By IP, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
+            consultWhois(qn, "ip");
+        });
     };
     function on_ready_fn (){
         $(document).ready(function() {

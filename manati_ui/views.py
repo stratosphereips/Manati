@@ -494,6 +494,10 @@ class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
             dict(description='Filter table by Suspicious weblog', command='cmd+3 | ctrl+3'),
             dict(description='Filter table by False Positive weblog', command='cmd+4 | ctrl+4'),
             dict(description='Filter table by Undefined weblog', command='cmd+5 | ctrl+5'),
+            dict(description='Open VirusTotal Pop-up by DOMAIN', command='cmd+shift+v | ctrl+shift+v'),
+            dict(description='Open VirusTotal Pop-up by IP', command='cmd+shift+i | ctrl+shift+i'),
+            dict(description='Open WHOIS Pop-up by DOMAIN', command='cmd+shift+p | ctrl+shift+p'),
+            dict(description='Open WHOIS Pop-up by IP', command='cmd+shift+o | ctrl+shift+o'),
         ]
         return hotkeys
 
