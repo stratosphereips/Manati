@@ -96,6 +96,12 @@ def __dist_zipcode_by_min_dist__(zipcodes_a=[], zipcodes_b=[]):
     return float(dist_zipcode)
 
 
+def get_date_aux(date):
+    try:
+        return datetime.datetime.strptime(date, '%d-%m-%Y') \
+            if not isinstance(date, datetime.datetime) else date
+    except Exception as ex:
+        return dateutil.parser.parse(date)
 # ttl by proportion, more close tu cero, more close is the ttl
 def get_diff_ttl(creation_date_a, creation_date_b,expiration_date_a, expiration_date_b):
     if not creation_date_a and not creation_date_b and not expiration_date_a and not expiration_date_a:
@@ -113,17 +119,10 @@ def get_diff_ttl(creation_date_a, creation_date_b,expiration_date_a, expiration_
     elif not creation_date_a or not creation_date_b or not expiration_date_a or not expiration_date_b:
         return float(1)
     else:
-        try:
-            cd_a = datetime.datetime.strptime(creation_date_a, '%d-%m-%Y') if not isinstance(creation_date_a,datetime.datetime) else creation_date_a
-            ed_a = datetime.datetime.strptime(expiration_date_a, '%d-%m-%Y') if not isinstance(expiration_date_a,datetime.datetime) else creation_date_a
-            cd_b = datetime.datetime.strptime(creation_date_b, '%d-%m-%Y') if not isinstance(creation_date_b,datetime.datetime) else creation_date_a
-            ed_b = datetime.datetime.strptime(expiration_date_b, '%d-%m-%Y') if not isinstance(expiration_date_b,datetime.datetime) else creation_date_a
-        except Exception as ex:
-            cd_a = dateutil.parser.parse(creation_date_a)
-            ed_a = dateutil.parser.parse(expiration_date_a)
-            cd_b = dateutil.parser.parse(creation_date_b)
-            ed_b = dateutil.parser.parse(expiration_date_b)
-
+        cd_a = get_date_aux(creation_date_a)
+        ed_a = get_date_aux(expiration_date_a)
+        cd_b = get_date_aux(creation_date_b)
+        ed_b = get_date_aux(expiration_date_b)
         ttl_days_b = float(abs(cd_b - ed_b).days)  # time to live
         ttl_days_a = float(abs(cd_a - ed_a).days)
         if ttl_days_b == ttl_days_b:

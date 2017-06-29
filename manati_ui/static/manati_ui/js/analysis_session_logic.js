@@ -988,6 +988,7 @@ function AnalysisSessionLogic(){
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
+            $(this).find(".append").html('');
             if(after_hidden_function !== undefined && after_hidden_function !== null){
                 after_hidden_function();
             }
