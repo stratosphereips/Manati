@@ -1024,8 +1024,14 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/consult_virus_total",
             success : function(json) {// handle a successful response
                 var info_report = JSON.parse(json['info_report']);
-                var query_node = json['query_node'];
+                var node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
+                if(query_type === 'ip'){
+                    query_node = "<a target='_blank' href='https://virustotal.com/en/ip-address/"+node+"/information/'>"+node+"</a>"
+                }
+                else if(query_type === 'domain'){
+                    query_node = "<a target='_blank' href='https://virustotal.com/en/domain/"+node+"/information/'>"+node+"</a>"
+                }
                 initModal("Virus Total Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
