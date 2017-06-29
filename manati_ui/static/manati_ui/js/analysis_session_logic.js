@@ -777,6 +777,39 @@ function AnalysisSessionLogic(){
                     }
                 }
             };
+            items_menu['fold4'] = {
+                name: "Registry History", icon: "fa-search",
+                items: {
+                    "fold2-key1": {
+                        name: "Veredict History",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                                getWeblogHistory(weblog_id);
+
+                        }
+                    },
+                    "fold2-key2": {
+                        name: "Modules Changes",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getModulesChangesHistory(weblog_id);
+                        }
+                    },
+                    "fold2-key3": {
+                        name: "IOCs",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getIOCs(weblog_id);
+                        }
+                    }
+                }
+            };
         }
 
         items_menu['fold3'] = {
@@ -1031,6 +1064,22 @@ function AnalysisSessionLogic(){
         return table;
 
     }
+    function buildTableIOCs(iocs) {
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>#</th><th>IOCs</th><th>Value</th></tr></thead>";
+        table += "<tbody>";
+        var count = 1;
+        _.each(iocs, function (ioc) {
+            var tr = "<tr>";
+            tr += "<td>" + count + "</td>";
+            tr += "<td>" + ioc['ioc_type'] + "</td>";
+            tr += "<td>" + ioc['value'] + "</td>";
+            tr += "</tr>";
+            count++;
+            table += tr;
+        });
+        return table;
+    }
     function buildTableInfo_Mod_attributes(mod_attributes) {
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
@@ -1083,6 +1132,28 @@ function AnalysisSessionLogic(){
         table += "</tbody>";
         table += "</table>";
         return table;
+
+    }
+    function getIOCs(weblog_id){
+        initModal("IOCs Selected:" + weblog_id);
+        var data = {weblog_id:weblog_id}
+        $.ajax({
+            type:"GET",
+            dataType: "json",
+            data:data,
+            url: "/manati_project/manati_ui/analysis_session/weblog/iocs",
+            success : function(json) {// handle a successful response
+                var iocs = json['iocs'];
+                var table = buildTableIOCs(iocs);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
 
     }
     function getModulesChangesHistory(weblog_id){

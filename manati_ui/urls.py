@@ -16,6 +16,7 @@ urlpatterns = [
     url(r'^consult_whois$', views.make_whois_consult, name='make_whois_consult'),
     url(r'^export_metrics', views.export_metrics, name='export_metrics'),
     url(r'^analysis_session/weblog/history$', views.get_weblog_history, name='weblog_history'),
+    url(r'^analysis_session/weblog/iocs', views.get_weblog_iocs, name='get_weblog_iocs'),
     url(r'^analysis_session/weblog/modules_changes_attributes', views.get_modules_changes, name='weblog_mod_changes'),
     url(r'^analysis_session/weblog/modules_whois_related', views.find_domains_whois_related, name='weblogs_whois_related'),
     url(r'^analysis_session/weblog/reload_modal_domains_whois_related', views.refreshing_domains_whois_related,
