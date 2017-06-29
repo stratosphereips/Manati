@@ -57,7 +57,7 @@ def call_after_save_event(analysis_session):
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-    context = {}
+    context = {'analysissession':AnalysisSession(), 'comment': Comment()}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
 #ajax connexions
