@@ -14,6 +14,7 @@ var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
 var _sync_db_interval;
 var refreshIntervalId;
+var idSyncDBIntervalId;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
@@ -1500,7 +1501,7 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-                setInterval(syncDB, TIME_SYNC_DB ); 
+               idSyncDBIntervalId= setInterval(syncDB, TIME_SYNC_DB );
 
             });
             if(update_uuid_weblogs){

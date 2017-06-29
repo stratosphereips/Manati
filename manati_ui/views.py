@@ -276,32 +276,33 @@ def convert(data):
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
-    try:
-        if request.method == 'POST':
-            user = request.user
-            received_json_data = json.loads(request.body)
-            analysis_session_id = received_json_data['analysis_session_id']
-            data = {}
-            if user.is_authenticated():
-                if "headers[]" in received_json_data:
-                    headers = json.loads(received_json_data['headers[]'])
-                    analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-                    analysis_session.set_columns_order_by(request.user, headers)
-                    print("Headers Updated")
-                data = convert(received_json_data['data'])
+    # try:
+    if request.method == 'POST':
+        user = request.user
+        received_json_data = json.loads(request.body)
+        analysis_session_id = received_json_data['analysis_session_id']
+        data = {}
+        if user.is_authenticated():
+            if "headers[]" in received_json_data:
+                headers = json.loads(received_json_data['headers[]'])
+                analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+                analysis_session.set_columns_order_by(request.user, headers)
+                print("Headers Updated")
+            data = convert(received_json_data['data'])
 
-            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
-            json_query_set = serializers.serialize("json", wb_query_set)
-            ModulesManager.attach_all_event() # it will check if will create the task or not
-            return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
-        else:
-            messages.error(request, 'Only POST request')
-            return HttpResponseServerError("Only POST request")
-    except Exception as e:
-        error = print_exception()
-        logger.error(str(error))
-        logger.error(str(e.message))
-        return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
+        wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
+        json_query_set = serializers.serialize("json", wb_query_set)
+        ModulesManager.attach_all_event() # it will check if will create the task or not
+        return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
+    else:
+        messages.error(request, 'Only POST request')
+        return HttpResponseServerError("Only POST request")
+    # except Exception as e:
+    #     raise e
+        # error = print_exception()
+        # logger.error(str(error))
+        # logger.error(str(e.message))
+        #return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)

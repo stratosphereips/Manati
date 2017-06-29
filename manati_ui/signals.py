@@ -11,4 +11,6 @@ def check_id(sender, **kwargs):
 @receiver(post_save, sender=Weblog)
 def create_ioc(sender, **kwargs):
     instance = kwargs.get('instance')
-    instance.create_IOCs()
+    created = kwargs.get('created')
+    if created:
+        instance.create_IOCs()

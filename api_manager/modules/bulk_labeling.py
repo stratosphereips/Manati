@@ -14,12 +14,11 @@ class BulkLabeling(Module):
         event = kwargs['event_thrown']
         weblogs_seed = json.loads(kwargs['weblogs_seed'])
         domains = []
-        for index in range(len(weblogs_seed)):
-            fields = weblogs_seed[index]['fields']
-            verdict = fields['verdict']
+        for weblog in weblogs_seed:
+            verdict = weblog['verdict']
             if not verdict in dict(ModulesManager.LABELS_AVAILABLE):
                 continue
-            attributes = fields['attributes']
+            attributes = weblog['attributes']
             if isinstance(attributes, basestring):
                 attributes = json.loads(attributes)
             domain = ModulesManager.get_domain_by_obj(attributes)
@@ -32,8 +31,7 @@ class BulkLabeling(Module):
                     'verdict': verdict,
                     'description': 'Labelled to '+verdict+' because one weblog before,'
                                    ' with the same domain was labeled with the same verdict'}
-            ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,domain,
-                                                                 attributes__contains=domain)
+            ModulesManager.update_mod_attribute_filtered_weblogs(self.module_name, mod_attribute,domain)
         ModulesManager.module_done(self.module_name)
 
 module_obj = BulkLabeling()

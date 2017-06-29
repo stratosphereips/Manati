@@ -155,12 +155,11 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute,query_node, **kwargs):
+    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute,domain):
         with transaction.atomic():
             external_module = ExternalModule.objects.get(module_name=module_name)
-            weblogs = Weblog.objects.prefetch_related('histories').filter(Q(**kwargs))
             verdict = mod_attribute.get('verdict', None)
-            Weblog.bulk_verdict_and_attr_from_module(weblogs,verdict,mod_attribute,external_module,query_node)
+            Weblog.bulk_verdict_and_attr_from_module(domain,verdict,mod_attribute,external_module)
 
     @staticmethod
     @transaction.atomic
@@ -190,7 +189,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    @background(schedule=timezone.now())
+    # @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         # try:
         print("Running module: " + module_name)
@@ -296,9 +295,11 @@ class ModulesManager:
     @staticmethod
     def attach_all_event():
         ModulesManager.__run_background_task_service__()
-        aux_weblogs = ModuleAuxWeblog.objects.select_related('weblog').filter(status=ModuleAuxWeblog.STATUS.seed)
+        aux_weblogs = ModuleAuxWeblog.objects.filter(status=ModuleAuxWeblog.STATUS.seed)
         if aux_weblogs.exists():
-            weblogs_seed_json = serializers.serialize('json', [ w.weblog for w in aux_weblogs])
+            weblogs_qs = Weblog.objects.filter(moduleauxweblog__in=aux_weblogs.values_list('id', flat=True)).distinct()
+            weblogs_seed = WeblogSerializer(weblogs_qs, many=True).data
+            weblogs_seed_json = json.dumps(weblogs_seed)
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling, weblogs_seed_json)
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.bulk_labelling, weblogs_seed_json)
             weblogs_malicious = [w.weblog for w in aux_weblogs.filter(weblog__verdict=Weblog.VERDICT_STATUS.malicious)]
@@ -309,13 +310,13 @@ class ModulesManager:
 
     @staticmethod
     def after_save_attach_event(analysis_session):
-        try:
-            weblogs_qs = analysis_session.weblog_set.all()
-            weblogs_json = json.dumps(WeblogSerializer(weblogs_qs, many=True).data)
-            ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,weblogs_json)
-        except Exception as e:
-            print(e)
-            print_exception()
+        # try:
+        weblogs_qs = analysis_session.weblog_set.all()
+        weblogs_json = json.dumps(WeblogSerializer(weblogs_qs, many=True).data)
+        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,weblogs_json)
+        # except Exception as e:
+        #     print(e)
+        #     print_exception()
 
 
     @staticmethod
