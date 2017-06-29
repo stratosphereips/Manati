@@ -28,9 +28,16 @@ STATICFILES_DIRS = [
 ]
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+if os.environ.get('DJANGO_DEBUG'):
+    print("Debug is enabled.")
+    DEBUG = True
+    ALLOWED_HOSTS = ["127.0.0.1"]
+else:
+    # DEBUG = False
+    # ALLOWED_HOSTS = ["*"]
+    DEBUG = True # change when is necessary
+    ALLOWED_HOSTS = ["127.0.0.1"]
 
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -188,6 +195,7 @@ AUTHENTICATION_BACKENDS = (
 )
 path_log_file = os.path.join(BASE_DIR, 'logs')
 logfile_name = os.path.join(path_log_file, "server.log")
+logfile_debug_name = os.path.join(path_log_file, "server_debug.log")
 
 if not os.path.isfile(logfile_name):
     if not os.path.isdir(path_log_file):
@@ -234,6 +242,11 @@ LOGGING = {
         "handlers": ["console", "file"]
     }
 }
+
+if os.environ.get('DJANGO_DEBUG'):
+    LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
+    LOGGING['handlers']['file']['filename'] = logfile_debug_name
 
 
 
