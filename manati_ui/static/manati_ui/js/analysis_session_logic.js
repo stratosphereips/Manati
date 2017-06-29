@@ -919,7 +919,7 @@ function AnalysisSessionLogic(){
                         var data = info[index];
                         if(data instanceof Object){
                              html_temp += buildTableInfo_VT(data, true) ;
-                        }else if(typeof(data) == "string") {
+                        }else if(typeof(data) === "string") {
                             table += "<td>" + info.join(", ") + "</td>" ;
                             break;
                         }
