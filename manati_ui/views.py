@@ -552,15 +552,15 @@ def update_comment_analysis_session(request, id):
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblog_iocs(request):
-    try:
-        if request.method == 'GET':
-            weblog_id = request.GET.get('weblog_id', '')
-            iocs = Weblog.objects.prefetch_related('ioc_set').get(id=weblog_id).ioc_set.all()
-            iocs_list = [{'value': ioc.value, 'ioc_type': ioc.ioc_type} for ioc in iocs]
-            return JsonResponse(dict(iocs=iocs_list))
-    except Exception as e:
-        print_exception()
-        return HttpResponseServerError("There was a error in the Server")
+    # try:
+    if request.method == 'GET':
+        weblog_id = request.GET.get('weblog_id', '')
+        iocs = Weblog.objects.prefetch_related('ioc_set').get(id=weblog_id).ioc_set.all()
+        iocs_list = [{'value': ioc.value, 'ioc_type': ioc.ioc_type} for ioc in iocs]
+        return JsonResponse(dict(iocs=iocs_list))
+    # except Exception as e:
+    #     print_exception()
+    #     return HttpResponseServerError("There was a error in the Server")
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt

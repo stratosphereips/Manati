@@ -13,6 +13,7 @@ from manati_ui.utils import *
 import re
 from django.db.models import Q
 from model_utils import Choices
+import share_modules
 from share_modules.constants import Constant
 from tryagain import retries
 from manati_ui.serializers import WeblogSerializer
@@ -189,7 +190,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    # @background(schedule=timezone.now())
+    @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         # try:
         print("Running module: " + module_name)
@@ -387,12 +388,12 @@ class ModulesManager:
         indices = [i for (i, x) in enumerate(keys) if x in set(keys).intersection(possible_key_url)]
         if indices:
             key_url = str(keys[indices[0]])
-            if key_url == 'host':
-                return str(attributes_obj[key_url])
-            else:
-                return ModulesManager.get_domain(str(attributes_obj[key_url]))
+            return ModulesManager.get_domain_from_url(str(attributes_obj[key_url]))
         else:
             return None
+    @staticmethod
+    def get_domain_from_url(url):
+        return share_modules.util.get_data_from_url(url)
 
     @staticmethod
     def check_to_WHOIS_relate_domain(analysis_session_id, domain):

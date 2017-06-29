@@ -21,7 +21,7 @@ class BulkLabeling(Module):
             attributes = weblog['attributes']
             if isinstance(attributes, basestring):
                 attributes = json.loads(attributes)
-            domain = ModulesManager.get_domain_by_obj(attributes)
+            _ , domain = ModulesManager.get_domain_by_obj(attributes)
 
             if domain != '':
                 domains.append(domain)
