@@ -21,8 +21,8 @@ var _analysis_session_id = -1;
 var _analysis_session_uuid;
 var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT, COLUMN_UUID;
 var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
-var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var CLASS_MC_HTTP_URL_STR, CLASS_MC_END_POINTS_SERVER_STR;
+var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var REG_STATUS = {modified: 1};
 var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
@@ -45,7 +45,26 @@ var _m;
 
 
 var _loadingPlugin;
-
+function update_constant(str, index){
+    if(COL_UUID_STR === str){
+        COLUMN_UUID = index;
+    }
+    else if(COL_DT_ID_STR=== str){
+        COLUMN_DT_ID = index;
+    }
+    else if(COL_REG_STATUS_STR === str){
+        COLUMN_REG_STATUS = index;
+    }
+    else if(COL_VERDICT_STR === str){
+        COLUMN_VERDICT = index;
+    }
+    else if(COL_HTTP_URL_STR === str){
+        COLUMN_HTTP_URL = index
+    }
+    else if(COL_END_POINTS_SERVER_STR === str){
+        COLUMN_END_POINTS_SERVER = index;
+    }
+}
 function checkVerdict(_verdicts_merged, verdict){
     if (verdict == undefined || verdict == null) return verdict;
     var merged = verdict.split('_');
@@ -153,7 +172,7 @@ function AnalysisSessionLogic(){
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
-            colReorder: false, //true, // TO-DO for now, until prevent an error
+            colReorder: true, //true, // TO-DO for now, until prevent an error
             renderer: "bootstrap",
             responsive: true,
             buttons: ['copy','csv','excel', 'colvis',
@@ -225,6 +244,11 @@ function AnalysisSessionLogic(){
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
             thiz.setColumnsOrderFlat(true);
+            for(var i=0; i < settings.aoColumns.length; i++){
+                var name = settings.aoColumns[i].name;
+                update_constant(name, i);
+                // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
+            }
          });
          _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
             thiz.setColumnsOrderFlat(true);
@@ -273,14 +297,14 @@ function AnalysisSessionLogic(){
              }
 
          });
-         _dt.on( 'column-reorder', function ( e, settings, details ) {
-            for(var i=0; i < settings.aoColumns.length; i++){
-                var name = settings.aoColumns[i].name;
+         // _dt.on( 'column-reorder', function ( e, settings, details ) {
+         //    for(var i=0; i < settings.aoColumns.length; i++){
+         //        var name = settings.aoColumns[i].name;
+         //
+         //        // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
+         //    }
 
-                // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
-            }
-
-        } );
+        // } );
 
     }
     function initData(data, headers) {
