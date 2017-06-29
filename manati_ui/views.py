@@ -461,12 +461,25 @@ class IndexExternalModules(generic.ListView):
     def get_queryset(self):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
 
+from django.views.generic.detail import SingleObjectTemplateResponseMixin
 
-class IndexHotkeys(generic.ListView):
+class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     template_name = 'manati_ui/analysis_session/hotkeys_list.html'
     context_object_name = 'hotkeys'
+
+    def render_to_response(self, context):
+        # Look for a 'format=json' GET argument
+        if self.request.is_ajax():
+            return JsonResponse(dict(hotkeys=context['hotkeys']))
+        else:
+            return super(IndexHotkeys, self).render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(IndexHotkeys, self).get_context_data(**kwargs)
+        return context
 
     def get_queryset(self):
         hotkeys = [

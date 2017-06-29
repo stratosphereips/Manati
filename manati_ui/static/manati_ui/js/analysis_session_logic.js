@@ -802,12 +802,51 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+        items_menu['fold2'] = {
+            name: "Hotkeys List", icon: "fa-files-o",
+            callback: function (key, options){
+                initModal("List of Hotkeys");
+                $.ajax({url:'/manati_project/manati_ui/hotkeys/list',
+                    type:"GET",
+                    dataType: "json",
+                    success: function (json){
+                        var table = buildTableHotkeys(json['hotkeys']);
+                        updateBodyModal(table);
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    }
+                })
+
+            },
+        };
 
 
 
         return items_menu;
 
     };
+    function buildTableHotkeys(hotkeys){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th style='width: 110px;'>#</th><th>Description</th><th>Command</th></tr></thead>";
+        table += "<tbody>";
+            var count = 1;
+            _.each(hotkeys, function (value){
+                table += "<tr>";
+                table += "<td>"+count+"</td>";
+                table += "<td>"+value['description']+"</td>";
+                table += "<td>"+value['command']+"</td>";
+                table += "</tr>";
+                count++;
+
+            });
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
     function buildTableInfo_VT(info_report){
         var table = "<table class='table table-bordered table-striped'>";
         table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
