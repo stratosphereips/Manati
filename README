@@ -86,3 +86,6 @@ cd path/to/project_directory
 5. python ./manage.py migrate
 6. python ./manage.py runserver
 
+
+# BACKUP DB
+pg_dump -U manati_db_user -F p manati_db > backup.sql # plain text

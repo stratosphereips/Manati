@@ -443,7 +443,7 @@ class Weblog(TimeStampedModel):
     @transaction.atomic
     def bulk_verdict_and_attr_from_module(domain,module_verdict,mod_attribute,external_module):
         with transaction.atomic():
-            weblogs = IOC.get_all_weblogs_by_domain(domain).all()
+            weblogs = IOC.get_all_weblogs_by_domain(domain)
             if module_verdict:
                 Metric.objects.labeling_by_module(external_module, weblogs, module_verdict,domain)
 
@@ -582,8 +582,11 @@ class IOC(TimeStampedModel):
 
     @staticmethod
     def get_all_weblogs_by_domain(domain):
-        ioc = IOC.objects.prefetch_related('weblogs__histories').filter(ioc_type='domain', value=domain)[0]
-        return ioc.weblogs
+        iocs = IOC.objects.prefetch_related('weblogs__histories').filter(ioc_type='domain', value=domain)
+        if not iocs:
+            return []
+        else:
+            return iocs.first().weblogs.all()
 
     @staticmethod
     def get_all_weblogs_WHOIS_related(domain, analysis_session_id):
