@@ -149,7 +149,7 @@ function AnalysisSessionLogic(){
             columns.push({title: v, name: v, class: v});
         }
         //verifying if already exist a table, in that case, destroy it
-        if(_dt !== null || _dt !== undefined) {
+        if(_dt !== null && _dt !== undefined) {
             _dt.clear().draw();
             _dt.destroy();
             _dt = null;
