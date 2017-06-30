@@ -120,8 +120,8 @@ function Metrics(active, analysis_session_logic){
         for (var i = 0; i < localStorage.length; i++)   {
             var key = localStorage.key(i);
             if(key.indexOf('EVENT_') >= 0) {
-                values["keys"].add(key);
-                values["data"].add(localStorage.getItem(key));
+                values["keys"].push(key);
+                values["data"].push(localStorage.getItem(key));
             }
         }
         return values;

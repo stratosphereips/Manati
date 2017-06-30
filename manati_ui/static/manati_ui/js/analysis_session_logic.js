@@ -146,10 +146,10 @@ function AnalysisSessionLogic(){
         var columns = [];
         for(var i = 0; i< headers.length ; i++){
             var v = headers[i];
-            columns.add({title: v, name: v, class: v});
+            columns.push({title: v, name: v, class: v});
         }
         //verifying if already exist a table, in that case, destroy it
-        if(_dt != null || _dt != undefined) {
+        if(_dt !== null || _dt !== undefined) {
             _dt.clear().draw();
             _dt.destroy();
             _dt = null;
@@ -318,10 +318,10 @@ function AnalysisSessionLogic(){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
                                     var uuid_str = uuid.v4();
-                                    values.add('undefined');
-                                    values.add(-1);
-                                    values.add(_countID.toString());
-                                    values.add(uuid_str);
+                                    values.push('undefined');
+                                    values.push(-1);
+                                    values.push(_countID.toString());
+                                    values.push(uuid_str);
                                     _data_uploaded[i][COL_VERDICT_STR] = "undefined";
                                     _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
                                     _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
@@ -389,7 +389,7 @@ function AnalysisSessionLogic(){
             temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
             temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
 
-            rows_affected.add(temp_data);
+            rows_affected.push(temp_data);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
