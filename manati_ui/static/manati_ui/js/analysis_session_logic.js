@@ -548,25 +548,7 @@ function AnalysisSessionLogic(){
             $('#panel-datatable').hide();
             $('#save-table, #public-btn').hide();
 
-            //filter table
-            $('body').on('click','.searching-buttons .btn', function () {
-                var btn = $(this);
-                var verdict = btn.data('verdict');
-                if(btn.hasClass('active')){
-                    _filterDataTable.removeFilter(_dt,verdict);
-                    btn.removeClass('active');
-                }
-                else{
-                    _filterDataTable.applyFilter(_dt, verdict);
-                    btn.addClass('active');
-                }
 
-            } );
-            $('body').on('click','.unselect', function (ev){
-                ev.preventDefault();
-                _filterDataTable.removeFilter(_dt);
-                $('#searching-buttons .btn').removeClass('active')
-            });
 
             contextmenu_setting.eventContextMenu();
             $('#save-table').on('click',function(){

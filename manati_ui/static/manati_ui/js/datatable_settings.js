@@ -91,7 +91,7 @@ function DataTableSettings(analysis_session_logic){
               $('#panel-datatable').show();
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons-unused"><"col-md-1 wrap-select-page-unused"><"col-md-5"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
                 '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
@@ -173,6 +173,25 @@ function DataTableSettings(analysis_session_logic){
          //hide or show column
         $.each(headers_info,function(index,elem){
             _dt.columns(index).visible(elem.visible).draw()
+        });
+         //filter table
+        $('body').on('click','.searching-buttons .btn', function () {
+            var btn = $(this);
+            var verdict = btn.data('verdict');
+            if(btn.hasClass('active')){
+                _filterDataTable.removeFilter(_dt,verdict);
+                btn.removeClass('active');
+            }
+            else{
+                _filterDataTable.applyFilter(_dt, verdict);
+                btn.addClass('active');
+            }
+
+        } );
+        $('body').on('click','.unselect', function (ev){
+            ev.preventDefault();
+            _filterDataTable.removeFilter(_dt);
+            $('#searching-buttons .btn').removeClass('active')
         });
 
     }
