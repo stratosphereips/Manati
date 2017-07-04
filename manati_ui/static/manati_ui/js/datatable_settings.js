@@ -45,7 +45,12 @@ function DataTableSettings(analysis_session_logic){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
+                var dt_id = aData[AUX_COLUMNS.DT_ID.str];
                 row.addClass(checkVerdict(_verdicts_merged, aData[AUX_COLUMNS.VERDICT.str]));
+                if(_rows_labeled.hasOwnProperty(dt_id)){
+                    row.addClass(checkVerdict(_verdicts_merged, _rows_labeled[dt_id].verdict));
+                }
+
                 var str = aData[AUX_COLUMNS.DT_ID.str].split(":");
 
                 if(aData[AUX_COLUMNS.REG_STATUS.str] === REG_STATUS.modified){
@@ -92,7 +97,7 @@ function DataTableSettings(analysis_session_logic){
                 '<"clear">',
             "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         };
-    var _analysis_session_id = null
+    var _analysis_session_id = null;
 
     function showLoading(){
          $("#loading-img").show();
@@ -121,14 +126,14 @@ function DataTableSettings(analysis_session_logic){
         hideLoading();
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
-            thiz.setColumnsOrderFlat(true);
+            analysis_session_logic.setColumnsOrderFlat(true);
             for(var i=0; i < settings.aoColumns.length; i++){
                 var name = settings.aoColumns[i].name;
                 update_constant(name, i);
             }
          });
          _dt.on('buttons-action', function ( e, buttonApi, dataTable, node, config ) {
-            thiz.setColumnsOrderFlat(true);
+            analysis_session_logic.setColumnsOrderFlat(true);
          });
          _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
 
@@ -250,7 +255,7 @@ function DataTableSettings(analysis_session_logic){
 
     }
 
-
+    var _rows_labeled = {};
     // ################ PUBLIC EVENTS ################################
     this.markVerdict= function (verdict, class_selector) {
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
@@ -266,11 +271,12 @@ function DataTableSettings(analysis_session_logic){
             var old_verdict = d[AUX_COLUMNS.VERDICT.str];
             d[AUX_COLUMNS.VERDICT.str]= verdict; // update data source for the row
             d[AUX_COLUMNS.REG_STATUS.str] = REG_STATUS.modified;
+            _rows_labeled[d.dt_id] = {register_status: REG_STATUS.modified, verdict: verdict};
             this.invalidate(); // invalidate the data DataTables has cached for this row
 
         } );
         // Draw once all updates are done
-        _dt.draw(false);
+        // _dt.draw(false);
         addClassVerdict(class_selector, verdict);
         return rows_affected;
 
@@ -315,11 +321,17 @@ function DataTableSettings(analysis_session_logic){
             }
 
         });
-    }
+    };
 
     this.getRows = function (class_filter){
         if (class_filter === undefined || class_filter === null) return _dt.rows().data().toArray();
         else return _dt.rows(class_filter).data().toArray();
+    };
+    this.cleanRowsLabeled = function (){
+        var clone = $.extend({}, _rows_labeled);
+        _rows_labeled = {};
+        return clone;
+
     };
 
 
@@ -340,7 +352,7 @@ function DataTableSettings(analysis_session_logic){
     };
 
     this.reloadAjax = function(){
-        _dt.ajax.reload();
+        _dt.ajax.reload(null,false);
     };
     this.activeAjaxData = function (analysis_session_id){
         _analysis_session_id = analysis_session_id;

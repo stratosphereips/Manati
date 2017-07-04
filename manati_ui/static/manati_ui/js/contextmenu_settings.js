@@ -681,11 +681,14 @@ function ContextMenuSettings(datatable_setting){
         })
 
     }
+    var labelingRows = function (verdict){
+        var rows_affected = _datatable_setting.markVerdict(verdict);
+    };
+
 
     // public events
-
     this.labelingRows = function (verdict){
-        var rows_affected = _datatable_setting.markVerdict(verdict);
+        labelingRows(verdict);
     };
 
     this.eventContextMenu = function (){
@@ -711,7 +714,7 @@ function ContextMenuSettings(datatable_setting){
                     return {
                         callback: function(key, options) {
                             var verdict = key;
-                            thiz.labelingRows(verdict);
+                            labelingRows(verdict);
                             return true;
                         },
                         items: generateContextMenuItems($trigger)

@@ -145,51 +145,18 @@ function AnalysisSessionLogic(){
      *************************************************************/
 
 
-    function addClassVerdict(class_selector,verdict) {
-        var checked_verdict = checkVerdict(_verdicts_merged, verdict);
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
-        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
-
-
-    }
-    this.markVerdict= function (verdict, class_selector) {
-        if(class_selector === null || class_selector === undefined) class_selector = "selected";
-        // console.log(verdict);
-        var rows_affected = [];
-        _dt.rows('.'+class_selector).every( function () {
-            var d = this.data();
-
-            var temp_data = {};
-            temp_data[COL_UUID_STR] = d[COLUMN_UUID];
-            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
-            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
-            temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
-
-            rows_affected.push(temp_data);
-            var old_verdict = d[COLUMN_VERDICT];
-            d[COLUMN_VERDICT]= verdict; // update data source for the row
-            d[COLUMN_REG_STATUS] = REG_STATUS.modified;
-            this.invalidate(); // invalidate the data DataTables has cached for this row
-
-        } );
-        // Draw once all updates are done
-        _dt.draw(false);
-        addClassVerdict(class_selector, verdict);
-        return rows_affected;
-
-    };
     var syncDB = function (show_loading){
         if(show_loading === undefined || show_loading === null) show_loading = false;
         if(show_loading) showLoading();
-        var arr_list = datatable_setting.getRows('.modified');
+        var arr_list = datatable_setting.cleanRowsLabeled();
         var data_row = {};
-        $.each(arr_list, function(i,elem){
+        for(var dt_id in arr_list){
+            var elem = arr_list[dt_id]
             if(elem.register_status !== -1){
-                var key_id = elem.dt_id.split(':').length <= 1 ? thiz.getAnalysisSessionId()+":"+elem.dt_id : elem.dt_id;
-                data_row[key_id]=elem.verdict;
+                var key_id = dt_id.split(':').length <= 1 ? thiz.getAnalysisSessionId()+":"+dt_id : dt_id;
+                data_row[key_id]= elem.verdict;
             }
-        });
+        }
         var data = {'analysis_session_id': _analysis_session_id, 'data': data_row };
         if(thiz.getColumnsOrderFlat()){
             data['headers[]'] = JSON.stringify(datatable_setting.get_headers_info());
@@ -202,7 +169,7 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/sync_db",
             // handle a successful response
             success : function(json) {
-                // var data = JSON.parse(json['data']);
+                var data = JSON.parse(json['data']);
                 // $.each(data,function (index, elem) {
                 //     console.log(elem);
                 //     var dt_id = parseInt(elem.pk.split(':')[1]);
@@ -215,8 +182,9 @@ function AnalysisSessionLogic(){
                 //     _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
                 //     _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
                 // });
-                // console.log("DB Synchronized");
-                // if(show_loading) hideLoading();
+                datatable_setting.reloadAjax();
+                console.log("DB Synchronized");
+                if(show_loading) hideLoading();
             },
 
             // handle a non-successful response
