@@ -29,8 +29,10 @@ urlpatterns = [
     url(r'^external_modules', views.IndexExternalModules.as_view(), name='index_external_modules'),
     url(r'^hotkeys/list', views.IndexHotkeys.as_view(), name='index_hotkeys'),
     url(r'^analysis_session/(?P<id>[0-9]+)/publish', views.publish_analysis_session, name='publish_analysis_session'),
+    url(r'^analysis_session/(?P<id>[0-9]+)/get_table_columns', views.get_table_columns, name='get_columns_analysis_session'),
     url(r'^analysis_session/(?P<id>[0-9]+)/update_uuid', views.update_uuid_analysis_session,
         name='uuid_analysis_session'),
     url(r'^analysis_session/(?P<id>[0-9]+)/change_status',views.change_status_analysis_session,
         name='changes_status_analysis_session'),
+    url(r'^datatable/data', views.OrderListJson.as_view(), name='order_list_json'),
 ]

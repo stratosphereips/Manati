@@ -19,6 +19,7 @@ from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
 from manati_ui.serializers import WeblogSerializer
+from django_datatables_view.base_datatable_view import BaseDatatableView
 
 
 # Get an instance of a logger
@@ -69,11 +70,11 @@ def create_analysis_session(request):
     if request.method == 'POST':
         current_user = request.user
         filename = str(request.POST.get('filename', ''))
-        u_data_list = json.loads(request.POST.get('data[]',''))
+        u_data_obj = json.loads(request.POST.get('data[]',''))
         u_key_list = json.loads(request.POST.get('headers[]',''))
         type_file = request.POST.get('type_file','')
         uuid = request.POST.get('uuid','')
-        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_obj,current_user,
                                                           type_file,uuid)
 
         if not analysis_session :
@@ -436,6 +437,78 @@ def get_weblogs(request):
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
+
+@csrf_exempt
+def get_table_columns(request, id):
+    try:
+        if request.method == 'GET':
+            user = request.user
+            analysis_session = AnalysisSession.objects.get(id=id)
+            headers = convert(analysis_session.get_columns_order_by(user))
+            return JsonResponse(dict(analysissessionid=analysis_session.id,
+                                     analysissessionuuid=analysis_session.uuid,
+                                     name=analysis_session.name,
+                                     headers=headers))
+
+        else:
+            messages.error(request, 'Only GET request')
+            return HttpResponseServerError("Only GET request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+
+class OrderListJson(BaseDatatableView):
+    # The model we're going to show
+    model = Weblog
+
+    # define the columns that will be returned
+    columns = ['attributes', 'verdict']
+
+    # define column names that will be used in sorting
+    # order is important and should be same as order of columns
+    # displayed by datatables. For non sortable columns use empty
+    # value like ''
+    order_columns = ['attributes', 'verdict']
+    analysis_session_id = None
+
+
+    # set max limit of records returned, this is used to protect our site if someone tries to attack our site
+    # and make it return huge amount of data
+    max_display_length = 500
+
+    def render_column(self, row, column):
+        return super(OrderListJson, self).render_column(row, column)
+
+    def get_initial_queryset(self):
+        if not self.model:
+            raise NotImplementedError("Need to provide a model or implement get_initial_queryset!")
+        else:
+            self.analysis_session_id = self.request.GET.get('analysis_session_id', None)
+            return self.model.objects.filter(analysis_session_id=self.analysis_session_id).all()
+
+    def filter_queryset(self, qs):
+        # use parameters passed in GET request to filter queryset
+        search = self.request.GET.get(u'search[value]', None)
+        # analysis_session_id = self.request.GET.get(u'analysis_session_id', None)
+        # qs = qs.filter(analysis_session_id=analysis_session_id)
+        if search:
+            qs = qs.filter(attributes__contains=search)
+
+        return qs
+
+    def prepare_results(self, qs):
+        # prepare list with output column data
+        # queryset is already paginated here
+        json_data = []
+        for item in qs:
+            attributes = item.full_attributes_obj
+            # temp = []
+            # for col in self.columns:
+            #     temp.append(attributes[col])
+            json_data.append(attributes)
+
+        return json_data
 
 
 class IndexAnalysisSession(generic.ListView):

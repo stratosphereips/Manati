@@ -66,7 +66,7 @@ function update_constant(str, index){
     }
 }
 function checkVerdict(_verdicts_merged, verdict){
-    if (verdict == undefined || verdict == null) return verdict;
+    if (verdict === undefined || verdict === null) return verdict;
     var merged = verdict.split('_');
 
     if(merged.length > 1){
@@ -98,6 +98,8 @@ function AnalysisSessionLogic(){
     var rowCount, firstError, errorCount = 0;
     var db_name = 'weblogs_db';
     var reader_files;
+    var datatable_setting = null;
+    var contextmenu_setting = null;
     this.columns_order_changed = false;
     thiz = this;
     _m = new Metrics(true,this);
@@ -142,231 +144,6 @@ function AnalysisSessionLogic(){
                             PRIVATE FUNCTIONS
      *************************************************************/
 
-    function initDatatable(headers, data){
-        var columns = [];
-        for(var i = 0; i< headers.length ; i++){
-            var v = headers[i];
-            columns.push({title: v, name: v, class: v});
-        }
-        //verifying if already exist a table, in that case, destroy it
-        if(_dt !== null && _dt !== undefined) {
-            _dt.clear().draw();
-            _dt.destroy();
-            _dt = null;
-            $('#weblogs-datatable').html('');
-        }
-        // create or init datatable
-        _dt = $('#weblogs-datatable').DataTable({
-            data: data,
-            columns: columns,
-            fixedHeader: {
-                header: true
-            },
-            columnReorder: true,
-            "search": {
-                "regex": true
-            },
-            columnDefs: [
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
-                {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
-            ],
-            "scrollX": true,
-            colReorder: true, //true, // TO-DO for now, until prevent an error
-            renderer: "bootstrap",
-            responsive: true,
-            buttons: ['copy','csv','excel', 'colvis',
-                // {
-                //     text: 'Filter by Verdicts',
-                //     className: 'filter-verdicts',
-                //     action: function ( e, dt, node, config ) {
-                //         _filterDataTable.showMenuContext(dt,node.offset());
-                //     }
-                // }
-            ],
-            "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-                //when you change the verdict, the color is updated
-                var row = $(nRow);
-                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
-                var str = aData[COLUMN_DT_ID].split(":");
-
-                if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
-                    if(!row.hasClass('modified')) row.addClass('modified');
-                }
-                if(str.length > 1){
-                    row.attr("data-dbid", str[1]);
-                }else{
-                    row.attr("data-dbid", str[0]);
-                }
-            },
-            drawCallback: function(){
-              $('.paginate_button.next', this.api().table().container())
-                 .on('click', function(){
-                     $("html, body").animate({ scrollTop: 0 }, "slow");
-                 });
-           },
-            initComplete:   function(){
-              var div_filter = $("#weblogs-datatable_filter");//.detach();
-              var input_filter = div_filter.find('input').detach();
-              var label_filter = div_filter.find('label').detach();
-              input_filter.attr('placeholder', 'Search:');
-              input_filter.css('width', 260);
-              input_filter.removeClass();
-              label_filter.removeClass();
-              div_filter.addClass('fluid-label');
-              div_filter.append(input_filter);
-              div_filter.append(label_filter);
-
-              // div_filter.appendTo('#new-search-area');
-
-              $('.fluid-label').fluidLabel({
-                focusClass: 'focused'
-              });
-              $('.wrap-buttons').html($('.searching-buttons').clone());
-
-              $('.wrap-select-page').html($('.wrap-page-select').clone());
-            },
-             // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
-                'rt' +
-                '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
-                '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
-                '<"clear">',
-            "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
-        });
-
-        _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-            $(this).toggleClass('selected');
-            $('.contextMenuPlugin').remove();
-        } );
-        hideLoading();
-        $('#panel-datatable').show();
-         _dt.on( 'column-reorder', function ( e, settings, details ) {
-            thiz.setColumnsOrderFlat(true);
-            for(var i=0; i < settings.aoColumns.length; i++){
-                var name = settings.aoColumns[i].name;
-                update_constant(name, i);
-                // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
-            }
-         });
-         _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
-            thiz.setColumnsOrderFlat(true);
-        } );
-         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
-
-         $("#weblogs-datatable").on("click", "a.virus-total-consult",function (ev) {
-             ev.preventDefault();
-             var elem = $(this);
-             var row = elem.closest('tr');
-             var query_node = elem.data('info') == 'domain' ? findDomainOfURL(elem.text()) : elem.text() ;
-             row.removeClass('selected');
-             consultVirusTotal(query_node);
-
-        });
-
-         // adding options to select datatable's pages
-         var list = document.getElementsByClassName('page-select')[1];
-         for(var index=0; index<_dt.page.info().pages; index++) {
-             list.add(new Option((index+1).toString(), index));
-         }
-         $('.page-select').change(function (ev) {
-             ev.preventDefault();
-             var elem = $(this);
-
-             _dt.page(parseInt(elem.val())).draw('page');
-
-         });
-         _dt.on( 'page.dt', function () {
-            var info = _dt.page.info();
-            $('.page-select').val(info.page);
-
-        } );
-         _dt.on('length.dt',function (){
-             $('.page-select').html('');
-             var list = document.getElementsByClassName('page-select')[1];
-             for(var index=0; index<_dt.page.info().pages; index++) {
-                 list.add(new Option((index+1).toString(), index));
-             }
-         });
-         _dt.on('search.dt',function (){
-             $('.page-select').html('');
-             var list = document.getElementsByClassName('page-select')[1];
-             for(var index=0; index<_dt.page.info().pages; index++) {
-                 list.add(new Option((index+1).toString(), index));
-             }
-
-         });
-         // _dt.on( 'column-reorder', function ( e, settings, details ) {
-         //    for(var i=0; i < settings.aoColumns.length; i++){
-         //        var name = settings.aoColumns[i].name;
-         //
-         //        // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
-         //    }
-
-        // } );
-
-    }
-    function initData(data, headers) {
-
-        _data_uploaded = data;
-        _data_headers = headers;
-        _data_headers_keys = {};
-        _countID = 1;
-        $("li#statical-nav").hide();
-        var data_processed = _.map(_data_uploaded,function(v, i){
-                                var values = _.values(v);
-                                if(values.length < _data_headers.length){
-                                    var uuid_str = uuid.v4();
-                                    values.push('undefined');
-                                    values.push(-1);
-                                    values.push(_countID.toString());
-                                    values.push(uuid_str);
-                                    _data_uploaded[i][COL_VERDICT_STR] = "undefined";
-                                    _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
-                                    _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
-                                    _data_uploaded[i][COL_UUID_STR] = uuid_str
-                                 }
-                                _countID++;
-                                return values
-                            });
-
-        $.each(_data_headers,function(i, v){
-            _data_headers_keys[v] = i;
-        });
-        console.log(data.length);
-        COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
-        COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
-        COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
-        COLUMN_UUID = _data_headers_keys[COL_UUID_STR];
-
-        for(var index = 0; index < NAMES_HTTP_URL.length; index++){
-            var key = NAMES_HTTP_URL[index];
-            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
-                COL_HTTP_URL_STR = key;
-                break;
-            }
-        }
-        for(var index = 0; index < NAMES_END_POINTS_SERVER.length; index++){
-            var key = NAMES_END_POINTS_SERVER[index];
-            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
-                COL_END_POINTS_SERVER_STR = key;
-                break;
-            }
-        }
-        processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
-        // COL_HTTP_URL_STR = "http.url";
-        // COL_END_POINTS_SERVER_STR = "endpoints.server";
-        COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
-        COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
-        CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
-        CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
-        _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
-        initDatatable(_data_headers, data_processed);
-        $('#save-table').show();
-
-    }
-
 
     function addClassVerdict(class_selector,verdict) {
         var checked_verdict = checkVerdict(_verdicts_merged, verdict);
@@ -403,20 +180,19 @@ function AnalysisSessionLogic(){
 
     };
     var syncDB = function (show_loading){
-        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading === undefined || show_loading === null) show_loading = false;
         if(show_loading) showLoading();
-        var arr_list = _dt.rows('.modified').data();
+        var arr_list = datatable_setting.getRows('.modified');
         var data_row = {};
-        arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1){
-                var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
-                data_row[key_id]=elem[COLUMN_VERDICT];
+        $.each(arr_list, function(i,elem){
+            if(elem.register_status !== -1){
+                var key_id = elem.dt_id.split(':').length <= 1 ? thiz.getAnalysisSessionId()+":"+elem.dt_id : elem.dt_id;
+                data_row[key_id]=elem.verdict;
             }
         });
-        var data = {'analysis_session_id': _analysis_session_id,
-                        'data': data_row };
+        var data = {'analysis_session_id': _analysis_session_id, 'data': data_row };
         if(thiz.getColumnsOrderFlat()){
-            data['headers[]']=JSON.stringify(get_headers_info());
+            data['headers[]'] = JSON.stringify(datatable_setting.get_headers_info());
             thiz.setColumnsOrderFlat(false);
         }
         $.ajax({
@@ -426,27 +202,21 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/sync_db",
             // handle a successful response
             success : function(json) {
-                // $('#post-text').val(''); // remove the value from the input
-                // console.log(json); // log the returned json to the console
-                var data = JSON.parse(json['data']);
-                console.log(data);
-                $.each(data,function (index, elem) {
-                    console.log(elem);
-                    var dt_id = parseInt(elem.pk.split(':')[1]);
-                    var row = _dt.rows('[data-dbid="'+dt_id+'"]');
-                    var index_row = row.indexes()[0];
-                     row.nodes().to$().addClass('selected-sync');
-                    thiz.setColumnsOrderFlat(false);
-                     thiz.markVerdict(elem.fields.verdict,'selected-sync');
-                    row.nodes().to$().removeClass('modified');
-                    _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
-                    _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
-
-
-
-                });
-                console.log("DB Synchronized");
-                if(show_loading) hideLoading();
+                // var data = JSON.parse(json['data']);
+                // $.each(data,function (index, elem) {
+                //     console.log(elem);
+                //     var dt_id = parseInt(elem.pk.split(':')[1]);
+                //     var row = _dt.rows('[data-dbid="'+dt_id+'"]');
+                //     var index_row = row.indexes()[0];
+                //      row.nodes().to$().addClass('selected-sync');
+                //     thiz.setColumnsOrderFlat(false);
+                //      thiz.markVerdict(elem.fields.verdict,'selected-sync');
+                //     row.nodes().to$().removeClass('modified');
+                //     _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
+                //     _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
+                // });
+                // console.log("DB Synchronized");
+                // if(show_loading) hideLoading();
             },
 
             // handle a non-successful response
@@ -465,27 +235,19 @@ function AnalysisSessionLogic(){
 
         });
     };
-    function get_headers_info(){
-        // _data_headers
-        var column_visibles = _dt.columns().visible();
-        var headers = $.map(_dt.columns().header(),function (v,i) {
-            return {order: i, column_name: v.innerHTML, visible: column_visibles[i] };
-        });
-        
-        return headers;
-    }
+
     function saveDB(){
         try{
 
             showLoading();
             $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
             $('#save-table').attr('disabled',true).addClass('disabled');
-            var rows = _dt.rows();
+            var rows = datatable_setting.getRows();
             _m.EventAnalysisSessionSavingStart(rows.length, _filename);
             var data = {
                 filename: _filename,
-                "headers[]": JSON.stringify(get_headers_info()),
-                'data[]': JSON.stringify(rows.data().toArray()),
+                "headers[]": JSON.stringify(datatable_setting.get_headers_info()),
+                'data[]': JSON.stringify(rows),
                 type_file: thiz.getAnalysisSessionTypeFile(),
                 uuid: thiz.getAnalysisSessionUUID()
             };
@@ -502,10 +264,8 @@ function AnalysisSessionLogic(){
                     // console.log("success"); // another sanity check
                     _analysis_session_id = json['data']['analysis_session_id'];
                     setFileName(json['data']['filename']);
-                    _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
-                        var tr = $(cell).closest('tr');
-                        if(!tr.hasClass("modified")) cell.innerHTML = 0;
-                    } );
+                    datatable_setting.cleanModified();
+                    datatable_setting.activeAjaxData(_analysis_session_id);
                     _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
                     $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
@@ -555,21 +315,6 @@ function AnalysisSessionLogic(){
     }
     function hideLoading() {
         $("#loading-img").hide();
-    }
-
-    function contextMenuConfirmMsg(rows, verdict){
-        $.confirm({
-            title: 'Weblogs Affected',
-            content: "Will " + rows.length.toString() + ' weblogs change their verdicts, is ok for you? ',
-            confirm: function(){
-                _dt.rows('.selected').nodes().to$().removeClass('selected');
-                _dt.rows(rows).nodes().to$().addClass('selected');
-                thiz.markVerdict(verdict);
-            },
-            cancel: function(){
-
-            }
-        });
     }
 
     function refreshingDomainsWhoisRelatedModal(weblog_id){
@@ -661,625 +406,14 @@ function AnalysisSessionLogic(){
 
     }
 
-    var _bulk_marks_wbs = {};
-    var _bulk_verdict;
-
-    var generateContextMenuItems = function(tr_dom){
-        // var tr_active = $("tr.menucontext-open.context-menu-active");
-        var bigData = _dt.rows(tr_dom).data()[0];
-        var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
-        var url = bigData[COLUMN_HTTP_URL];
-        var domain = findDomainOfURL(url); // getting domain
-        var items_menu = {};
-        _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value);
-        _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain);
-        _bulk_verdict = bigData[COLUMN_VERDICT];
-        _verdicts.forEach(function(v){
-            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
-        });
-        items_menu['sep1'] = "-----------";
-        items_menu['fold1'] = {
-            name: "Mark all WBs with same: ",
-            icon: "fa-search-plus",
-            // disabled: function(){ return !this.data('moreDisabled'); },
-            items: {
-            "fold1-key1": { name:  "By IP (of column: " + COL_END_POINTS_SERVER_STR+")" +
-                                    "("+_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR].length+")",
-                            icon: "fa-paint-brush",
-                            className: CLASS_MC_END_POINTS_SERVER_STR,
-                            callback: function(key, options) {
-                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
-                                _m.EventBulkLabelingByEndServerIP(_bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR],_bulk_verdict, ip_value);
-
-                            }
-                        },
-            "fold1-key2": { name: "By Domain (of column:" + COL_HTTP_URL_STR +")" +
-                                    "("+_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR].length+")",
-                            icon: "fa-paint-brush",
-                            className: CLASS_MC_HTTP_URL_STR,
-                            callback: function(key, options) {
-                                setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
-                                _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
-                            }
-                    }
-        }};
-        items_menu['sep2'] = "-----------";
-        items_submenu_external_query = {};
-        items_submenu_external_query['virus_total_consult'] = {
-            name: "VirusTotal", icon: "fa-search",
-            items: {
-                "fold2-key1": {
-                    name: "Looking for domain (of column:" + COL_HTTP_URL_STR +")",
-                    icon: "fa-paper-plane-o",
-                    callback: function (key, options) {
-                        var qn = bigData[COLUMN_HTTP_URL];
-                        consultVirusTotal(qn, "domain");
-
-                    }
-                },
-                "fold2-key2": {
-                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
-                    icon: "fa-paper-plane-o",
-                    callback: function (key, options) {
-                        var qn = bigData[COLUMN_END_POINTS_SERVER];
-                        consultVirusTotal(qn, "ip");
-                    }
-                }
-            }
-        };
-        items_submenu_external_query['whois_consult'] = {
-            name: "Whois", icon: "fa-search",
-            items: {
-                "fold2-key1": {
-                    name: "Looking for domain (of column: " + COL_HTTP_URL_STR +")",
-                    icon: "fa-paper-plane-o",
-                    callback: function (key, options) {
-                        var qn = bigData[COLUMN_HTTP_URL];
-                        consultWhois(qn, "domain");
-
-                    }
-                },
-                "fold2-key2": {
-                    name: "Looking for IP (of column: " + COL_END_POINTS_SERVER_STR+")",
-                    icon: "fa-paper-plane-o",
-                    callback: function (key, options) {
-                        var qn = bigData[COLUMN_END_POINTS_SERVER];
-                        consultWhois(qn, "ip");
-                    }
-                }
-            }
-        };
-
-        if(thiz.isSaved()) {
-            items_menu['fold1']['items']['fold1-key3'] = {
-                name: "Mark all WBs WHOIS related (domain from column:" + COL_HTTP_URL_STR +")",
-                icon: "fa-paint-brush",
-                className: CLASS_MC_HTTP_URL_STR,
-                callback: function(key, options) {
-                    var weblog_id = bigData[COLUMN_DT_ID].toString();
-                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                    labelWeblogsWhoisRelated(weblog_id,_bulk_verdict)
-
-                    // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
-                    // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
-                }
-
-            };
-            items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
-                name: "Find WHOIS related domains (from column:" + COL_HTTP_URL_STR +")",
-                icon: "fa-search",
-                callback: function (key, option) {
-                    var weblog_id = bigData[COLUMN_DT_ID].toString();
-                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                    getWeblogsWhoisRelated(weblog_id);
-
-                }
-            };
-
-
-            items_menu['fold4'] = {
-                name: "Registry History", icon: "fa-search",
-                items: {
-                    "fold2-key1": {
-                        name: "Veredict History",
-                        icon: "fa-paper-plane-o",
-                        callback: function (key, options) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                                getWeblogHistory(weblog_id);
-
-                        }
-                    },
-                    "fold2-key2": {
-                        name: "Modules Changes",
-                        icon: "fa-paper-plane-o",
-                        callback: function (key, options) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                            getModulesChangesHistory(weblog_id);
-                        }
-                    }
-                }
-            };
-            items_menu['fold4'] = {
-                name: "Registry History", icon: "fa-search",
-                items: {
-                    "fold2-key1": {
-                        name: "Veredict History",
-                        icon: "fa-paper-plane-o",
-                        callback: function (key, options) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                                getWeblogHistory(weblog_id);
-
-                        }
-                    },
-                    "fold2-key2": {
-                        name: "Modules Changes",
-                        icon: "fa-paper-plane-o",
-                        callback: function (key, options) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                            getModulesChangesHistory(weblog_id);
-                        }
-                    },
-                    "fold2-key3": {
-                        name: "IOCs",
-                        icon: "fa-paper-plane-o",
-                        callback: function (key, options) {
-                            var weblog_id = bigData[COLUMN_DT_ID].toString();
-                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                            getIOCs(weblog_id);
-                        }
-                    }
-                }
-            };
-        }
-
-        items_menu['fold3'] = {
-            name: "External Intelligence", icon: "fa-search",
-            items: items_submenu_external_query
-        };
-        items_menu['sep3'] = "-----------";
-        items_menu['fold2'] = {
-            name: "Copy to clipboard", icon: "fa-files-o",
-            items: {
-                "fold2-key1": {
-                    name: "Copy URL (of column: " + COL_HTTP_URL_STR +")",
-                    icon: "fa-file-o",
-                    callback: function (key, options) {
-                        copyTextToClipboard(bigData[COLUMN_HTTP_URL]);
-                    }
-                },
-                "fold2-key2": {
-                    name: "Copy IP (of column: " + COL_END_POINTS_SERVER_STR+")",
-                    icon: "fa-file-o",
-                    callback: function (key, options) {
-                        copyTextToClipboard(bigData[COLUMN_END_POINTS_SERVER]);
-                    }
-                }
-            }
-        };
-        items_menu['fold2'] = {
-            name: "Hotkeys List", icon: "fa-files-o",
-            callback: function (key, options){
-                initModal("List of Hotkeys");
-                $.ajax({url:'/manati_project/manati_ui/hotkeys/list',
-                    type:"GET",
-                    dataType: "json",
-                    success: function (json){
-                        var table = buildTableHotkeys(json['hotkeys']);
-                        updateBodyModal(table);
-                    },
-                    error: function (xhr,errmsg,err) {
-                        $.notify(xhr.status + ": " + xhr.responseText, "error");
-                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                    }
-                })
-
-            },
-        };
-
-
-
-        return items_menu;
-
-    };
-    function buildTableHotkeys(hotkeys){
-        var table = "<table class='table table-bordered table-striped'>";
-        table += "<thead><tr><th style='width: 110px;'>#</th><th>Description</th><th>Command</th></tr></thead>";
-        table += "<tbody>";
-            var count = 1;
-            _.each(hotkeys, function (value){
-                table += "<tr>";
-                table += "<td>"+count+"</td>";
-                table += "<td>"+value['description']+"</td>";
-                table += "<td>"+value['command']+"</td>";
-                table += "</tr>";
-                count++;
-
-            });
-
-        table += "</tbody>";
-        table += "</table>";
-        return table;
-
-    }
-    function buildTableInfo_VT(info_report){
-        var table = "<table class='table table-bordered table-striped'>";
-        table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
-        table += "<tbody>";
-            for(var key in info_report){
-                table += "<tr>";
-                table += "<th>"+key+"</th>";
-                var info = info_report[key];
-                if (info instanceof Array){
-                    var html_temp = "";
-                    for(var index = 0; index < info.length; index++){
-                        var data = info[index];
-                        if(data instanceof Object){
-                             html_temp += buildTableInfo_VT(data, true) ;
-                        }else if(typeof(data) === "string") {
-                            table += "<td>" + info.join(", ") + "</td>" ;
-                            break;
-                        }
-
-                    }
-                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
-                }
-                else if(info instanceof Object){
-                    var html_temp = "";
-                    html_temp += buildTableInfo_VT(info, true) ;
-                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
-                }
-                else{
-                    table += "<td>" + info + "</td>" ;
-                }
-
-                table += "</tr>";
-            }
-
-        table += "</tbody>";
-        table += "</table>";
-        return table;
-
-    }
-    function buildTableInfo_Whois(info_report, no_title){
-        if(no_title == undefined || no_title == null) no_title = false;
-        var table = "<table class='table table-bordered table-striped'>";
-        if(!no_title) table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
-        table += "<tbody>";
-            for(var key in info_report){
-                table += "<tr>";
-                table += "<th>"+key+"</th>";
-                var info = info_report[key];
-                if (info instanceof Array) {
-                    var html_temp = "";
-                    for (var index = 0; index < info.length; index++) {
-                        var data = info[index];
-                        if (data instanceof Object) {
-                            html_temp += buildTableInfo_Whois(data, true);
-                        } else if (typeof(data) == "string") {
-                            table += "<td>" + info.join(", ") + "</td>";
-                            break;
-                        }
-                    }
-                    if (html_temp != "") table += "<td>" + html_temp + "</td>";
-                }else if(info instanceof Object){
-                    var html_temp = "";
-                    html_temp += buildTableInfo_Whois(info, false) ;
-                    if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
-                }else{
-                    table += "<td>" + info + "</td>" ;
-                }
-
-                table += "</tr>";
-            }
-
-        table += "</tbody>";
-        table += "</table>";
-        return table;
-
-    }
-    function initModal(title, after_hidden_function){
-        $('#vt_consult_screen #vt_modal_title').html(title);
-        $('#vt_consult_screen').modal('show');
-        $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
-            $(this).find(".table-section").html('').hide();
-            $(this).find(".loading").show();
-            $(this).find("#vt_modal_title").html('');
-            $(this).find(".append").html('');
-            if(after_hidden_function !== undefined && after_hidden_function !== null){
-                after_hidden_function();
-            }
-
-        });
-    }
-    function updateTitleModal(title){
-        $('#vt_consult_screen #vt_modal_title').html(title);
-
-    }
-    function updateBodyModal(table) {
-        var modal_body = $('#vt_consult_screen .modal-body');
-        if (table != null) {
-            modal_body.find('.table-section').html(table).show();
-            modal_body.find(".loading").hide();
-        }
-    }
-    function updateFooterModal(html_append){
-        var modal_footer = $('#vt_consult_screen .modal-footer .append');
-        modal_footer.html(html_append)
-    }
-    function consultVirusTotal(query_node, query_type){
-        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
-        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
-        else{
-            console.error("Error query_type for ConsultVirusTotal is incorrect")
-        }
-        initModal("Virus Total Query: <span>?????</span>");
-        var data = {query_node: query_node, query_type: query_type};
-        $.ajax({
-            type:"GET",
-            data: data,
-            dataType: "json",
-            url: "/manati_project/manati_ui/consult_virus_total",
-            success : function(json) {// handle a successful response
-                var info_report = JSON.parse(json['info_report']);
-                var node = json['query_node'];
-                var table = buildTableInfo_VT(info_report);
-                if(query_type === 'ip'){
-                    query_node = "<a target='_blank' href='https://virustotal" +
-                        ".com/en/ip-address/"+node+"/information/'>"+node+"</a>"
-                }
-                else if(query_type === 'domain'){
-                    query_node = "<a target='_blank' href='https://virustotal" +
-                        ".com/en/domain/"+node+"/information/'>"+node+"</a>"
-                }
-                initModal("Virus Total Query: <span>"+query_node+"</span>");
-                updateBodyModal(table);
-            },
-            error : function(xhr,errmsg,err) { // handle a non-successful response
-                $.notify(xhr.status + ": " + xhr.responseText, "error");
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
-            }
-
-        })
-    }
-    function consultWhois(query_node, query_type){
-        if(query_type == "domain") _m.EventWhoisConsultationByDomian(query_type);
-        else if(query_type == "ip") _m.EventWhoisConsultationByIp(query_type);
-        else{
-            console.error("Error query_type for WhoisConsultation is incorrect")
-        }
-        initModal("Whois Query: <span>????</span>");
-        var data = {query_node: query_node, query_type: query_type};
-        $.ajax({
-            type:"GET",
-            data: data,
-            dataType: "json",
-            url: "/manati_project/manati_ui/consult_whois",
-            success : function(json) {// handle a successful response
-                var info_report = json['info_report'];
-                var query_node = json['query_node'];
-                var table = buildTableInfo_Whois(info_report);
-                initModal("Whois Query: <span>"+query_node+"</span>");
-                updateBodyModal(table);
-            },
-            error : function(xhr,errmsg,err) { // handle a non-successful response
-                $.notify(xhr.status + ": " + xhr.responseText, "error");
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
-            }
-
-        })
-    }
-
-    function buildTableInfo_Wbl_History(weblog_history){
-        var table = "<table class='table table-bordered table-striped'>";
-        table += "<thead><tr><th>User/Module</th><th>Previous Verdict</th><th>Verdict</th><th>When?</th></tr></thead>";
-        table += "<tbody>";
-            _.each(weblog_history, function (value, index) {
-                table += "<tr>";
-                // for(var key in value){
-                //     table += "<td>" + value[key]+ "</td>" ;
-                // }
-                table += "<td>" + value.author_name + "</td>";
-                table += "<td>" + value.old_verdict + "</td>" ;
-                table += "<td>" + value.verdict + "</td>" ;
-                table += "<td>" + moment(value.created_at).format('llll') + "</td>" ;
-                table += "</tr>";
-            });
-
-
-        table += "</tbody>";
-        table += "</table>";
-        return table;
-
-    }
-    function buildTableIOCs(iocs) {
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>#</th><th>IOCs</th><th>Value</th></tr></thead>";
-        table += "<tbody>";
-        var count = 1;
-        _.each(iocs, function (ioc) {
-            var tr = "<tr>";
-            tr += "<td>" + count + "</td>";
-            tr += "<td>" + ioc['ioc_type'] + "</td>";
-            tr += "<td>" + ioc['value'] + "</td>";
-            tr += "</tr>";
-            count++;
-            table += tr;
-        });
-        return table;
-    }
-    function buildTableInfo_Mod_attributes(mod_attributes) {
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
-        table += "<tbody>";
-        console.log(mod_attributes);
-        _.each(mod_attributes, function (value, mod_name) {
-            var length = _.keys(value).length
-            var tr = "<tr>";
-            tr += "<td  rowspan='" + length + "'>" + mod_name + "</td>";
-            _.each(value, function (parameter_value, key) {
-                if (tr == null) tr = "<tr>";
-                tr += "<td>" + key + "</td>";
-                if (key == 'created_at') {
-                    tr += "<td>" + moment(parameter_value).format('llll') + "</td>";
-                } else {
-                    tr += "<td>" + parameter_value + "</td>";
-                }
-                tr += "</tr>";
-                table += tr;
-                tr = null;
-            });
-        });
-        return table;
-    }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related){
-        if(was_related == undefined || was_related == null) was_related = false;
-        if(isEmpty(mod_attributes) && !was_related) return null;
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
-        table += "<tbody>";
-        console.log(mod_attributes);
-        var count = 1;
-        if(isEmpty(mod_attributes) && was_related){
-            var tr = "<tr>";
-            tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
-            table+=tr;
-        }else{
-            _.each(mod_attributes, function (domain) {
-                var tr = "<tr>";
-                tr += "<td>"+count+"</td>";
-                tr += "<td>"+domain+"</td>";
-                tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
-                tr += "</tr>";
-                table+=tr;
-                count++;
-            });
-
-        }
-
-        table += "</tbody>";
-        table += "</table>";
-        return table;
-
-    }
-    function getIOCs(weblog_id){
-        initModal("IOCs Selected:" + weblog_id);
-        var data = {weblog_id:weblog_id}
-        $.ajax({
-            type:"GET",
-            dataType: "json",
-            data:data,
-            url: "/manati_project/manati_ui/analysis_session/weblog/iocs",
-            success : function(json) {// handle a successful response
-                var iocs = json['iocs'];
-                var table = buildTableIOCs(iocs);
-                updateBodyModal(table);
-            },
-            error : function(xhr,errmsg,err) { // handle a non-successful response
-                $.notify(xhr.status + ": " + xhr.responseText, "error");
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
-            }
-
-        })
-
-    }
-    function getModulesChangesHistory(weblog_id){
-        initModal("Modules Changes History of Weblog ID:" + weblog_id);
-        var data = {weblog_id: weblog_id};
-        $.ajax({
-            type:"GET",
-            data: data,
-            dataType: "json",
-            url: "/manati_project/manati_ui/analysis_session/weblog/modules_changes_attributes",
-            success : function(json) {// handle a successful response
-                var mod_attributes = JSON.parse(json['data']);
-                var table = buildTableInfo_Mod_attributes(mod_attributes);
-                updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
-                // updateBodyModal(table);
-            },
-            error : function(xhr,errmsg,err) { // handle a non-successful response
-                $.notify(xhr.status + ": " + xhr.responseText, "error");
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-
-            }
-
-        })
-
-    }
-    function getWeblogHistory(weblog_id){
-        initModal("Weblog History ID:" + weblog_id);
-        var data = {weblog_id: weblog_id};
-        $.ajax({
-            type:"GET",
-            data: data,
-            dataType: "json",
-            url: "/manati_project/manati_ui/analysis_session/weblog/history",
-            success : function(json) {// handle a successful response
-                var weblog_history = JSON.parse(json['data']);
-                var table = buildTableInfo_Wbl_History(weblog_history);
-                updateBodyModal(table);
-            },
-            error : function(xhr,errmsg,err) { // handle a non-successful response
-                $.notify(xhr.status + ": " + xhr.responseText, "error");
-                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-            }
-
-        })
-
-    }
     function findDomainOfURL(url){
         var matching_domain = null;
         var domain = ( (matching_domain = url.match(REG_EXP_DOMAINS)) != null )|| matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null ;
         domain = (domain == null)  && ((matching_domain = url.match(REG_EXP_IP)) != null) || matching_domain != undefined && matching_domain.length > 0 ? matching_domain[0] : null;
         return domain
     }
-    function contextMenuSettings (){
-        //events for verdicts buttons on context popup menu
-            $.contextMenu({
-                selector: '.weblogs-datatable tr',
-                events: {
-                   show : function(options){
-                        // // Add class to the menu
-                        if(!this.hasClass('selected')){
-                            this.addClass('selected');
-                        }
-                        this.addClass('menucontext-open');
-                   },
-                   hide : function(options) {
-                       this.removeClass('menucontext-open');
-                       this.removeClass('selected');
-                       _bulk_marks_wbs = {};
-                       _bulk_verdict = null;
-                   }
-                },
-                build: function ($trigger, e){
-                    return {
-                        callback: function(key, options) {
-                            var verdict = key;
-                            labelingRows(verdict);
-                            return true;
-                        },
-                        items: generateContextMenuItems($trigger)
-
-                    }
-                }
 
 
-            });
-    }
-    var labelingRows = function (verdict){
-        var rows_affected = thiz.markVerdict(verdict);
-        _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
-    };
     var executeFilterBtn = function (verdict){
         $('.searching-buttons .btn').filter('[data-verdict="'+ verdict+'"]').click()
     };
@@ -1307,27 +441,27 @@ function AnalysisSessionLogic(){
         // mark malicious
         Mousetrap.bind(['ctrl+m', 'command+m'], function(e) {
             preventDefault(e);
-            labelingRows('malicious');
+            contextmenu_setting.labelingRows('malicious');
         });
         // mark legitimate
         Mousetrap.bind(['ctrl+l', 'command+l'], function(e) {
             preventDefault(e);
-            labelingRows('legitimate');
+            contextmenu_setting.labelingRows('legitimate');
         });
         // mark suspicious
         Mousetrap.bind(['ctrl+i', 'command+i'], function(e) {
             preventDefault(e);
-            labelingRows('suspicious');
+            contextmenu_setting.labelingRows('suspicious');
         });
         // mark false positive
         Mousetrap.bind(['ctrl+p', 'command+p'], function(e) {
             preventDefault(e);
-            labelingRows('falsepositive');
+            contextmenu_setting.labelingRows('falsepositive');
         });
         // mark undefined
         Mousetrap.bind(['ctrl+u', 'command+u'], function(e) {
             preventDefault(e);
-            labelingRows('undefined');
+            contextmenu_setting.labelingRows('undefined');
         });
         // Filter all Malicious
         Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
@@ -1366,40 +500,41 @@ function AnalysisSessionLogic(){
         //     // TO-DO
         // });
          // open VirusTotal Modal By domain, the first selected weblog
-        Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
-            preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
-            consultVirusTotal(qn, "domain");
-        });
-         // open WHOIS Modal By domain, the first selected weblog
-        Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
-            preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
-            consultWhois(qn, "domain");
-        });
-         // open VirusTotal Modal By IP, the first selected weblog
-        Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
-            preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
-            consultVirusTotal(qn, "ip");
-        });
-         // open WHOIS Modal By IP, the first selected weblog
-        Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
-            preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
-            consultWhois(qn, "ip");
-        });
-        Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
-            preventDefault(e);
-            var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
-            weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
-            getWeblogsWhoisRelated(weblog_id);
-        });
+        // Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
+        //     preventDefault(e);
+        //     var qn = datatable_setting.getRows('.selected')[0][AUX_COLUMNS.URL.str];
+        //     consultVirusTotal(qn, "domain");
+        // });
+        //  // open WHOIS Modal By domain, the first selected weblog
+        // Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
+        //     preventDefault(e);
+        //     var qn = datatable_setting.getRows('.selected')[0][AUX_COLUMNS.URL.str];
+        //     consultWhois(qn, "domain");
+        // });
+        //  // open VirusTotal Modal By IP, the first selected weblog
+        // Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
+        //     preventDefault(e);
+        //     var qn = datatable_setting.getRows('.selected')[0][AUX_COLUMNS.DIST_IP.str];
+        //     consultVirusTotal(qn, "ip");
+        // });
+        //  // open WHOIS Modal By IP, the first selected weblog
+        // Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
+        //     preventDefault(e);
+        //     var qn = datatable_setting.getRows('.selected')[0][AUX_COLUMNS.DIST_IP.str];
+        //     consultWhois(qn, "ip");
+        // });
+        // Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
+        //     preventDefault(e);
+        //     var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
+        //     weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
+        //     getWeblogsWhoisRelated(weblog_id);
+        // });
 
 
 
 
     };
+
     function on_ready_fn (){
         $(document).ready(function() {
             $(document).on('click', '#search-domain-selected', function(ev){
@@ -1444,10 +579,6 @@ function AnalysisSessionLogic(){
             });
             $('#panel-datatable').hide();
             $('#save-table, #public-btn').hide();
-            // $('#upload').click(function (){
-            //
-            // });
-
 
             //filter table
             $('body').on('click','.searching-buttons .btn', function () {
@@ -1469,7 +600,7 @@ function AnalysisSessionLogic(){
                 $('#searching-buttons .btn').removeClass('active')
             });
 
-            contextMenuSettings();
+            contextmenu_setting.eventContextMenu();
             $('#save-table').on('click',function(){
                saveDB();
             });
@@ -1560,6 +691,8 @@ function AnalysisSessionLogic(){
     //INITIAL function , like a contructor
     thiz.init = function(){
         reader_files = ReaderFile(thiz);
+        datatable_setting = new DataTableSettings(thiz);
+        contextmenu_setting = new ContextMenuSettings(datatable_setting);
         on_ready_fn();
         // window.onbeforeunload = function() {
         //     return "Dude, are you sure you want to leave? Think of the kittens!";
@@ -1591,10 +724,14 @@ function AnalysisSessionLogic(){
                     rowCount = results.data.length;
                     var data = results.data;
                     var headers = results.meta.fields;
-                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
-                        headers.push(value);
-                    });
-                    initData(data,headers);
+                    var headers_objs = [];
+                    for(var i =0; i < headers.length; i++){
+                        var cn = headers[i];
+                        headers_objs.push({column_name:cn, title: cn , order: i});
+                    }
+
+                    datatable_setting.newDataTable(headers_objs,data);
+                    // initData(data,headers);
                     thiz.generateAnalysisSessionUUID();
                     hideLoading();
                     _m.EventFileUploadingFinished(_filename, rowCount);
@@ -1619,79 +756,6 @@ function AnalysisSessionLogic(){
         );
     };
 
-    var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
-        _analysis_session_id = analysis_session_id;
-        var weblogs_id_uuid = {};
-        var update_uuid_weblogs = false;
-        if(weblogs.length > 1){
-            // sorting header
-            var headers;
-            if(_.isEmpty(headers_info)){
-                var elem = weblogs[0];
-                var attributes = elem.attributes;
-                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
-                headers_info = _.keys(attributes);
-                headers_info.push(COL_VERDICT_STR);
-                headers_info.push(COL_REG_STATUS_STR);
-                headers_info.push(COL_DT_ID_STR);
-                headers_info.push(COL_UUID_STR);
-                thiz.setColumnsOrderFlat(true);
-                headers = headers_info;
-            }else{
-                headers_info.sort(function(a,b) {
-                    return a.order - b.order;
-                });
-                headers = $.map(headers_info,function(v,i){
-                    return v.column_name
-                });
-                if(headers.indexOf(COL_UUID_STR) <= -1){
-                    headers.push(COL_UUID_STR);
-                    update_uuid_weblogs = true;
-                }
-            }
-
-            //getting data
-            var data = [];
-            $.each(weblogs, function (index, elem){
-                var id = elem.id;
-                var attributes = elem.attributes;
-                if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
-                attributes[COL_VERDICT_STR] = elem.verdict.toString();
-                attributes[COL_REG_STATUS_STR] = elem.register_status.toString();
-                attributes[COL_DT_ID_STR] = id.toString();
-                if (attributes.uuid == undefined || attributes.uuid == null){
-                    var w_uuid = uuid.v4();
-                    attributes[COL_UUID_STR] = w_uuid;
-                    weblogs_id_uuid[id]=w_uuid;
-                }
-                var sorted_attributes = {};
-                _.each(headers, function(value, index){
-                    sorted_attributes[value] = attributes[value];
-                });
-                data.push(sorted_attributes);
-            });
-
-            initData(data, headers );
-            //hide or show column
-            $.each(headers_info,function(index,elem){
-                _dt.columns(index).visible(elem.visible).draw()
-            });
-
-            $(document).ready(function(){
-                $('#panel-datatable').show();
-               idSyncDBIntervalId= setInterval(syncDB, TIME_SYNC_DB );
-
-            });
-            if(update_uuid_weblogs){
-                updateAnalysisSessionUUID(thiz.getAnalysisSessionId(), weblogs_id_uuid);
-            }
-        }else{
-            hideLoading();
-            $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
-        }
-
-
-    };
     var  updateAnalysisSessionUUID = function (analysis_session_id, weblogs_id_uuid){
         thiz.generateAnalysisSessionUUID();
         var ids = _.keys(weblogs_id_uuid);
@@ -1724,33 +788,8 @@ function AnalysisSessionLogic(){
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
         showLoading();
         _m.EventLoadingEditingStart(thiz.getAnalysisSessionId());
-        $.ajax({
-                type:"GET",
-                data: data,
-                dataType: "json",
-                url: "/manati_project/manati_ui/analysis_session/get_weblogs",
-                success : function(json) {// handle a successful response
-                    var weblogs = json['weblogs'];
-                    var analysis_session_id = json['analysissessionid'];
-                    var analysis_session_uuid = json['analysissessionuuid'];
-                    var file_name = json['name'];
-                    var headers = JSON.parse(json['headers']);
-                    setFileName(file_name);
-                    if (analysis_session_uuid!=null && analysis_session_uuid !== '' ){
-                        thiz.setAnalysisSessionUUID(analysis_session_uuid);
-                    }
-
-                    initDataEdit(weblogs, analysis_session_id,headers);
-                    _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
-                },
-
-                error : function(xhr,errmsg,err) { // handle a non-successful response
-                    $.notify(xhr.status + ": " + xhr.responseText, "error");
-                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                    _m.EventLoadingEditingError(analysis_session_id);
-
-                }
-            });
+        var ass_id = thiz.getAnalysisSessionId();
+        datatable_setting.editDataTable(ass_id);
 
     };
 

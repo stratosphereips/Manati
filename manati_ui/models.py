@@ -60,7 +60,7 @@ def delete_threading(previous_exist):
 class AnalysisSessionManager(models.Manager):
 
     @transaction.atomic
-    def create(self, filename, key_list, weblogs, current_user,type_file, uuid):
+    def create(self, filename, key_list, weblogs_obj, current_user,type_file, uuid):
         try:
             analysis_session = AnalysisSession(type_file=type_file, uuid=str(uuid))
             wb_list = []
@@ -81,24 +81,20 @@ class AnalysisSessionManager(models.Manager):
                 analysis_sessions_users = AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
                                                                               user_id=current_user.id,
                                                                               columns_order=json.dumps(key_list))
-                for elem in weblogs:
+                for elem in weblogs_obj:
                     i = 0
-                    hash_attr = {}
-                    for k in key_list:
-                        hash_attr[k['column_name']] = elem[i]
-                        i += 1
-                    verdict = hash_attr["verdict"]
-                    dt_id = hash_attr["dt_id"]
-                    hash_attr.pop("db_id", None)
-                    hash_attr.pop("register_status", None)
-                    hash_attr.pop('verdict', None)
-                    hash_attr.pop('dt_id', None)
+                    verdict = elem["verdict"]
+                    dt_id = elem["dt_id"]
+                    elem.pop("db_id", None)
+                    elem.pop("register_status", None)
+                    elem.pop('verdict', None)
+                    elem.pop('dt_id', None)
 
                     wb = Weblog.objects.create(analysis_session_id=analysis_session.id,
                                                register_status=RegisterStatus.READY,
                                                id=dt_id,
                                                verdict=verdict,
-                                               attributes=json.dumps(hash_attr),
+                                               attributes=json.dumps(elem),
                                                mod_attributes=json.dumps({}))
                     wb.clean()
                     wb_list.append(wb)
@@ -237,7 +233,14 @@ class AnalysisSession(TimeStampedModel):
     def get_columns_order_by(self, user):
         asu = AnalysisSessionUsers.objects.filter(analysis_session_id=self.id, user_id=user.id).first()
         if asu is None:
-            return []
+            attr = self.weblog_set.first().full_attributes_obj
+            headers = attr.keys()
+            header_obj = []
+            i = 0
+            for header in headers:
+                header_obj.append({'visible': True, 'column_name': header, 'order': i })
+                i +=1
+            return header_obj
         else:
             return json.loads(asu.columns_order)
 
@@ -369,6 +372,15 @@ class Weblog(TimeStampedModel):
                 return json.loads(attr)
         else:
             return json.loads({})
+
+    @property
+    def full_attributes_obj(self):
+        attr = self.attributes_obj
+        attr['verdict'] = self.verdict
+        attr['register_status'] = self.register_status
+        attr['dt_id'] = self.id
+        return attr
+
 
     class Meta:
         db_table = 'manati_weblogs'
