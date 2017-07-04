@@ -377,9 +377,9 @@ function DataTableSettings(analysis_session_logic){
     this.activeAjaxData = function (analysis_session_id){
         _analysis_session_id = analysis_session_id;
         var settings = _dt.settings();
-        settings['processing'] = true;
-        settings['serverSide'] = true;
-        settings['ajax'] = "/manati_project/manati_ui/datatable/data?json=true&analysis_session_id" + analysis_session_id
+        // settings['processing'] = true;
+        // settings['serverSide'] = true;
+        // settings['ajax'] = "/manati_project/manati_ui/datatable/data?json=true&analysis_session_id" + analysis_session_id
 
     }
 }
