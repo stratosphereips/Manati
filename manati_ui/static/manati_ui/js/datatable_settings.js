@@ -38,6 +38,7 @@ function DataTableSettings(analysis_session_logic){
             "search": {
                 "regex": true
             },
+            ordering: false,
             "scrollX": true,
             colReorder: true,
             renderer: "bootstrap",
