@@ -18,6 +18,7 @@ django-bulk-update==1.1.10
 django-compat==1.0.13
 django-compressor==2.0
 django-datatables-view==1.14.0
+django-debug-toolbar==1.8
 django-enumfield==1.3b2
 django-extensions==1.7.1
 django-guardian==1.4.6
@@ -87,6 +88,7 @@ simplejson==3.8.2
 singledispatch==3.4.0.3
 six==1.10.0
 sklearn==0.0
+sqlparse==0.2.3
 terminado==0.6
 tld==0.7.8
 tornado==4.4.2

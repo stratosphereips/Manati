@@ -17,13 +17,8 @@ from django.conf.urls import include,url
 from django.contrib import admin
 from django.contrib.auth import views
 from login.forms import LoginForm
-from api_manager.core.modules_manager import ModulesManager
 import login
-from django.core import management
-import threading
 from manati import settings
-import os
-from django.db import connection
 
 path_name = 'manati_project'
 
@@ -38,6 +33,12 @@ urlpatterns = [
     url(r'^', login.views.home, name="home"),
 
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
 
 
 

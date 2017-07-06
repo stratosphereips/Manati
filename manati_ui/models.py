@@ -228,7 +228,7 @@ class AnalysisSession(TimeStampedModel):
     comments = GenericRelation('Comment')
 
     def __unicode__(self):
-        return unicode(self.name)
+        return unicode(self.name) or u''
 
     def get_columns_order_by(self, user):
         asu = AnalysisSessionUsers.objects.filter(analysis_session_id=self.id, user_id=user.id).first()
