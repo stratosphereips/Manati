@@ -35,7 +35,7 @@ if os.environ.get('DJANGO_DEBUG'):
 else:
     # DEBUG = False
     # ALLOWED_HOSTS = ["*"]
-    DEBUG = True # change when is necessary
+    DEBUG = False # change when is necessary
     ALLOWED_HOSTS = ["127.0.0.1"]
 
 
@@ -154,13 +154,13 @@ USE_TZ = True
 
 SITE_ID = 1
 
-SASS_PROCESSOR_INCLUDE_DIRS = (
-    os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
-)
+# SASS_PROCESSOR_INCLUDE_DIRS = (
+#     os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
+# )
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'sass_processor.finders.CssFinder',
+    # 'sass_processor.finders.CssFinder',
 )
 
 SASS_PRECISION = 8
@@ -243,12 +243,6 @@ LOGGING = {
     }
 }
 
-if os.environ.get('DJANGO_DEBUG'):
-    LOGGING['handlers']['file']['level'] = 'DEBUG'
-    LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
-    LOGGING['handlers']['file']['filename'] = logfile_debug_name
-
-
 
 
 #
@@ -260,12 +254,14 @@ if os.environ.get('DJANGO_DEBUG'):
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
 
 if DEBUG:
-    # INTERNAL_IPS = ('127.0.0.1', 'localhost',)
+    LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
+    LOGGING['handlers']['file']['filename'] = logfile_debug_name
+
+    INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
 
-    INSTALLED_APPS += [
-           'debug_toolbar',
-    ]
+    INSTALLED_APPS += ['debug_toolbar',]
 
     DEBUG_TOOLBAR_PANELS = [
            'debug_toolbar.panels.versions.VersionsPanel',
@@ -280,7 +276,7 @@ if DEBUG:
            'debug_toolbar.panels.signals.SignalsPanel',
            'debug_toolbar.panels.logging.LoggingPanel',
            'debug_toolbar.panels.redirects.RedirectsPanel',
-       ]
+    ]
 
     DEBUG_TOOLBAR_CONFIG = {
            'INTERCEPT_REDIRECTS': False,
