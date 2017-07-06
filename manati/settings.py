@@ -260,7 +260,7 @@ if os.environ.get('DJANGO_DEBUG'):
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
 
 if DEBUG:
-    INTERNAL_IPS = ('127.0.0.1', 'localhost',)
+    # INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
 
     INSTALLED_APPS += [
