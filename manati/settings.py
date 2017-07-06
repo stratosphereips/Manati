@@ -261,9 +261,11 @@ if DEBUG:
     INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
 
-    INSTALLED_APPS += ['debug_toolbar',]
+    INSTALLED_APPS += ['debug_toolbar','pympler','template_profiler_panel']
 
     DEBUG_TOOLBAR_PANELS = [
+           # 'djdt_flamegraph.FlamegraphPanel',
+           'ddt_request_history.panels.request_history.RequestHistoryPanel',
            'debug_toolbar.panels.versions.VersionsPanel',
            'debug_toolbar.panels.timer.TimerPanel',
            'debug_toolbar.panels.settings.SettingsPanel',
@@ -276,8 +278,12 @@ if DEBUG:
            'debug_toolbar.panels.signals.SignalsPanel',
            'debug_toolbar.panels.logging.LoggingPanel',
            'debug_toolbar.panels.redirects.RedirectsPanel',
+           # 'pympler.panels.MemoryPanel',
+           'template_profiler_panel.panels.template.TemplateProfilerPanel',
     ]
 
     DEBUG_TOOLBAR_CONFIG = {
-           'INTERCEPT_REDIRECTS': False,
+            'INTERCEPT_REDIRECTS': False,
+            'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
+            'RESULTS_STORE_SIZE': 100,
        }
