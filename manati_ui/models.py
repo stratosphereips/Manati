@@ -355,10 +355,6 @@ class Weblog(TimeStampedModel):
             except:
                 logger.error("Error creating IP IOC , weblog-id " + str(self.id)+ " | " + str(ex))
 
-
-
-
-
     @property
     def attributes_obj(self):
         attr = self.attributes
@@ -450,9 +446,8 @@ class Weblog(TimeStampedModel):
             for weblog in weblogs:
                 weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=False)
                 if module_verdict:
-                    weblog.set_verdict_from_module(module_verdict, external_module, save=False)       
-                
-                weblog.save()
+                    weblog.set_verdict_from_module(module_verdict, external_module, save=False)
+            bulk_update(weblogs)
 
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
@@ -467,10 +462,11 @@ class Weblog(TimeStampedModel):
                 else:
                     user_verdict = self.verdict
 
-                ctype = ContentType.objects.get(model='user')
+                ctype = ContentType.objects.filter(model='user').cache()
+                ctype = ctype.first()
                 last_history = self.histories.filter(content_type=ctype)
                 # the some verdict in the history in this weblog was labelled by a user
-                if len(last_history) > 0 and not str(user_verdict) == str(module_verdict):
+                if last_history.count() > 0 and not str(user_verdict) == str(module_verdict):
                     temp_verdict = str(user_verdict) + '_' + str(module_verdict)
                 else:
                     temp_verdict = str(module_verdict)
@@ -582,11 +578,11 @@ class IOC(TimeStampedModel):
 
     @staticmethod
     def get_all_weblogs_by_domain(domain):
-        iocs = IOC.objects.prefetch_related('weblogs__histories').filter(ioc_type='domain', value=domain)
+        iocs = IOC.objects.filter(ioc_type='domain', value=domain)
         if not iocs:
             return []
         else:
-            return iocs.first().weblogs.all()
+            return iocs.first().weblogs.select_related('analysis_session').prefetch_related('histories').all()
 
     @staticmethod
     def get_all_weblogs_WHOIS_related(domain, analysis_session_id):
