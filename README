@@ -39,9 +39,9 @@ ManaTI is a django project with a postgres database and it works in Linux and Ma
 
     create user manati_db_user with password 'password';
 
-    create database manati_db_instance_a;
+    create database manati_db;
 
-    grant all privileges on database manati_db_instance_a to manati_db_user;
+    grant all privileges on database manati_db to manati_db_user;
 
     alter role manati_db_user createrole createdb;
 
