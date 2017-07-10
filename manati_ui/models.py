@@ -495,8 +495,8 @@ class Weblog(TimeStampedModel):
             raise ValidationError({'verdict': 'The assigned verdict is invalid ' + module_verdict})
 
         new_verdict = self.verdict
-        self.clean()
         if save:
+            self.clean()
             self.save_with_history(external_module, old_verdict=old_verdict, new_verdict=new_verdict)
 
     def set_verdict(self, verdict, user, save=False):
@@ -602,7 +602,7 @@ class IOC(TimeStampedModel):
         if not iocs:
             return []
         else:
-            return iocs.first().weblogs.select_related('analysis_session').prefetch_related('histories').all()
+            return iocs.first().weblogs.prefetch_related('histories').all().select_related('analysis_session')
 
     @staticmethod
     def get_all_weblogs_WHOIS_related(domain, analysis_session_id):
