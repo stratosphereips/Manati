@@ -335,7 +335,7 @@ class Weblog(TimeStampedModel):
         return self.attributes_obj[key_ip]
 
     @transaction.atomic
-    def create_IOCs(self):
+    def create_IOCs(self, save=True):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
             url = self.attributes_obj[key_url]
@@ -344,7 +344,7 @@ class Weblog(TimeStampedModel):
                 if not domain:
                     raise Exception("Domain value cannot be None")
                 else:
-                    ioc_domain = IOC.objects.create_IOC_from_weblog(domain, d_type, self)
+                    ioc_domain = IOC.objects.create_IOC_from_weblog(domain, d_type, self,save)
             except Exception as ex:
                 logger.error("Error creating domain IOC , weblog-id " + str(self.id) + " | " + str(ex))
 
@@ -353,12 +353,15 @@ class Weblog(TimeStampedModel):
                 if not ip:
                     raise Exception("IP value cannot be None")
                 else:
-                    ioc_ip = IOC.objects.create_IOC_from_weblog(ip, 'ip', self)
+                    ioc_ip = IOC.objects.create_IOC_from_weblog(ip, 'ip', self, save)
             except:
                 logger.error("Error creating IP IOC , weblog-id " + str(self.id)+ " | " + str(ex))
 
+            return ioc_domain, ioc_ip
+
 
     @staticmethod
+    @postpone
     def create_bulk_IOCs(weblogs):
         with transaction.atomic():
             for weblog in weblogs:
@@ -543,17 +546,20 @@ class Weblog(TimeStampedModel):
 class IOCManager(models.Manager):
 
     @transaction.atomic
-    def create_IOC_from_weblog(self, value, ioc_type, weblog):
+    def create_IOC_from_weblog(self, value, ioc_type, weblog, save=True):
         if not value or not ioc_type or not weblog:
             return None
 
         iocs = IOC.objects.filter(value=value, ioc_type=ioc_type)
         if not iocs:
-            ioc = IOC.objects.create(value=value, ioc_type=ioc_type)
+            ioc = IOC(value=value, ioc_type=ioc_type)
+            if save:
+                ioc.save()
         else:
             ioc = iocs[0]
 
-        ioc.weblogs.add(weblog)
+        if save:
+            ioc.weblogs.add(weblog)
         return ioc
 
 
