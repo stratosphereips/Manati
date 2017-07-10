@@ -175,14 +175,10 @@ function AnalysisSessionLogic(){
             colReorder: true, //true, // TO-DO for now, until prevent an error
             renderer: "bootstrap",
             responsive: true,
-            buttons: ['copy','csv','excel', 'colvis',
-                // {
-                //     text: 'Filter by Verdicts',
-                //     className: 'filter-verdicts',
-                //     action: function ( e, dt, node, config ) {
-                //         _filterDataTable.showMenuContext(dt,node.offset());
-                //     }
-                // }
+            buttons: [  {extend:'copy', title:thiz.getAnalysisSessionName()},
+                        {extend:'excel', title: thiz.getAnalysisSessionName()},
+                        {extend:'csv', title: thiz.getAnalysisSessionName()},
+                        {extend:'colvis', title: thiz.getAnalysisSessionName()}
             ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
