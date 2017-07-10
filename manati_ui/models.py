@@ -94,15 +94,17 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
 
-                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id,
-                                               register_status=RegisterStatus.READY,
-                                               id=dt_id,
-                                               verdict=verdict,
-                                               attributes=json.dumps(hash_attr),
-                                               mod_attributes=json.dumps({}))
-                    wb.clean()
+                    wb = Weblog(   analysis_session=analysis_session,
+                                   register_status=RegisterStatus.READY,
+                                   id=dt_id,
+                                   verdict=verdict,
+                                   attributes=json.dumps(hash_attr),
+                                   mod_attributes=json.dumps({}))
+                    wb.clean(exclude=['analysis_session'])
                     wb_list.append(wb)
-
+                # analysis_session.weblog_set.set(wb_list)
+                Weblog.objects.bulk_create(wb_list) # create weblogs
+                Weblog.create_bulk_IOCs(wb_list) # create IOCs
             return analysis_session
         except Exception as e:
             print_exception()
@@ -355,6 +357,13 @@ class Weblog(TimeStampedModel):
             except:
                 logger.error("Error creating IP IOC , weblog-id " + str(self.id)+ " | " + str(ex))
 
+
+    @staticmethod
+    def create_bulk_IOCs(weblogs):
+        with transaction.atomic():
+            for weblog in weblogs:
+                weblog.create_IOCs()
+
     @property
     def attributes_obj(self):
         attr = self.attributes
@@ -370,8 +379,13 @@ class Weblog(TimeStampedModel):
         db_table = 'manati_weblogs'
 
     def clean(self, *args, **kwargs):
-        self.clean_fields(exclude=['verdict', 'mod_attributes'], *args, **kwargs)
+        exclude_list = kwargs.pop('exclude', [])
+        exclude_list += ['verdict', 'mod_attributes']
+        self.clean_fields(exclude=exclude_list, *args, **kwargs)
+        if len(self.id.split(':')) <= 1:
+            self.id = str(self.analysis_session_id) + ":" + str(self.id)
         merge_verdict = self.verdict.split('_')
+
         if len(merge_verdict) > 1:
             user_verdict = merge_verdict[0]
             model_verdict = merge_verdict[1]
