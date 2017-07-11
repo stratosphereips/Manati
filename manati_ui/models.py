@@ -479,7 +479,7 @@ class Weblog(TimeStampedModel):
                 else:
                     user_verdict = self.verdict
 
-                ctype = ContentType.objects.filter(model='user').cache()
+                ctype = ContentType.objects.filter(model='user')
                 ctype = ctype.first()
                 last_history = self.histories.filter(content_type=ctype)
                 # the some verdict in the history in this weblog was labelled by a user

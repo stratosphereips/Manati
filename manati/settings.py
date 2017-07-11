@@ -43,7 +43,7 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
-    'cacheops',
+    # 'cacheops',
     'guardian',
     'api_manager',
     'background_task',
@@ -237,60 +237,51 @@ LOGGING = {
         "handlers": ["console", "file"]
     }
 }
+
+# CACHEOPS_REDIS = {
+#     'host': 'localhost', # redis-server is on same machine
+#     'port': 6379,        # default redis port
+#     'db': 0,             # SELECT non-default redis database
+#                          # using separate redis db or redis instance
+#                          # is highly recommended
 #
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         }
-#     }
+#     'socket_timeout': 3,   # connection timeout in seconds, optional
+#     #'password': '...',     # optional
+#     'unix_socket_path': '/tmp/redis.sock' # replaces host and port
 # }
-CACHEOPS_REDIS = {
-    'host': 'localhost', # redis-server is on same machine
-    'port': 6379,        # default redis port
-    'db': 0,             # SELECT non-default redis database
-                         # using separate redis db or redis instance
-                         # is highly recommended
-
-    'socket_timeout': 3,   # connection timeout in seconds, optional
-    #'password': '...',     # optional
-    'unix_socket_path': '/tmp/redis.sock' # replaces host and port
-}
-
-CACHEOPS_DEFAULTS = {
-    'timeout': 60*60
-}
-
-CACHEOPS = {
-    # Automatically cache any User.objects.get() calls for 15 minutes
-    # This includes request.user or post.author access,
-    # where Post.author is a foreign key to auth.User
-    'auth.user': {'ops': 'get', 'timeout': 60*15},
-
-    # Automatically cache all gets and queryset fetches
-    # to other django.contrib.auth models for an hour
-    'auth.*': {'ops': ('fetch', 'get'), 'timeout': 60*60},
-
-    # Cache all queries to Permission
-    # 'all' is just an alias for {'get', 'fetch', 'count', 'aggregate', 'exists'}
-    'auth.permission': {'ops': 'all', 'timeout': 60*60},
-
-    # Enable manual caching on all other models with default timeout of an hour
-    # Use Post.objects.cache().get(...)
-    #  or Tags.objects.filter(...).order_by(...).cache()
-    # to cache particular ORM request.
-    # Invalidation is still automatic
-    # '*.*': {'ops': (), 'timeout': 60*60},
-    'manati_ui.manati_analysis_sessions': {'ops': ('all'), 'timeout': 60*60},
-    'contenttypes.contenttype': {'ops': ('all'), 'timeout': 60*60},
-
-    # And since ops is empty by default you can rewrite last line as:
-    # '*.*': {'timeout': 60*60},
-}
-
-CACHEOPS_DEGRADE_ON_FAILURE = True
+#
+# CACHEOPS_DEFAULTS = {
+#     'timeout': 60*60
+# }
+#
+# CACHEOPS = {
+#     # Automatically cache any User.objects.get() calls for 15 minutes
+#     # This includes request.user or post.author access,
+#     # where Post.author is a foreign key to auth.User
+#     'auth.user': {'ops': 'get', 'timeout': 60*15},
+#
+#     # Automatically cache all gets and queryset fetches
+#     # to other django.contrib.auth models for an hour
+#     'auth.*': {'ops': ('fetch', 'get'), 'timeout': 60*60},
+#
+#     # Cache all queries to Permission
+#     # 'all' is just an alias for {'get', 'fetch', 'count', 'aggregate', 'exists'}
+#     'auth.permission': {'ops': 'all', 'timeout': 60*60},
+#
+#     # Enable manual caching on all other models with default timeout of an hour
+#     # Use Post.objects.cache().get(...)
+#     #  or Tags.objects.filter(...).order_by(...).cache()
+#     # to cache particular ORM request.
+#     # Invalidation is still automatic
+#     # '*.*': {'ops': (), 'timeout': 60*60},
+#     'manati_ui.manati_analysis_sessions': {'ops': ('all'), 'timeout': 60*60},
+#     'contenttypes.contenttype': {'ops': ('all'), 'timeout': 60*60},
+#
+#     # And since ops is empty by default you can rewrite last line as:
+#     # '*.*': {'timeout': 60*60},
+# }
+#
+# CACHEOPS_DEGRADE_ON_FAILURE = True
 
 if os.environ.get('DJANGO_DEBUG'):
     LOGGING['handlers']['file']['level'] = 'DEBUG'
