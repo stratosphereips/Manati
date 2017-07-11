@@ -33,10 +33,10 @@ if os.environ.get('DJANGO_DEBUG'):
     DEBUG = True
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
-    # DEBUG = False
-    # ALLOWED_HOSTS = ["*"]
-    DEBUG = False # change when is necessary
-    ALLOWED_HOSTS = ["127.0.0.1"]
+    DEBUG = False
+    ALLOWED_HOSTS = ["*"]
+    # DEBUG = False # change when is necessary
+    # ALLOWED_HOSTS = ["127.0.0.1"]
 
 
 
