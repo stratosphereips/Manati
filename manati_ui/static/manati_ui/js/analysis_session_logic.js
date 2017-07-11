@@ -745,6 +745,7 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+        var fn = function (){ $('#button-ok-modal').off()};
 
         if(thiz.isSaved()) {
             items_menu['fold1']['items']['fold1-key3'] = {
@@ -830,14 +831,64 @@ function AnalysisSessionLogic(){
                     }
                 }
             };
+
+            items_menu['sep5'] = "-----------";
+            items_menu['fold5'] = {
+                name: "Create a comment", icon: "fa-pencil-square-o",
+                callback: function (key, options){
+                    initModal("Add a comment",fn);
+                    var weblog_id = bigData[COLUMN_DT_ID];
+                    $('#button-ok-modal').on('click', function (ev){
+                        var comment_data = $("#textarea-comment").val();
+                        $.ajax({
+                            url:'/manati_project/manati_ui/weblog/comment/create',
+                            type:"POST",
+                            dataType: "json",
+                            data: {text: comment_data, weblog_id: weblog_id},
+                            success: function (json){
+                                $.notify(json['msg'], "info");
+                            },
+                            error: function (xhr,errmsg,err) {
+                                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                                console.log(xhr.status + ": " + xhr.responseText);
+                                // provide a bit more info about the
+                                // error to the console
+                            }
+                        })
+
+                    });
+                    $.ajax({
+                            url:'/manati_project/manati_ui/weblog/comment/get',
+                            type:"GET",
+                            dataType: "json",
+                            data: {weblog_id: weblog_id},
+                            success: function (json){
+                                var comment = json['text'];
+                                var str_data = "<textarea id='textarea-comment' maxlength='250' " +
+                                    "class='form-control' " +
+                                    "row='5'></textarea>";
+                                updateBodyModal(str_data);
+                                $("#textarea-comment").val(comment);
+                            },
+                            error: function (xhr,errmsg,err) {
+                                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                                console.log(xhr.status + ": " + xhr.responseText);
+                                // provide a bit more info about the
+                                // error to the console
+                            }
+                        })
+
+
+                }
+            };
         }
 
-        items_menu['fold3'] = {
+        items_menu['fold6'] = {
             name: "External Intelligence", icon: "fa-search",
             items: items_submenu_external_query
         };
-        items_menu['sep3'] = "-----------";
-        items_menu['fold2'] = {
+        items_menu['sep6'] = "-----------";
+        items_menu['fold7'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
                 "fold2-key1": {
@@ -856,7 +907,8 @@ function AnalysisSessionLogic(){
                 }
             }
         };
-        items_menu['fold2'] = {
+        items_menu['sep7'] = "-----------";
+        items_menu['fold8'] = {
             name: "Hotkeys List", icon: "fa-files-o",
             callback: function (key, options){
                 initModal("List of Hotkeys");
