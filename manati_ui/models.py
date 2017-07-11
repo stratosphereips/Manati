@@ -94,15 +94,17 @@ class AnalysisSessionManager(models.Manager):
                     hash_attr.pop('verdict', None)
                     hash_attr.pop('dt_id', None)
 
-                    wb = Weblog.objects.create(analysis_session_id=analysis_session.id,
-                                               register_status=RegisterStatus.READY,
-                                               id=dt_id,
-                                               verdict=verdict,
-                                               attributes=json.dumps(hash_attr),
-                                               mod_attributes=json.dumps({}))
-                    wb.clean()
+                    wb = Weblog(   analysis_session=analysis_session,
+                                   register_status=RegisterStatus.READY,
+                                   id=dt_id,
+                                   verdict=verdict,
+                                   attributes=json.dumps(hash_attr),
+                                   mod_attributes=json.dumps({}))
+                    wb.clean(exclude=['analysis_session'])
                     wb_list.append(wb)
-
+                # analysis_session.weblog_set.set(wb_list)
+                Weblog.objects.bulk_create(wb_list) # create weblogs
+                Weblog.create_bulk_IOCs(wb_list) # create IOCs
             return analysis_session
         except Exception as e:
             print_exception()
@@ -333,7 +335,7 @@ class Weblog(TimeStampedModel):
         return self.attributes_obj[key_ip]
 
     @transaction.atomic
-    def create_IOCs(self):
+    def create_IOCs(self, save=True):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
             url = self.attributes_obj[key_url]
@@ -342,7 +344,7 @@ class Weblog(TimeStampedModel):
                 if not domain:
                     raise Exception("Domain value cannot be None")
                 else:
-                    ioc_domain = IOC.objects.create_IOC_from_weblog(domain, d_type, self)
+                    ioc_domain = IOC.objects.create_IOC_from_weblog(domain, d_type, self,save)
             except Exception as ex:
                 logger.error("Error creating domain IOC , weblog-id " + str(self.id) + " | " + str(ex))
 
@@ -351,13 +353,19 @@ class Weblog(TimeStampedModel):
                 if not ip:
                     raise Exception("IP value cannot be None")
                 else:
-                    ioc_ip = IOC.objects.create_IOC_from_weblog(ip, 'ip', self)
+                    ioc_ip = IOC.objects.create_IOC_from_weblog(ip, 'ip', self, save)
             except:
                 logger.error("Error creating IP IOC , weblog-id " + str(self.id)+ " | " + str(ex))
 
+            return ioc_domain, ioc_ip
 
 
-
+    @staticmethod
+    @postpone
+    def create_bulk_IOCs(weblogs):
+        with transaction.atomic():
+            for weblog in weblogs:
+                weblog.create_IOCs()
 
     @property
     def attributes_obj(self):
@@ -374,8 +382,13 @@ class Weblog(TimeStampedModel):
         db_table = 'manati_weblogs'
 
     def clean(self, *args, **kwargs):
-        self.clean_fields(exclude=['verdict', 'mod_attributes'], *args, **kwargs)
+        exclude_list = kwargs.pop('exclude', [])
+        exclude_list += ['verdict', 'mod_attributes']
+        self.clean_fields(exclude=exclude_list, *args, **kwargs)
+        if len(self.id.split(':')) <= 1:
+            self.id = str(self.analysis_session_id) + ":" + str(self.id)
         merge_verdict = self.verdict.split('_')
+
         if len(merge_verdict) > 1:
             user_verdict = merge_verdict[0]
             model_verdict = merge_verdict[1]
@@ -450,9 +463,8 @@ class Weblog(TimeStampedModel):
             for weblog in weblogs:
                 weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=False)
                 if module_verdict:
-                    weblog.set_verdict_from_module(module_verdict, external_module, save=False)       
-                
-                weblog.save()
+                    weblog.set_verdict_from_module(module_verdict, external_module, save=False)
+            bulk_update(weblogs)
 
 
     def set_verdict_from_module(self, module_verdict, external_module, save=False):
@@ -467,10 +479,11 @@ class Weblog(TimeStampedModel):
                 else:
                     user_verdict = self.verdict
 
-                ctype = ContentType.objects.get(model='user')
+                ctype = ContentType.objects.filter(model='user').cache()
+                ctype = ctype.first()
                 last_history = self.histories.filter(content_type=ctype)
                 # the some verdict in the history in this weblog was labelled by a user
-                if len(last_history) > 0 and not str(user_verdict) == str(module_verdict):
+                if last_history.count() > 0 and not str(user_verdict) == str(module_verdict):
                     temp_verdict = str(user_verdict) + '_' + str(module_verdict)
                 else:
                     temp_verdict = str(module_verdict)
@@ -482,8 +495,8 @@ class Weblog(TimeStampedModel):
             raise ValidationError({'verdict': 'The assigned verdict is invalid ' + module_verdict})
 
         new_verdict = self.verdict
-        self.clean()
         if save:
+            self.clean()
             self.save_with_history(external_module, old_verdict=old_verdict, new_verdict=new_verdict)
 
     def set_verdict(self, verdict, user, save=False):
@@ -533,17 +546,20 @@ class Weblog(TimeStampedModel):
 class IOCManager(models.Manager):
 
     @transaction.atomic
-    def create_IOC_from_weblog(self, value, ioc_type, weblog):
+    def create_IOC_from_weblog(self, value, ioc_type, weblog, save=True):
         if not value or not ioc_type or not weblog:
             return None
 
         iocs = IOC.objects.filter(value=value, ioc_type=ioc_type)
         if not iocs:
-            ioc = IOC.objects.create(value=value, ioc_type=ioc_type)
+            ioc = IOC(value=value, ioc_type=ioc_type)
+            if save:
+                ioc.save()
         else:
             ioc = iocs[0]
 
-        ioc.weblogs.add(weblog)
+        if save:
+            ioc.weblogs.add(weblog)
         return ioc
 
 
@@ -582,11 +598,11 @@ class IOC(TimeStampedModel):
 
     @staticmethod
     def get_all_weblogs_by_domain(domain):
-        iocs = IOC.objects.prefetch_related('weblogs__histories').filter(ioc_type='domain', value=domain)
+        iocs = IOC.objects.filter(ioc_type='domain', value=domain)
         if not iocs:
             return []
         else:
-            return iocs.first().weblogs.all()
+            return iocs.first().weblogs.prefetch_related('histories').all().select_related('analysis_session')
 
     @staticmethod
     def get_all_weblogs_WHOIS_related(domain, analysis_session_id):

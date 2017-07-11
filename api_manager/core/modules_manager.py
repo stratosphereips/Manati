@@ -190,7 +190,7 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    @background(schedule=timezone.now())
+    # @background(schedule=timezone.now())
     def __run_modules(event_thrown, module_name, weblogs_seed_json):
         # try:
         print("Running module: " + module_name)
