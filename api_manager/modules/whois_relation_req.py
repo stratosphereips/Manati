@@ -5,9 +5,9 @@ import json
 
 class WhoisRelationReq(Module):
     module_name = 'whois_relation_req'
-    description = 'the idea is find whois relations between all weblogs of one analysis session using ' \
-                  'one seed weblog times N weblogs. The "whois distance"' \
-                  ' between the whois information of the domains of the weblogs'
+    description = 'the idea is to find whois relations between all weblogs of one analysis session using ' \
+                  'one seed weblog times N weblogs. The "WHOIS Similarity Distance"' \
+                  ' between the WHOIS information of the domains of the weblogs'
     version = 'v0.1'
     authors = ['Raul B. Netto']
     events = [ModulesManager.MODULES_RUN_EVENTS.by_request]

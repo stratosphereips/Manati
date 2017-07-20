@@ -62,7 +62,7 @@ class ModulesManager:
                 #update information
                 module_file = imp.load_source(module.module_instance, filename_path)
                 module_instanced = module_file.module_obj
-                module.description = module_instanced.description
+                module.description = module_instanced.description[0:198]
                 module.version = module_instanced.version
                 module.authors = module_instanced.authors
                 module.run_in_events = json.dumps(module_instanced.events)
