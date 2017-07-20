@@ -59,7 +59,7 @@ class ModulesManager:
                 module.status = ExternalModule.MODULES_STATUS.removed
                 module.save()
             else:
-                #update information
+                # update information
                 module_file = imp.load_source(module.module_instance, filename_path)
                 module_instanced = module_file.module_obj
                 module.description = module_instanced.description[0:198]
