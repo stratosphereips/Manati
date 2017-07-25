@@ -151,7 +151,7 @@ function AnalysisSessionLogic(){
         var arr_list = datatable_setting.cleanRowsLabeled();
         var data_row = {};
         for(var dt_id in arr_list){
-            var elem = arr_list[dt_id]
+            var elem = arr_list[dt_id];
             if(elem.register_status !== -1){
                 var key_id = dt_id.split(':').length <= 1 ? thiz.getAnalysisSessionId()+":"+dt_id : dt_id;
                 data_row[key_id]= elem.verdict;

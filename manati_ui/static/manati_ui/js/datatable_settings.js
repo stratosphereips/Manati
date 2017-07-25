@@ -100,6 +100,10 @@ function DataTableSettings(analysis_session_logic){
         };
     var _analysis_session_id = null;
 
+    function getAnalysisSessionId(){
+        return _analysis_session_id;
+    }
+
     function showLoading(){
          $("#loading-img").show();
     }
@@ -136,7 +140,7 @@ function DataTableSettings(analysis_session_logic){
         //  _dt.on('buttons-action', function ( e, buttonApi, dataTable, node, config ) {
         //     analysis_session_logic.setColumnsOrderFlat(true);
         //  });
-        //  _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
+         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
         //
         //  // adding options to select datatable's pages
         //  // var list = document.getElementsByClassName('page-select')[1];
@@ -233,11 +237,13 @@ function DataTableSettings(analysis_session_logic){
         setConstants(_data_headers_keys);
         datatable_setting['columns'] = headers;
         datatable_setting['columnDefs']= [
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.str},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.str},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.str,
+            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.REG_STATUS.str, AUX_COLUMNS.REG_STATUS.index]},
+            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.DT_ID.str, AUX_COLUMNS.DT_ID.index]},
+            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.UUID.str, AUX_COLUMNS.UUID.index],
                 "defaultContent": null, render: function ( data, type, full, meta ) {
-                                                        if (data === null|| data === undefined) return uuid.v4();
+                                                        if (data === null|| data === undefined) {
+                                                            return getRowShortId(getAnalysisSessionId());
+                                                        }
                                                  }
             }
         ];
@@ -356,7 +362,7 @@ function DataTableSettings(analysis_session_logic){
 
 
     this.cleanModified = function (){
-        _dt.column(COLUMN_REG_STATUS, {search:'applied'}).nodes().each( function (cell, i) {
+        _dt.column(AUX_COLUMNS.REG_STATUS.index, {search:'applied'}).nodes().each( function (cell, i) {
             var tr = $(cell).closest('tr');
             if(!tr.hasClass("modified")) cell.innerHTML = 0;
         } );
