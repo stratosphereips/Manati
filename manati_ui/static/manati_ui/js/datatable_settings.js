@@ -126,54 +126,54 @@ function DataTableSettings(analysis_session_logic){
         } );
         hideLoading();
         $('#panel-datatable').show();
-         _dt.on( 'column-reorder', function ( e, settings, details ) {
-            analysis_session_logic.setColumnsOrderFlat(true);
-            for(var i=0; i < settings.aoColumns.length; i++){
-                var name = settings.aoColumns[i].name;
-                update_constant(name, i);
-            }
-         });
-         _dt.on('buttons-action', function ( e, buttonApi, dataTable, node, config ) {
-            analysis_session_logic.setColumnsOrderFlat(true);
-         });
-         _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
-
-         // adding options to select datatable's pages
-         // var list = document.getElementsByClassName('page-select')[1];
-         // for(var index=0; index<_dt.page.info().pages; index++) {
-         //     list.add(new Option((index+1).toString(), index));
-         // }
-         $('.page-select').change(function (ev) {
-             ev.preventDefault();
-             var elem = $(this);
-             _dt.page(parseInt(elem.val())).draw('page');
-
-         });
-         _dt.on('page.dt', function () {
-            var info = _dt.page.info();
-            $('.page-select').val(info.page);
-
-        } );
-         _dt.on('length.dt',function (){
-             $('.page-select').html('');
-             var list = document.getElementsByClassName('page-select')[1];
-             // for(var index=0; index<_dt.page.info().pages; index++) {
-             //     list.add(new Option((index+1).toString(), index));
-             // }
-         });
-         _dt.on('search.dt',function (){
-             $('.page-select').html('');
-             var list = document.getElementsByClassName('page-select')[1];
-             // for(var index=0; index<_dt.page.info().pages; index++) {
-             //     list.add(new Option((index+1).toString(), index));
-             // }
-
-         });
+        //  _dt.on( 'column-reorder', function ( e, settings, details ) {
+        //     analysis_session_logic.setColumnsOrderFlat(true);
+        //     for(var i=0; i < settings.aoColumns.length; i++){
+        //         var name = settings.aoColumns[i].name;
+        //         update_constant(name, i);
+        //     }
+        //  });
+        //  _dt.on('buttons-action', function ( e, buttonApi, dataTable, node, config ) {
+        //     analysis_session_logic.setColumnsOrderFlat(true);
+        //  });
+        //  _dt.columns(0).visible(true); // hack fixing one bug with the header of the table
+        //
+        //  // adding options to select datatable's pages
+        //  // var list = document.getElementsByClassName('page-select')[1];
+        //  // for(var index=0; index<_dt.page.info().pages; index++) {
+        //  //     list.add(new Option((index+1).toString(), index));
+        //  // }
+        //  $('.page-select').change(function (ev) {
+        //      ev.preventDefault();
+        //      var elem = $(this);
+        //      _dt.page(parseInt(elem.val())).draw('page');
+        //
+        //  });
+        //  _dt.on('page.dt', function () {
+        //     var info = _dt.page.info();
+        //     $('.page-select').val(info.page);
+        //
+        // } );
+        //  _dt.on('length.dt',function (){
+        //      $('.page-select').html('');
+        //      var list = document.getElementsByClassName('page-select')[1];
+        //      // for(var index=0; index<_dt.page.info().pages; index++) {
+        //      //     list.add(new Option((index+1).toString(), index));
+        //      // }
+        //  });
+        //  _dt.on('search.dt',function (){
+        //      $('.page-select').html('');
+        //      var list = document.getElementsByClassName('page-select')[1];
+        //      // for(var index=0; index<_dt.page.info().pages; index++) {
+        //      //     list.add(new Option((index+1).toString(), index));
+        //      // }
+        //
+        //  });
 
          //hide or show column
-        $.each(headers_info,function(index,elem){
-            _dt.columns(index).visible(elem.visible).draw()
-        });
+        // $.each(headers_info,function(index,elem){
+        //     _dt.columns(index).visible(elem.visible).draw()
+        // });
          //filter table
         $('body').on('click','.searching-buttons .btn', function () {
             var btn = $(this);
@@ -233,9 +233,9 @@ function DataTableSettings(analysis_session_logic){
         setConstants(_data_headers_keys);
         datatable_setting['columns'] = headers;
         datatable_setting['columnDefs']= [
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.index},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.index},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.index,
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.str},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.str},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.str,
                 "defaultContent": null, render: function ( data, type, full, meta ) {
                                                         if (data === null|| data === undefined) return uuid.v4();
                                                  }
@@ -334,7 +334,7 @@ function DataTableSettings(analysis_session_logic){
                 edit_table_options['serverSide'] = true;
                 edit_table_options['ajax'] = "/manati_project/manati_ui/datatable/data?json=true&analysis_session_id" +
                     "="+analysis_session_id;
-                initDatatable(headers, edit_table_options)
+                initDatatable(headers, edit_table_options);
             },
             error: function(xhr,errmsg,err) {
                 showERRORMessage(xhr,errmsg,err);
