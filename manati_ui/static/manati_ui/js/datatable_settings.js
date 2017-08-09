@@ -30,6 +30,7 @@ function DataTableSettings(analysis_session_logic){
     var thiz = this;
     var _dt = null;
     var analysis_session_logic = analysis_session_logic;
+    var ajax_active;
     var table_options = {
             fixedHeader: {
                 header: true
@@ -102,6 +103,12 @@ function DataTableSettings(analysis_session_logic){
 
     function getAnalysisSessionId(){
         return _analysis_session_id;
+    }
+    function getAjaxActived(){
+        return ajax_active;
+    }
+    function setAjaxActived(new_ajax_active){
+        ajax_active = new_ajax_active;
     }
 
     function showLoading(){
@@ -320,6 +327,7 @@ function DataTableSettings(analysis_session_logic){
             v[AUX_COLUMNS.VERDICT.str] = 'undefined';
             v[AUX_COLUMNS.DT_ID.str] = (i+1).toString();
             v[AUX_COLUMNS.REG_STATUS.str] = (-1).toString();
+            v[AUX_COLUMNS.UUID.str] = getRowShortId(getAnalysisSessionId());
         });
         var new_table_options = $.extend({}, table_options);
         new_table_options['data'] = data;
@@ -340,6 +348,7 @@ function DataTableSettings(analysis_session_logic){
                 edit_table_options['serverSide'] = true;
                 edit_table_options['ajax'] = "/manati_project/manati_ui/datatable/data?json=true&analysis_session_id" +
                     "="+analysis_session_id;
+                setAjaxActived(true);
                 initDatatable(headers, edit_table_options);
             },
             error: function(xhr,errmsg,err) {
@@ -378,7 +387,10 @@ function DataTableSettings(analysis_session_logic){
     };
 
     this.reloadAjax = function(){
-        _dt.ajax.reload(null,false);
+        if(getAjaxActived()){
+            _dt.ajax.reload(null,false);
+        }
+
     };
     this.activeAjaxData = function (analysis_session_id){
         _analysis_session_id = analysis_session_id;
