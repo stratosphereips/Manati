@@ -9,6 +9,5 @@
 /logs/*
 */.DS_Store
 .DS_Store
-/static/
-/static/*
 .env
+static/*
