@@ -21,11 +21,13 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '-$pobpxzory@2_$(pho&@@2xm=x$&o7%^1(ev(477qu*5dc^#%'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 if os.environ.get('DJANGO_DEBUG'):
@@ -34,9 +36,8 @@ if os.environ.get('DJANGO_DEBUG'):
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
     # DEBUG = False
-    # ALLOWED_HOSTS = ["*"]
-    DEBUG = True # change when is necessary
-    ALLOWED_HOSTS = ["127.0.0.1"]
+    ALLOWED_HOSTS = ["*"]
+    DEBUG = False
 
 
 
@@ -95,6 +96,7 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'manati.wsgi.application'
+STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
 
 # Database
@@ -211,7 +213,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
@@ -283,8 +285,9 @@ LOGGING = {
 #
 # CACHEOPS_DEGRADE_ON_FAILURE = True
 
-if os.environ.get('DJANGO_DEBUG'):
+if DEBUG:
     LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
 

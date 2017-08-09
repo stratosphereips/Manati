@@ -41,6 +41,7 @@ ez-setup==0.9
 functools32==3.2.3.post2
 funcy==1.8
 future==0.16.0
+gunicorn==19.7.1
 idna==2.5
 ipaddr==2.1.11
 ipaddress==1.0.18
@@ -103,5 +104,7 @@ tornado==4.4.2
 traitlets==4.3.1
 tryagain==1.0
 typing==3.6.1
+uWSGI==2.0.15
 wcwidth==0.1.7
+whitenoise==3.3.0
 widgetsnbextension==1.2.6
