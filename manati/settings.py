@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+from decouple import config
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-$pobpxzory@2_$(pho&@@2xm=x$&o7%^1(ev(477qu*5dc^#%'
+SECRET_KEY = config('SECRET_KEY')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
@@ -35,7 +37,7 @@ if os.environ.get('DJANGO_DEBUG'):
     DEBUG = True
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
-    # DEBUG = False
+    DEBUG = config('DEBUG', default=False, cast=bool)
     ALLOWED_HOSTS = ["*"]
     DEBUG = False
 
@@ -103,17 +105,9 @@ STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'manati_db',  # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'manati_db_user',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
-        'PORT': '5432',  # Set to empty string for default.
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL')
+    )
 }
 
 
