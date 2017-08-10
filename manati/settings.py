@@ -23,23 +23,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-MEDIA_URL = '/media/'
-
-
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if os.environ.get('DJANGO_DEBUG'):
+DEBUG = config('DEBUG', default=False, cast=bool)
+if DEBUG:
     print("Debug is enabled.")
-    DEBUG = True
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
-    DEBUG = config('DEBUG', default=False, cast=bool)
     ALLOWED_HOSTS = ["*"]
-    DEBUG = False
 
 
 
@@ -145,16 +136,10 @@ USE_TZ = True
 
 SITE_ID = 1
 
-SASS_PROCESSOR_INCLUDE_DIRS = (
-    os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
-)
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'sass_processor.finders.CssFinder',
 )
-
-SASS_PRECISION = 8
 
 BACKGROUND_TASK_RUN_ASYNC = True # run the modules task, asynchronously
 MAX_RUN_TIME = 20
@@ -164,6 +149,10 @@ MAX_ATTEMPTS = 3
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
 
@@ -233,66 +222,10 @@ LOGGING = {
         "handlers": ["console", "file"]
     }
 }
-
-# CACHEOPS_REDIS = {
-#     'host': 'localhost', # redis-server is on same machine
-#     'port': 6379,        # default redis port
-#     'db': 0,             # SELECT non-default redis database
-#                          # using separate redis db or redis instance
-#                          # is highly recommended
-#
-#     'socket_timeout': 3,   # connection timeout in seconds, optional
-#     #'password': '...',     # optional
-#     'unix_socket_path': '/tmp/redis.sock' # replaces host and port
-# }
-#
-# CACHEOPS_DEFAULTS = {
-#     'timeout': 60*60
-# }
-#
-# CACHEOPS = {
-#     # Automatically cache any User.objects.get() calls for 15 minutes
-#     # This includes request.user or post.author access,
-#     # where Post.author is a foreign key to auth.User
-#     'auth.user': {'ops': 'get', 'timeout': 60*15},
-#
-#     # Automatically cache all gets and queryset fetches
-#     # to other django.contrib.auth models for an hour
-#     'auth.*': {'ops': ('fetch', 'get'), 'timeout': 60*60},
-#
-#     # Cache all queries to Permission
-#     # 'all' is just an alias for {'get', 'fetch', 'count', 'aggregate', 'exists'}
-#     'auth.permission': {'ops': 'all', 'timeout': 60*60},
-#
-#     # Enable manual caching on all other models with default timeout of an hour
-#     # Use Post.objects.cache().get(...)
-#     #  or Tags.objects.filter(...).order_by(...).cache()
-#     # to cache particular ORM request.
-#     # Invalidation is still automatic
-#     # '*.*': {'ops': (), 'timeout': 60*60},
-#     'manati_ui.manati_analysis_sessions': {'ops': ('all'), 'timeout': 60*60},
-#     'contenttypes.contenttype': {'ops': ('all'), 'timeout': 60*60},
-#
-#     # And since ops is empty by default you can rewrite last line as:
-#     # '*.*': {'timeout': 60*60},
-# }
-#
-# CACHEOPS_DEGRADE_ON_FAILURE = True
-
 if DEBUG:
     LOGGING['handlers']['file']['level'] = 'DEBUG'
     LOGGING['handlers']['console']['level'] = 'DEBUG'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
-
-
-
-
-#
-# if DEBUG:
-#     # make all loggers use the console.
-#     for logger in LOGGING['loggers']:
-#         LOGGING['loggers'][logger]['handlers'] = ['console']
-
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
 
