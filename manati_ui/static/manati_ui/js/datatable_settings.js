@@ -244,9 +244,9 @@ function DataTableSettings(analysis_session_logic){
         setConstants(_data_headers_keys);
         datatable_setting['columns'] = headers;
         datatable_setting['columnDefs']= [
-            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.REG_STATUS.str, AUX_COLUMNS.REG_STATUS.index]},
-            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.DT_ID.str, AUX_COLUMNS.DT_ID.index]},
-            {   "searchable": false, visible: false, "targets": [AUX_COLUMNS.UUID.str, AUX_COLUMNS.UUID.index],
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.str},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.str},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.str,
                 "defaultContent": null, render: function ( data, type, full, meta ) {
                                                         if (data === null|| data === undefined) {
                                                             return getRowShortId(getAnalysisSessionId());
@@ -379,11 +379,9 @@ function DataTableSettings(analysis_session_logic){
     this.get_headers_info = function (){
         // _data_headers
         var column_visibles = _dt.columns().visible();
-        var headers = $.map(_dt.columns().header(),function (v,i) {
+        return $.map(_dt.columns().header(),function (v,i) {
             return {order: i, column_name: v.innerHTML, visible: column_visibles[i] };
         });
-
-        return headers;
     };
 
     this.reloadAjax = function(){
