@@ -4,9 +4,9 @@ from api_manager.common.abstracts import Module
 import json
 
 
-class WhoisRelation(Module):
+class BulkFindWhois(Module):
     module_name = 'bulk_find_whois'
-    description = 'Find all the whois information of the weblogs recenlty saved'
+    description = 'Find all the whois information of the weblogs recently saved'
     version = 'v0.1'
     authors = ['Raul B. Netto']
     events = [ModulesManager.MODULES_RUN_EVENTS.after_save]
@@ -23,10 +23,11 @@ class WhoisRelation(Module):
         for weblog_a in weblogs_seed:
             id_a = weblog_a['id']
             attributes_a = weblog_a['attributes']
-            domain_a = ModulesManager.get_domain_by_obj(attributes_a)
-            domains.append(domain_a)
+            type, domain_a = ModulesManager.get_domain_by_obj(attributes_a)
+            if type == 'domain':
+                domains.append(domain_a)
         domains = list(set(domains))
         ModulesManager.get_whois_features_of(self.module_name, domains)
         ModulesManager.module_done(self.module_name)
 
-module_obj = WhoisRelation()
+module_obj = BulkFindWhois()

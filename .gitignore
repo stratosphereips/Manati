@@ -7,3 +7,7 @@
 /.ipynb_checkpoints/
 *.mwb.bak
 /logs/*
+*/.DS_Store
+.DS_Store
+.env
+static/*

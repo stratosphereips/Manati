@@ -235,7 +235,7 @@ function AnalysisSessionLogic(){
                     datatable_setting.cleanModified();
                     datatable_setting.activeAjaxData(_analysis_session_id);
                     _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
-                    $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
+                    $.notify("All Weblogs ("+json['data']['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
                     $('#public-btn').show();
                     $('#wrap-form-upload-file').hide();

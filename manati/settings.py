@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+from decouple import config
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,23 +22,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-$pobpxzory@2_$(pho&@@2xm=x$&o7%^1(ev(477qu*5dc^#%'
-
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if os.environ.get('DJANGO_DEBUG'):
+DEBUG = config('DEBUG', default=False, cast=bool)
+if DEBUG:
     print("Debug is enabled.")
-    DEBUG = True
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
-    DEBUG = True
     ALLOWED_HOSTS = ["*"]
-    # DEBUG = False # change when is necessary
-    # ALLOWED_HOSTS = ["127.0.0.1"]
 
 
 
@@ -94,30 +88,17 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'manati.wsgi.application'
+STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     }
-# }
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'manati_db',  # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'manati_db_user',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
-        'PORT': '5432',  # Set to empty string for default.
-    }
+    'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
+
+
+
 
 
 # Password validation
@@ -154,16 +135,10 @@ USE_TZ = True
 
 SITE_ID = 1
 
-# SASS_PROCESSOR_INCLUDE_DIRS = (
-#     os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
-# )
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    # 'sass_processor.finders.CssFinder',
 )
-
-SASS_PRECISION = 8
 
 BACKGROUND_TASK_RUN_ASYNC = True # run the modules task, asynchronously
 MAX_RUN_TIME = 20
@@ -173,6 +148,10 @@ MAX_ATTEMPTS = 3
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
 
@@ -216,7 +195,7 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
@@ -243,13 +222,6 @@ LOGGING = {
     }
 }
 
-
-
-#
-# if DEBUG:
-#     # make all loggers use the console.
-#     for logger in LOGGING['loggers']:
-#         LOGGING['loggers'][logger]['handlers'] = ['console']
 
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
 

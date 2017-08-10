@@ -39,9 +39,9 @@ ManaTI is a django project with a postgres database and it works in Linux and Ma
 
     create user manati_db_user with password 'password';
 
-    create database manati_db_instance_a;
+    create database manati_db;
 
-    grant all privileges on database manati_db_instance_a to manati_db_user;
+    grant all privileges on database manati_db to manati_db_user;
 
     alter role manati_db_user createrole createdb;
 
@@ -50,7 +50,7 @@ ManaTI is a django project with a postgres database and it works in Linux and Ma
 ## Verify that the db was created successfully
 10. As the postgres user
 
-    psql -h localhost -d manati_db_instance_a -U manati_db_user
+    psql -h localhost -d manati_db -U manati_db_user
 
     (and put the password)
 
@@ -80,7 +80,7 @@ If you want to open the server in the network, you can do it with:
 ## Settings: Updating version for previous deploys
 cd path/to/project_directory
 1. git pull origin master
-2. pip install -r requirements
+2. pip install -r requirements.txt
 3. python ./manage.py makemigrations background_task
 4. python ./manage.py makemigrations guardian
 5. python ./manage.py migrate

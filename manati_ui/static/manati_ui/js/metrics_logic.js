@@ -69,7 +69,7 @@ function Metrics(active, analysis_session_logic){
                 "var origin = e.data[1];"+
                 "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
                 "self.importScripts(origin+'/static/manati_ui/js/libs/cryptico.min.js');"+
-                "self.importScripts(origin+'/static/js/utils.js');"+
+                "self.importScripts(origin+'/static/manati_ui/js/utils.js');"+
                 "for(var i = 0; i< rows_affected.length; i++) {" +
                     "var row = rows_affected[i];"+
                     "var r = {};"+

@@ -622,6 +622,55 @@ def update_comment_analysis_session(request, id):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def update_comment_weblog(request):
+    try:
+        if request.method == 'POST':
+            user = request.user
+            weblog_id = request.POST.get('weblog_id', '')
+            weblog = Weblog.objects.get(id=weblog_id)
+            comment = weblog.comments.last() if weblog.comments.exists() else Comment(user=user,content_object=weblog)
+            text = request.POST.get('text', None)
+            if text:
+                comment.text = text
+                comment.full_clean()
+                comment.save()
+                msg = "The comment was save correctly"
+            else:
+                msg = "Empty comment was not saved"
+            return JsonResponse({'msg': msg})
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_comment_weblog(request):
+    try:
+        if request.method == 'GET':
+            user = request.user
+            weblog_id = request.GET.get('weblog_id', '')
+            weblog = Weblog.objects.get(id=weblog_id)
+            if weblog.comments.exists():
+                comment = weblog.comments.last()
+                text = comment.text
+            else:
+                text = ""
+            return JsonResponse({'text': text})
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblog_iocs(request):
