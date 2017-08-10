@@ -90,7 +90,7 @@ class AnalysisSessionManager(models.Manager):
                     elem.pop('verdict', None)
                     elem.pop('dt_id', None)
 
-                    wb = Weblog.objects(analysis_session=analysis_session,
+                    wb = Weblog(analysis_session=analysis_session,
                                                register_status=RegisterStatus.READY,
                                                id=dt_id,
                                                verdict=verdict,
