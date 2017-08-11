@@ -229,6 +229,7 @@ if DEBUG:
     LOGGING['handlers']['file']['level'] = 'DEBUG'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
 
     INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
@@ -254,8 +255,8 @@ if DEBUG:
            'template_profiler_panel.panels.template.TemplateProfilerPanel',
     ]
 
-    DEBUG_TOOLBAR_CONFIG = {
-            'INTERCEPT_REDIRECTS': False,
-            'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
-            'RESULTS_STORE_SIZE': 100,
-       }
+    # DEBUG_TOOLBAR_CONFIG = {
+    #         'INTERCEPT_REDIRECTS': False,
+    #         'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
+    #         'RESULTS_STORE_SIZE': 100,
+    #    }
