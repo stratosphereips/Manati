@@ -1,1 +1,1 @@
-web: python ./manage.py collectstatic --noinput; gunicorn bootcamp.wsgi --log-file -
+web: gunicorn bootcamp.wsgi --log-file -
