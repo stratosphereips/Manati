@@ -106,7 +106,7 @@ function FilterDataTable(column_verdict, verdicts){
      //                        'suspicious':false, 'falsepositive':false,
      //                        'undefined': false};
     this.applyFilter = function(dt, verdict){
-        _verdicts_applied.add(verdict);
+        _verdicts_applied.push(verdict);
         auxApplyFilter(dt);
     };
     var auxApplyFilter=function(dt){
