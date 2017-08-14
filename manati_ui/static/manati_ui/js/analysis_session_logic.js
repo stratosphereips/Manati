@@ -172,9 +172,9 @@ function AnalysisSessionLogic(){
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
-            colReorder: true, //true, // TO-DO for now, until prevent an error
+            colReorder: true,
             renderer: "bootstrap",
-            responsive: true,
+            // responsive: true,
             buttons: [  {extend:'copy', title:thiz.getAnalysisSessionName()},
                         {extend:'excel', title: thiz.getAnalysisSessionName()},
                         {extend:'csv', title: thiz.getAnalysisSessionName()},
@@ -1610,7 +1610,7 @@ function AnalysisSessionLogic(){
         reader_files = ReaderFile(thiz);
         on_ready_fn();
         // window.onbeforeunload = function() {
-        //     return "Dude, are you sure you want to leave? Think of the kittens!";
+        //     return "Mate, are you sure you want to leave? Think of the kittens!";
         // }
 
     };
