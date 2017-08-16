@@ -31,7 +31,7 @@ urlpatterns = [
     url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
     url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
     url(r'^', login.views.home, name="home"),
-
+    url(r'^django-rq/', include('django_rq.urls')),
 ]
 
 if settings.DEBUG:
