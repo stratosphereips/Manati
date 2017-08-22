@@ -1487,7 +1487,7 @@ function AnalysisSessionLogic(){
             $('#weblogs-datatable tbody tr.action').removeClass('action');
             next_tr.addClass('action');
             if(current_tr){
-                current_tr[0].scrollIntoView();
+                scrollIntoViewIfNeeded(current_tr[0])
             }else{
                 $("html, body").animate({ scrollTop: 0 }, "slow");
             }
@@ -1529,6 +1529,12 @@ function AnalysisSessionLogic(){
             }else{
                 $("html, body").animate({ scrollTop: 0 }, "slow");
             }
+
+        });
+        // select row to be label.
+        Mousetrap.bind(['space'], function(e) {
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            current_tr.toggleClass('selected');
 
         });
 
