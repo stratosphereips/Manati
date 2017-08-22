@@ -1431,30 +1431,31 @@ function AnalysisSessionLogic(){
          // open VirusTotal Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultVirusTotal(qn, "domain");
         });
          // open WHOIS Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultWhois(qn, "domain");
         });
          // open VirusTotal Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
+            var qn = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER];
             consultVirusTotal(qn, "ip");
         });
          // open WHOIS Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
-            consultWhois(qn, "ip");
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT];
+             setBulkVerdict_WORKER(verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
         });
+        //show whois similarity modal
         Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
             preventDefault(e);
-            var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
+            var weblog_id = _dt.rows('.action').data()[0][COLUMN_DT_ID].toString();
             weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
             getWeblogsWhoisRelated(weblog_id);
         });
@@ -1538,6 +1539,7 @@ function AnalysisSessionLogic(){
             current_tr.toggleClass('selected');
 
         });
+
         Mousetrap.bind(['left'], function (e) {
             preventDefault(e);
             var pages = _dt.page.info().pages;
@@ -1558,6 +1560,23 @@ function AnalysisSessionLogic(){
             }else{
                 _dt.page(0).draw('page');
             }
+        });
+
+        //mark all the weblogs in the current session with the same IP
+        Mousetrap.bind(['p'],function (e) {
+            preventDefault(e);
+            var ip_value = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER].toString();
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value));
+        });
+
+        //mark all  the weblogs in the current session with the same domain
+        Mousetrap.bind(['d'],function (e) {
+            preventDefault(e);
+            var url =  _dt.rows('.action').data()[0][COLUMN_HTTP_URL].toString();
+            var domain = findDomainOfURL(url); // getting domain
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain));
         });
 
 
