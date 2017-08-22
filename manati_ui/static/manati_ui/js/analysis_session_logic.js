@@ -42,7 +42,7 @@ var _helper;
 var _filterDataTable;
 
 var _m;
-
+var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
 
 var _loadingPlugin;
 function update_constant(str, index){
@@ -232,10 +232,16 @@ function AnalysisSessionLogic(){
         });
 
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-            $(this).toggleClass('selected');
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function (event) {
+            event.preventDefault();
+            $('tr.action').not(this).removeClass('action');
+            if((isMac && event.metaKey ) || (!isMac && event.shiftKey)){
+                $(this).toggleClass('selected');
+            }
+            $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
-        } );
+        });
+
         hideLoading();
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
@@ -1443,6 +1449,42 @@ function AnalysisSessionLogic(){
             weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
             getWeblogsWhoisRelated(weblog_id);
         });
+
+        // VI-Style
+        // moving down with J
+        Mousetrap.bind(['j'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var next_tr;
+            if(current_tr.length){
+                next_tr = current_tr.next().first();
+                if(!next_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(_dt.page.info().pages > current_page+1){
+                        // moving to the next one
+                        _dt.page(current_page+1).draw('page');
+                    }else{
+                        // moving to the first page, first row
+                        _dt.page(0).draw('page');
+                    }
+                    next_tr = $('#weblogs-datatable tbody tr').first();
+                    current_tr = null;
+                }
+            }else{
+                next_tr = $('#weblogs-datatable tbody tr').first();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            next_tr.addClass('action');
+            if(current_tr){
+                current_tr[0].scrollIntoView();
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+
 
 
 
