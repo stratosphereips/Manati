@@ -1533,9 +1533,31 @@ function AnalysisSessionLogic(){
         });
         // select row to be label.
         Mousetrap.bind(['space'], function(e) {
+            preventDefault(e);
             var current_tr= $('#weblogs-datatable tbody tr.action').first();
             current_tr.toggleClass('selected');
 
+        });
+        Mousetrap.bind(['left'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page - 1 >= 0){
+                _dt.page(current_page-1).draw('page');
+            }else{
+                _dt.page(pages-1).draw('page');
+            }
+        });
+
+        Mousetrap.bind(['right'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page + 1 < pages){
+                _dt.page(current_page+1).draw('page');
+            }else{
+                _dt.page(0).draw('page');
+            }
         });
 
 
