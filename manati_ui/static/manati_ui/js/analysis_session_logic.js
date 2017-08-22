@@ -65,6 +65,15 @@ function update_constant(str, index){
         COLUMN_END_POINTS_SERVER = index;
     }
 }
+function scrollIntoViewIfNeeded(target) {
+    var rect = target.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) {
+        target.scrollIntoView(false);
+    }
+    if (rect.top < 0) {
+        target.scrollIntoView();
+    }
+}
 function checkVerdict(_verdicts_merged, verdict){
     if (verdict == undefined || verdict == null) return verdict;
     var merged = verdict.split('_');
@@ -1485,11 +1494,51 @@ function AnalysisSessionLogic(){
 
         });
 
+         // moving up with k
+        Mousetrap.bind(['k'], function(e) {
+            preventDefault(e);
+            var scroll_tr;
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var prev_tr;
+            if(current_tr.length){
+                prev_tr = current_tr.prev().first();
+                if(!prev_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(0 <= current_page-1){
+                        // moving to the previous page
+                        _dt.page(current_page-1).draw('page');
+                    }else{
+                        // moving to the last page, last row
+                        var pages = _dt.page.info().pages;
+                        _dt.page(pages-1).draw('page');
+                    }
+                    prev_tr = $('#weblogs-datatable tbody tr').last();
+                    scroll_tr =prev_tr;
+                    current_tr = null;
+                }
+            }else{
+                prev_tr = $('#weblogs-datatable tbody tr').last();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            prev_tr.addClass('action');
+            scroll_tr = scroll_tr ? scroll_tr : prev_tr.prev();
+            if(scroll_tr.length){
+                scrollIntoViewIfNeeded(scroll_tr[0]);
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+
 
 
 
 
     };
+
+
     function on_ready_fn (){
         $(document).ready(function() {
             $(document).on('click', '#search-domain-selected', function(ev){
