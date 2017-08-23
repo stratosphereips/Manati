@@ -42,7 +42,7 @@ var _helper;
 var _filterDataTable;
 
 var _m;
-
+var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
 
 var _loadingPlugin;
 function update_constant(str, index){
@@ -63,6 +63,15 @@ function update_constant(str, index){
     }
     else if(COL_END_POINTS_SERVER_STR === str){
         COLUMN_END_POINTS_SERVER = index;
+    }
+}
+function scrollIntoViewIfNeeded(target) {
+    var rect = target.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) {
+        target.scrollIntoView(false);
+    }
+    if (rect.top < 0) {
+        target.scrollIntoView();
     }
 }
 function checkVerdict(_verdicts_merged, verdict){
@@ -232,10 +241,16 @@ function AnalysisSessionLogic(){
         });
 
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-            $(this).toggleClass('selected');
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function (event) {
+            event.preventDefault();
+            $('tr.action').not(this).removeClass('action');
+            if((isMac && event.metaKey ) || (!isMac && event.shiftKey)){
+                $(this).toggleClass('selected');
+            }
+            $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
-        } );
+        });
+
         hideLoading();
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
@@ -1416,38 +1431,161 @@ function AnalysisSessionLogic(){
          // open VirusTotal Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultVirusTotal(qn, "domain");
         });
          // open WHOIS Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultWhois(qn, "domain");
         });
          // open VirusTotal Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
+            var qn = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER];
             consultVirusTotal(qn, "ip");
         });
          // open WHOIS Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
-            consultWhois(qn, "ip");
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT];
+             setBulkVerdict_WORKER(verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
         });
+        //show whois similarity modal
         Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
             preventDefault(e);
-            var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
+            var weblog_id = _dt.rows('.action').data()[0][COLUMN_DT_ID].toString();
             weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
             getWeblogsWhoisRelated(weblog_id);
         });
+
+        // VI-Style
+        // moving down with J
+        Mousetrap.bind(['j'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var next_tr;
+            if(current_tr.length){
+                next_tr = current_tr.next().first();
+                if(!next_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(_dt.page.info().pages > current_page+1){
+                        // moving to the next one
+                        _dt.page(current_page+1).draw('page');
+                    }else{
+                        // moving to the first page, first row
+                        _dt.page(0).draw('page');
+                    }
+                    next_tr = $('#weblogs-datatable tbody tr').first();
+                    current_tr = null;
+                }
+            }else{
+                next_tr = $('#weblogs-datatable tbody tr').first();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            next_tr.addClass('action');
+            if(current_tr){
+                scrollIntoViewIfNeeded(current_tr[0])
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+
+         // moving up with k
+        Mousetrap.bind(['k'], function(e) {
+            preventDefault(e);
+            var scroll_tr;
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var prev_tr;
+            if(current_tr.length){
+                prev_tr = current_tr.prev().first();
+                if(!prev_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(0 <= current_page-1){
+                        // moving to the previous page
+                        _dt.page(current_page-1).draw('page');
+                    }else{
+                        // moving to the last page, last row
+                        var pages = _dt.page.info().pages;
+                        _dt.page(pages-1).draw('page');
+                    }
+                    prev_tr = $('#weblogs-datatable tbody tr').last();
+                    scroll_tr =prev_tr;
+                    current_tr = null;
+                }
+            }else{
+                prev_tr = $('#weblogs-datatable tbody tr').last();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            prev_tr.addClass('action');
+            scroll_tr = scroll_tr ? scroll_tr : prev_tr.prev();
+            if(scroll_tr.length){
+                scrollIntoViewIfNeeded(scroll_tr[0]);
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+        // select row to be label.
+        Mousetrap.bind(['space'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            current_tr.toggleClass('selected');
+
+        });
+
+        Mousetrap.bind(['left'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page - 1 >= 0){
+                _dt.page(current_page-1).draw('page');
+            }else{
+                _dt.page(pages-1).draw('page');
+            }
+        });
+
+        Mousetrap.bind(['right'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page + 1 < pages){
+                _dt.page(current_page+1).draw('page');
+            }else{
+                _dt.page(0).draw('page');
+            }
+        });
+
+        //mark all the weblogs in the current session with the same IP
+        Mousetrap.bind(['p'],function (e) {
+            preventDefault(e);
+            var ip_value = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER].toString();
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value));
+        });
+
+        //mark all  the weblogs in the current session with the same domain
+        Mousetrap.bind(['d'],function (e) {
+            preventDefault(e);
+            var url =  _dt.rows('.action').data()[0][COLUMN_HTTP_URL].toString();
+            var domain = findDomainOfURL(url); // getting domain
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain));
+        });
+
 
 
 
 
     };
+
+
     function on_ready_fn (){
         $(document).ready(function() {
             $(document).on('click', '#search-domain-selected', function(ev){
