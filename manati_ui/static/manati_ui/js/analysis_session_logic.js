@@ -684,6 +684,13 @@ function AnalysisSessionLogic(){
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
         });
+        items_menu['unselect'] = {
+            name: "Unselect",
+            icon: "fa-paint-brush " + "unselect",
+            callback: function(key, options){
+                $('tr.selected').removeClass('selected');
+            }
+        };
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
@@ -1387,6 +1394,11 @@ function AnalysisSessionLogic(){
         Mousetrap.bind(['ctrl+u', 'command+u'], function(e) {
             preventDefault(e);
             labelingRows('undefined');
+        });
+         // unselect selected rows
+        Mousetrap.bind(['shift+ctrl+u', 'shift+command+u'], function(e) {
+            preventDefault(e);
+            $('tr.selected').removeClass('selected');
         });
         // Filter all Malicious
         Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
