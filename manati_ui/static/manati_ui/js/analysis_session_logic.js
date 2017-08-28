@@ -222,11 +222,7 @@ function AnalysisSessionLogic(){
               div_filter.append(input_filter);
               div_filter.append(label_filter);
 
-              // div_filter.appendTo('#new-search-area');
-
-              $('.fluid-label').fluidLabel({
-                focusClass: 'focused'
-              });
+              $('.fluid-label').fluidLabel({ focusClass: 'focused' });
               $('.wrap-buttons').html($('.searching-buttons').clone());
 
               $('.wrap-select-page').html($('.wrap-page-select').clone());
