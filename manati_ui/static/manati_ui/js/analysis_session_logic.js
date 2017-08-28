@@ -486,8 +486,7 @@ function AnalysisSessionLogic(){
 
 
                 });
-                _dt.rows('.modified-sync').to$().removeClass('modified');
-                _dt.rows('.modified-sync').to$().removeClass('modified-sync');
+                $('tr.modified-sync').removeClass('modified').removeClass('modified-sync');
                 _dt.draw(false);
                 console.log("DB Synchronized");
                 if(show_loading) hideLoading();
