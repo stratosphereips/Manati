@@ -245,6 +245,8 @@ function AnalysisSessionLogic(){
             }
             $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
+        }).on('dblclick', 'tr',function () {
+            $(this).toggleClass('selected');
         });
 
         hideLoading();
