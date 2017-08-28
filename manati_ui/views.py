@@ -54,6 +54,11 @@ def postpone(function):
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
+@postpone
+def call_after_sync_event():
+    ModulesManager.attach_all_event()  # it will check if will create the task or not
+
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
@@ -292,7 +297,7 @@ def sync_db(request):
 
         wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
         json_query_set = serializers.serialize("json", wb_query_set)
-        ModulesManager.attach_all_event() # it will check if will create the task or not
+        call_after_sync_event()
         return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
     else:
         messages.error(request, 'Only POST request')
