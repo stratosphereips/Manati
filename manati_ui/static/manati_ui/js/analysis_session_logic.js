@@ -215,7 +215,7 @@ function AnalysisSessionLogic(){
               var input_filter = div_filter.find('input').detach();
               var label_filter = div_filter.find('label').detach();
               input_filter.attr('placeholder', 'Search:');
-              input_filter.css('width', 260);
+              input_filter.css('width', '100%');
               input_filter.removeClass();
               label_filter.removeClass();
               div_filter.addClass('fluid-label');
@@ -232,7 +232,7 @@ function AnalysisSessionLogic(){
               $('.wrap-select-page').html($('.wrap-page-select').clone());
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-2"f><"col-md-5 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-4"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
                 '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
@@ -1652,7 +1652,7 @@ function AnalysisSessionLogic(){
             $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
                 _filterDataTable.removeFilter(_dt);
-                $('#searching-buttons .btn').removeClass('active')
+                $('.searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
