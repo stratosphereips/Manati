@@ -76,7 +76,9 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 After putting the password you should be logged in in the postgres.
 
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
-11. Install redis-server and execute redis_worker.sh file (in background or another console)
+11. Install redis-server and execute redis_worker.sh file (in background or another console). If you want to see the 
+jobs running or enqueued go to 
+[http://localhost:8000/manati_project/django-rq/](http://localhost:8000/manati_project/django-rq/)
  
         ./redis_worker.sh
         
