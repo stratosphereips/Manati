@@ -76,14 +76,16 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 After putting the password you should be logged in in the postgres.
 
 You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
+11. Install redis-server and execute redis_worker.sh file (in background or another console)
  
-11. Run migrate files
+        ./redis_worker.sh
         
-        python ./manage.py makemigrations background_task
+12. Run migrate files
+
         python ./manage.py makemigrations guardian
         python ./manage.py migrate
         
-12. Create super user for login in the web system if you need 
+13. Create super user for login in the web system if you need 
 
         python manage.py createsuperuser
 
@@ -111,13 +113,14 @@ If you want to open the server in the network, you can do it with:
 
         pip install -r requirements.txt
         
-4. Prepare migrations files for background_task  (if it already has, nothings happens)
+4. Install redis-server and execute redis_worker.sh file (in background or another console)
 
-        python ./manage.py makemigrations background_task
+        ./redis_worker.sh
         
 5. Prepare migrations files for guardian library (if it already has, nothings happens)
         
         python ./manage.py makemigrations guardian
+        
 6. Execute migrations files
  
         python ./manage.py migrate
