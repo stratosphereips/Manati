@@ -8,6 +8,7 @@ cffi==1.10.0
 click==6.7
 colorama==0.3.7
 configparser==3.5.0
+croniter==0.3.17
 cryptography==1.8.1
 dealer==2.0.5
 decorator==4.0.10
@@ -31,12 +32,11 @@ django-libsass==0.7
 django-model-utils==2.5
 django-preserialize==1.1.0
 django-redis==4.8.0
-django-rq==0.8.0
+django-rq==0.9.6
 django-sass-processor==0.3.5
 django-static-precompiler==1.4
 django-staticfiles==1.2.1
 django-suit==0.2.25
-django-suit-rq==1.0.1
 djangorestframework==3.4.7
 djdt-flamegraph==0.2.12
 dnspython==1.15.0
@@ -97,6 +97,7 @@ redis==2.10.5
 requests==2.13.0
 rjsmin==1.0.12
 rq==0.8.1
+rq-scheduler==0.7.0
 scikit-learn==0.18.1
 scipy==0.19.0
 simplegeneric==0.8.1

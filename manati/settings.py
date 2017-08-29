@@ -32,8 +32,6 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = ["*"]
 
-
-
 # Application definition
 INSTALLED_APPS = [
     'django_rq',
@@ -102,17 +100,23 @@ RQ_QUEUES = {
         'HOST': 'localhost',
         'PORT': 6379,
         'DB': 0,
-        'PASSWORD': 'N7kwTQTa3ff99l',
+        'PASSWORD': config('REDIS_PASSWORD'),
         'DEFAULT_TIMEOUT': 360,
+        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
     },
     'high': {
-        'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'), # If you're on Heroku
-        'DEFAULT_TIMEOUT': 500,
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
     },
     'low': {
         'HOST': 'localhost',
         'PORT': 6379,
         'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
     }
 }
 
@@ -146,7 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Prague'
 
 USE_I18N = True
 
@@ -213,10 +217,10 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
-        "rq_console": {
-            "format": "%(asctime)s %(message)s",
-            "datefmt": "%H:%M:%S",
-        },
+        # "rq_console": {
+        #     "format": "%(asctime)s %(message)s",
+        #     "datefmt": "%H:%M:%S",
+        # },
     },
     'handlers': {
         'console': {
@@ -233,23 +237,23 @@ LOGGING = {
             "backupCount": 20,
             "encoding": "utf8"
         },
-        "rq_console": {
-            "level": "DEBUG",
-            "class": "rq.utils.ColorizingStreamHandler",
-            "formatter": "rq_console",
-            "exclude": ["%(asctime)s"],
-        },
+        # "rq_console": {
+        #     "level": "DEBUG",
+        #     "class": "rq.utils.ColorizingStreamHandler",
+        #     "formatter": "rq_console",
+        #     "exclude": ["%(asctime)s"],
+        # },
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': True,
         },
-        "rq.worker": {
-            "handlers": ["rq_console"],
-            "level": "DEBUG"
-        },
+        # "rq.worker": {
+        #     "handlers": ["rq_console"],
+        #     "level": "DEBUG"
+        # },
     },
     "root": {
         "level": "INFO",
