@@ -45,6 +45,11 @@ var _m;
 var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
 
 var _loadingPlugin;
+
+function stopInterval (){
+    clearInterval(_sync_db_interval);
+}
+
 function update_constant(str, index){
     if(COL_UUID_STR === str){
         COLUMN_UUID = index;
@@ -195,10 +200,11 @@ function AnalysisSessionLogic(){
                 var row = $(nRow);
                 var id = aData[COLUMN_DT_ID];
                 var str = id.split(":");
+                var id_row = str.length > 1 ? str[1] : str[0];
                 var verdict = aData[COLUMN_VERDICT];
                 var reg_status = aData[COLUMN_REG_STATUS];
                 if(_verdict_sync.hasOwnProperty(id)){
-                    var internal_row = _dt.rows('[data-dbid="'+id+'"]');
+                    var internal_row = _dt.rows('[data-dbid="'+id_row+'"]');
                     var index_row = internal_row.indexes()[0];
                     var elem = _verdict_sync[id];
                     verdict = elem.verdict;
@@ -210,7 +216,7 @@ function AnalysisSessionLogic(){
                     _dt.cell(index_row, COLUMN_VERDICT).data(verdict);
                     _dt.cell(index_row, COLUMN_REG_STATUS).data(reg_status);
                     delete _verdict_sync[id];
-                    console.log(id);
+                    console.log(id, id_row);
                 }
 
                 row.addClass(checkVerdict(_verdicts_merged,verdict ));
@@ -219,11 +225,7 @@ function AnalysisSessionLogic(){
                 }else if((reg_status !== REG_STATUS.modified) &&  row.hasClass('modified')){
                     row.removeClass('modified');
                 }
-                if(str.length > 1){
-                    row.attr("data-dbid", str[1]);
-                }else{
-                    row.attr("data-dbid", str[0]);
-                }
+                row.attr("data-dbid", id_row);
 
             },
             drawCallback: function(){
@@ -296,7 +298,6 @@ function AnalysisSessionLogic(){
              consultVirusTotal(query_node);
 
         });
-         console.log(_dt);
          // adding options to select datatable's pages
          var list = document.getElementsByClassName('page-select')[1];
          for(var index=0; index<_dt.page.info().pages; index++) {
@@ -1907,7 +1908,7 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-               idSyncDBIntervalId= setInterval(syncDB, TIME_SYNC_DB );
+               _sync_db_interval= setInterval(syncDB, TIME_SYNC_DB );
 
             });
             if(update_uuid_weblogs){
