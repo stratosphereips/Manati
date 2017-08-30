@@ -26,12 +26,12 @@ urlpatterns = [
 
     url(r'^'+path_name+'/manati_ui/', include('manati_ui.urls')),
     url(r'^'+path_name+'/admin/', include(admin.site.urls)),
+    url(r'^'+path_name+'/django-rq/', include('django_rq.urls')), # adding django-rq urls.
     url(r''+path_name+'/', include('login.urls')),
     url(r'^'+path_name+'/index.html$', login.views.home, name="home"),
     url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
     url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
     url(r'^', login.views.home, name="home"),
-
 ]
 
 if settings.DEBUG:

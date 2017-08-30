@@ -237,24 +237,20 @@ function AnalysisSessionLogic(){
               var input_filter = div_filter.find('input').detach();
               var label_filter = div_filter.find('label').detach();
               input_filter.attr('placeholder', 'Search:');
-              input_filter.css('width', 260);
+              input_filter.css('width', '100%');
               input_filter.removeClass();
               label_filter.removeClass();
               div_filter.addClass('fluid-label');
               div_filter.append(input_filter);
               div_filter.append(label_filter);
 
-              // div_filter.appendTo('#new-search-area');
-
-              $('.fluid-label').fluidLabel({
-                focusClass: 'focused'
-              });
+              $('.fluid-label').fluidLabel({ focusClass: 'focused' });
               $('.wrap-buttons').html($('.searching-buttons').clone());
 
               $('.wrap-select-page').html($('.wrap-page-select').clone());
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-2"f><"col-md-5 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-4"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
                 '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
@@ -272,6 +268,8 @@ function AnalysisSessionLogic(){
             }
             $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
+        }).on('dblclick', 'tr',function () {
+            $(this).toggleClass('selected');
         });
 
         hideLoading();
@@ -720,6 +718,13 @@ function AnalysisSessionLogic(){
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
         });
+        items_menu['unselect'] = {
+            name: "Unselect",
+            icon: "fa-paint-brush " + "unselect",
+            callback: function(key, options){
+                $('tr.selected').removeClass('selected');
+            }
+        };
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
@@ -1424,6 +1429,11 @@ function AnalysisSessionLogic(){
             preventDefault(e);
             labelingRows('undefined');
         });
+         // unselect selected rows
+        Mousetrap.bind(['shift+ctrl+u', 'shift+command+u'], function(e) {
+            preventDefault(e);
+            $('tr.selected').removeClass('selected');
+        });
         // Filter all Malicious
         Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
             preventDefault(e);
@@ -1684,7 +1694,7 @@ function AnalysisSessionLogic(){
             $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
                 _filterDataTable.removeFilter(_dt);
-                $('#searching-buttons .btn').removeClass('active')
+                $('.searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
