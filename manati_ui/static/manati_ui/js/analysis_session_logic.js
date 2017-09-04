@@ -209,14 +209,14 @@ function AnalysisSessionLogic(){
                     var elem = _verdict_sync[id];
                     verdict = elem.verdict;
                     reg_status = elem.register_status;
-                    // row.nodes().to$().addClass('selected-sync');
-                    // thiz.setColumnsOrderFlat(false);
-                    // thiz.markVerdict(elem.fields.verdict,'selected-sync');
-                    // row.nodes().to$().removeClass('modified');
+                    internal_row.nodes().to$().addClass('selected-sync');
                     _dt.cell(index_row, COLUMN_VERDICT).data(verdict);
                     _dt.cell(index_row, COLUMN_REG_STATUS).data(reg_status);
+                    addClassVerdict('selected-sync',verdict);
+                    // thiz.markVerdict(verdict,'selected-sync');
+                    internal_row.nodes().to$().removeClass('modified');
+
                     delete _verdict_sync[id];
-                    console.log(id, id_row);
                 }
 
                 row.addClass(checkVerdict(_verdicts_merged,verdict ));

@@ -11,6 +11,7 @@ function checkIt()
 }
 
 checkIt "redis-server"
+echo "Redis Server running:"
 echo $return
 if [ "$return" != "true" ]; then
    echo "Run redis"
@@ -18,6 +19,7 @@ if [ "$return" != "true" ]; then
 fi;
 
 checkIt "rqworker"
+echo "RQ Worker running:"
 echo $return
 if [ "$return" != "true" ]; then
    echo "Run rqworker"
