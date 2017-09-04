@@ -437,13 +437,13 @@ function AnalysisSessionLogic(){
     };
 
     var syncDB = function (show_loading){
-        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading === undefined || show_loading === null) show_loading = false;
         if(show_loading) showLoading();
         var arr_list = _dt.rows('.modified').data();
-        _dt.rows('.modified').nodes().to$().addClass('modified-sync');
+        _dt.rows('.modified').nodes().to$().addClass('modified-sync').removeClass('modified');
         var data_row = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1){
+            if(elem[COLUMN_REG_STATUS] !== -1){
                 var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
                 data_row[key_id]=elem[COLUMN_VERDICT];
             }
@@ -485,7 +485,7 @@ function AnalysisSessionLogic(){
 
 
                 });
-                $('tr.modified-sync').removeClass('modified').removeClass('modified-sync');
+                $('tr.modified-sync').removeClass('modified-sync');
                 _dt.draw(false);
                 console.log("DB Synchronized");
                 if(show_loading) hideLoading();
