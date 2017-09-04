@@ -43,7 +43,7 @@
                 {% endif %}
                 <li>
                      <a href="{% url 'manati_ui:new_analysis_session' %}">
-                         v{% version_app %}
+                         {% get_git_revision_number %}
                       </a>
                 </li>
             <li class="dropdown">
