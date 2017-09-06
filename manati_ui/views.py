@@ -504,6 +504,15 @@ class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
             dict(description='Open WHOIS Pop-up by DOMAIN', command='cmd+shift+p | ctrl+shift+p'),
             dict(description='Open WHOIS Pop-up by IP', command='cmd+shift+o | ctrl+shift+o'),
             dict(description='Open WHOIS related domains Pop-up', command='command+shift+d | ctrl+shift+d'),
+            dict(description='Moving down in the table (VI-Style)', command='j'),
+            dict(description='Moving up in the table (VI-Style)', command='k'),
+            dict(description='Mark a row to be labeled', command='space'),
+            dict(description='Move to the previous page in the table', command='left'),
+            dict(description='Move to the next page in the table', command='right'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same IP, in the current session ', command='p'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same domain, in the current session ', command='d'),
         ]
         return hotkeys
 
