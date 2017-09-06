@@ -13,8 +13,8 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 
 ## Authors
 
-- Raul B. Netto (raulbeni@gmail.com, rbenitez@uni.edu.py, benitrau@fit.cvut.cz)
-- Sebastian Garcia (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
+- <b>Raul B. Netto</b> (raulbeni@gmail.com, rbenitez@uni.edu.py, benitrau@fit.cvut.cz)
+- <b>Sebastian Garcia</b> (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
 
 ## Settings: Installation for development in master
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
@@ -131,6 +131,12 @@ If you want to open the server in the network, you can do it with:
  
         python ./manage.py runserver
 
+## Run in production.
+ Using <b>surpevisor</b>, <b>gunicorn</b> as server with <b>RQ worker</b> (with redis server)
+   to deal with the background tasks. In the future we are planning to 
+   prepare settings for <b>nginx</b>
+    
+    sudo supervisord -c supervisor-manati.conf -n
 
 ## Backup DB
     pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text

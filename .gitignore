@@ -11,3 +11,4 @@
 .DS_Store
 /static/
 .env
+*.pid
