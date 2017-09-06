@@ -23,6 +23,8 @@ import os
 from django.db import connection
 from django.core import management
 import logging
+import django_rq
+from django_rq import job
 
 
 # Get an instance of a logger
@@ -36,6 +38,25 @@ def postpone(function):
         t.start()
 
     return decorator
+
+
+def run_external_module(event_thrown, module_name, weblogs_seed_json):
+    print("Running module: " + module_name)
+    logger.info("Running module: " + module_name)
+    path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+    assert os.path.isdir(path) is True
+    external_module = ExternalModule.objects.get(module_name=module_name)
+    module_path = os.path.join(path, external_module.filename)
+    module_instance = external_module.module_instance
+    module = imp.load_source(module_instance, module_path)
+    # external_module.mark_running(save=True)
+    module.module_obj.run(event_thrown=event_thrown,
+                          weblogs_seed=weblogs_seed_json)
+    # except Exception as es:
+    #     print(str(es))
+    #
+    #     print_exception()
+    # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
 
 class ModulesManager:
@@ -190,42 +211,6 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    @background(schedule=timezone.now())
-    def __run_modules(event_thrown, module_name, weblogs_seed_json):
-        # try:
-        print("Running module: " + module_name)
-        logger.info("Running module: " + module_name)
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        assert os.path.isdir(path) is True
-        external_module = ExternalModule.objects.get(module_name=module_name)
-        module_path = os.path.join(path, external_module.filename)
-        module_instance = external_module.module_instance
-        module = imp.load_source(module_instance, module_path)
-        # external_module.mark_running(save=True)
-        module.module_obj.run(event_thrown=event_thrown,
-                              weblogs_seed=weblogs_seed_json)
-        # except Exception as es:
-        #     print(str(es))
-        #
-        #     print_exception()
-        # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
-
-    @staticmethod
-    def __run_modules_sync(event_thrown, module_name, weblogs_seed_json):
-        # try:
-        print("Running module: " + module_name)
-        logger.info("Running module: " + module_name)
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        assert os.path.isdir(path) is True
-        external_module = ExternalModule.objects.get(module_name=module_name)
-        module_path = os.path.join(path, external_module.filename)
-        module_instance = external_module.module_instance
-        module = imp.load_source(module_instance, module_path)
-        # external_module.mark_running(save=True)
-        module.module_obj.run(event_thrown=event_thrown,
-                              weblogs_seed=weblogs_seed_json)
-
-    @staticmethod
     @retries(max_attempts=10, exceptions=(Exception), wait=5)
     def unstable_externa_module_is_free(module_name):
         em = ExternalModule.objects.get(module_name=module_name)
@@ -253,11 +238,16 @@ class ModulesManager:
         external_modules = ExternalModule.objects.find_by_event(event_name)
         if len(external_modules) > 0:
             if async:
+                queue = django_rq.get_queue('default')
                 for external_module in external_modules:
-                    ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
+                    queue.enqueue(run_external_module,
+                                  event_name,
+                                  external_module.module_name,
+                                  weblogs_seed_json)
+
             else:
                 for external_module in external_modules:
-                    ModulesManager.__run_modules_sync(event_name, external_module.module_name, weblogs_seed_json)
+                    run_external_module(event_name, external_module.module_name, weblogs_seed_json)
 
         # except Exception as e:
         #     print(e)
@@ -273,25 +263,11 @@ class ModulesManager:
     def __run_background_task_service__():
         if not ModulesManager.background_task_thread and \
                 ModulesManager.db_table_exists('manati_externals_modules') and \
-                ModulesManager.db_table_exists('background_task') and \
                 ModulesManager.db_table_exists('django_content_type'):
 
             ModulesManager.checking_modules()  # checking modules
             ModulesManager.register_modules()  # registering new modules
-
-            path_log_dir = os.path.join(settings.BASE_DIR, 'logs')
-            logfile_name = os.path.join(path_log_dir, "background_tasks.log")
-            if not os.path.isfile(logfile_name):
-                if not os.path.isdir(path_log_dir):
-                    os.makedirs(path_log_dir)
-                f = open(logfile_name, "w")
-                print('Creating file: ' + logfile_name)
-            ModulesManager.background_task_thread = threading.Thread(target=management.call_command, args=('process_tasks',
-                                                                            "--sleep", "10",
-                                                                            "--log-level", "DEBUG",
-                                                                            "--log-std", logfile_name))
-            # thread.daemon = True  # Daemonize thread
-            ModulesManager.background_task_thread.start()
+            ModulesManager.background_task_thread = True
 
     @staticmethod
     def attach_all_event():

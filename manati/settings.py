@@ -35,8 +35,8 @@ else:
 
 
 # Application definition
-
 INSTALLED_APPS = [
+    'django_rq',
     'guardian',
     'api_manager',
     'background_task',
@@ -97,6 +97,33 @@ DATABASES = {
     'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
 
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
+    },
+    'high': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+    }
+}
+
+RQ_SHOW_ADMIN_LINK = True
+
 
 
 
@@ -125,7 +152,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Prague'
 
 USE_I18N = True
 
@@ -192,6 +219,10 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        # "rq_console": {
+        #     "format": "%(asctime)s %(message)s",
+        #     "datefmt": "%H:%M:%S",
+        # },
     },
     'handlers': {
         'console': {
@@ -208,6 +239,12 @@ LOGGING = {
             "backupCount": 20,
             "encoding": "utf8"
         },
+        # "rq_console": {
+        #     "level": "DEBUG",
+        #     "class": "rq.utils.ColorizingStreamHandler",
+        #     "formatter": "rq_console",
+        #     "exclude": ["%(asctime)s"],
+        # },
     },
     'loggers': {
         'django': {
@@ -215,6 +252,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        # "rq.worker": {
+        #     "handlers": ["rq_console"],
+        #     "level": "DEBUG"
+        # },
     },
     "root": {
         "level": "INFO",
@@ -229,6 +270,7 @@ if DEBUG:
     LOGGING['handlers']['file']['level'] = 'DEBUG'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
 
     INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
@@ -254,8 +296,9 @@ if DEBUG:
            'template_profiler_panel.panels.template.TemplateProfilerPanel',
     ]
 
-    DEBUG_TOOLBAR_CONFIG = {
-            'INTERCEPT_REDIRECTS': False,
-            'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
-            'RESULTS_STORE_SIZE': 100,
-       }
+
+    # DEBUG_TOOLBAR_CONFIG = {
+    #         'INTERCEPT_REDIRECTS': False,
+    #         'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
+    #         'RESULTS_STORE_SIZE': 100,
+    #    }

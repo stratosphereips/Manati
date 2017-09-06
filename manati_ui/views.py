@@ -55,6 +55,11 @@ def postpone(function):
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
+@postpone
+def call_after_sync_event():
+    ModulesManager.attach_all_event()  # it will check if will create the task or not
+
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
@@ -293,7 +298,7 @@ def sync_db(request):
 
         wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
         json_query_set = serializers.serialize("json", wb_query_set)
-        ModulesManager.attach_all_event() # it will check if will create the task or not
+        call_after_sync_event()
         return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
     else:
         messages.error(request, 'Only POST request')
@@ -572,6 +577,15 @@ class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
             dict(description='Open WHOIS Pop-up by DOMAIN', command='cmd+shift+p | ctrl+shift+p'),
             dict(description='Open WHOIS Pop-up by IP', command='cmd+shift+o | ctrl+shift+o'),
             dict(description='Open WHOIS related domains Pop-up', command='command+shift+d | ctrl+shift+d'),
+            dict(description='Moving down in the table (VI-Style)', command='j'),
+            dict(description='Moving up in the table (VI-Style)', command='k'),
+            dict(description='Mark a row to be labeled', command='space'),
+            dict(description='Move to the previous page in the table', command='left'),
+            dict(description='Move to the next page in the table', command='right'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same IP, in the current session ', command='p'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same domain, in the current session ', command='d'),
         ]
         return hotkeys
 

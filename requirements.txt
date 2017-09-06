@@ -5,8 +5,10 @@ backports-abc==0.4
 backports.shutil-get-terminal-size==1.0.0
 certifi==2016.9.26
 cffi==1.10.0
+click==6.7
 colorama==0.3.7
 configparser==3.5.0
+croniter==0.3.17
 cryptography==1.8.1
 dealer==2.0.5
 decorator==4.0.10
@@ -30,9 +32,11 @@ django-libsass==0.7
 django-model-utils==2.5
 django-preserialize==1.1.0
 django-redis==4.8.0
+django-rq==0.9.6
 django-sass-processor==0.3.5
 django-static-precompiler==1.4
 django-staticfiles==1.2.1
+django-suit==0.2.25
 djangorestframework==3.4.7
 djdt-flamegraph==0.2.12
 dnspython==1.15.0
@@ -61,6 +65,7 @@ jupyter-console==5.0.0
 jupyter-core==4.2.0
 libsass==0.11.1
 MarkupSafe==0.23
+meld3==1.0.2
 mistune==0.7.3
 nbconvert==4.2.0
 nbformat==4.1.0
@@ -92,6 +97,8 @@ rcssmin==1.0.6
 redis==2.10.5
 requests==2.13.0
 rjsmin==1.0.12
+rq==0.8.1
+rq-scheduler==0.7.0
 scikit-learn==0.18.1
 scipy==0.19.0
 simplegeneric==0.8.1
@@ -100,6 +107,7 @@ singledispatch==3.4.0.3
 six==1.10.0
 sklearn==0.0
 sqlparse==0.2.3
+supervisor==3.3.3
 terminado==0.6
 tld==0.7.8
 tornado==4.4.2
