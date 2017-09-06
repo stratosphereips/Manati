@@ -13,8 +13,9 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 
 ## Authors
 
-- <b>Raul B. Netto</b> (raulbeni@gmail.com, rbenitez@uni.edu.py, benitrau@fit.cvut.cz)
-- <b>Sebastian Garcia</b> (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
+- **Raúl B. Netto**
+    (raulbeni@gmail.com, rbenitez@uni.edu.py, benitrau@fit.cvut.cz)
+- **Sebastian García** (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
 
 ## Settings: Installation for development in master
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
@@ -27,11 +28,11 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 
         apt-get install virtualenv
         
-3. Create vitualenv folder 
+3. Create virtualenv folder 
         
         virtualenv vmanati
         
-4. Active Vitualenv
+4. Active Virtualenv
 
         source vmanati/bin/activate
         
@@ -80,7 +81,7 @@ You can change the password of the manati_db_user in the database and the in the
 
     apt-get install redis-server
         
-   <b>OPTIONAL</b>
+   **OPTIONAL**
    
    If you want to configure the Redis. For example, you are
    interested to change the password, you can:
@@ -93,7 +94,7 @@ You can change the password of the manati_db_user in the database and the in the
         requirepass passwodUser
     
    Just remember to update
-   the variable environment <b>REDIS_PASSWORD</b> in the
+   the variable environment **REDIS_PASSWORD** in the
    file *.env* in the root of the project.
 
 
@@ -153,9 +154,9 @@ If you want to open the server in the network, you can do it with:
         python ./manage.py runserver
 
 ## Run in production.
- Using <b>surpevisor</b>, <b>gunicorn</b> as server with <b>RQ worker</b> (with redis server)
+ Using **surpevisor**, **gunicorn** as server with **RQ worker** (with redis server)
    to deal with the background tasks. In the future we are planning to 
-   prepare settings for <b>nginx</b>
+   prepare settings for **nginx**
     
     cd path/to/project_directory 
     sudo supervisord -c supervisor-manati.conf -n
