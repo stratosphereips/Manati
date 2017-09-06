@@ -22,5 +22,5 @@ exec gunicorn ${DJANGO_WSGI_MODULE}:application \
   --name $NAME \
   --workers $NUM_WORKERS \
   --bind=127.0.0.1:$PORT \
-  --log-level=debug \
+  --log-level=info \
   --log-file=-
