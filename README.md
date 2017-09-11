@@ -13,9 +13,9 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 
 ## Authors
 
-- **Raúl B. Netto**
-    (raulbeni@gmail.com, rbenitez@uni.edu.py, benitrau@fit.cvut.cz)
-- **Sebastian García** (sebastian.garcia@agents.fel.cvut.cz, eldraco@gmail.com)
+- **Raúl B. Netto** 
+    ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <rbenitez@uni.edu.py>, <benitrau@fit.cvut.cz>)
+- **Sebastian García** ([@eldracote](https://www.twitter.com/eldracote), <sebastian.garcia@agents.fel.cvut.cz>, <eldraco@gmail.com>)
 
 ## Settings: Installation for development in master
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
@@ -97,17 +97,15 @@ You can change the password of the manati_db_user in the database and the in the
    the variable environment **REDIS_PASSWORD** in the
    file *.env* in the root of the project.
 
-
-13. Execute redis_worker.sh file (in background or another console). If you want to see the 
-jobs running or enqueued go to 
-[http://localhost:8000/manati_project/django-rq/](http://localhost:8000/manati_project/django-rq/)
- 
-        ./redis_worker.sh
         
-14. Run migrate files
+12. Run migrate files
 
         python ./manage.py makemigrations guardian
         python ./manage.py migrate
+
+13. Execute redis_worker.sh file (in background or another console). 
+ 
+        ./redis_worker.sh
         
 15. Create super user for login in the web system if you need 
 
@@ -118,11 +116,15 @@ It is not recommended to run the server as root, but since only root can open po
 
     python ./manage.py runserver
 
-After this, just open your browser in [http://localhost:8000/manati_ui](http://localhost:8000/manati_ui)
+After this, just open your browser in [http://localhost:8000/manati_project/manati_ui](http://localhost:8000/manati_project//manati_ui)
 
 If you want to open the server in the network, you can do it with:
 
     python ./manage.py runserver <ip-address>:8000
+
+If you want to see the 
+jobs running or enqueued go to 
+[http://localhost:8000/manati_project/django-rq/](http://localhost:8000/manati_project/django-rq/)
 
 ## Settings: Updating version from master
 1. Open project directory
@@ -143,11 +145,11 @@ If you want to open the server in the network, you can do it with:
         
 5. Prepare migrations files for guardian library (if it already has, nothings happens)
         
-        python ./manage.py makemigrations guardian
+        python ./manage.py makemigrations guardian --noinput
         
 6. Execute migrations files
  
-        python ./manage.py migrate
+        python ./manage.py migrate --noinput
 
 7. Execute server
  
@@ -159,6 +161,7 @@ If you want to open the server in the network, you can do it with:
    prepare settings for **nginx**
     
     cd path/to/project_directory 
+    python ./manage.py collectstatic --noinput
     sudo supervisord -c supervisor-manati.conf -n
 
 ## Backup DB
