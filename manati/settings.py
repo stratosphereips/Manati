@@ -24,6 +24,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 
+ENCRYPTED_FIELDS_KEYDIR = os.path.join(BASE_DIR, 'fieldkeys')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 if DEBUG:
@@ -34,13 +36,15 @@ else:
 
 # Application definition
 INSTALLED_APPS = [
+    'user_profiles',
+    'userena',
+    'easy_thumbnails',
     'django_rq',
     'guardian',
     'api_manager',
     'background_task',
     'rest_framework',
     'bootstrap3',
-    'sass_processor',
     'django_extensions',
     'manati_ui.apps.ManatiUiConfig',
     'django.contrib.admin',
@@ -50,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'crispy_forms',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -121,6 +126,8 @@ RQ_QUEUES = {
 }
 
 RQ_SHOW_ADMIN_LINK = True
+
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 
 
@@ -194,9 +201,22 @@ NOTEBOOK_ARGUMENTS = [
 ]
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend', # this is default
+    'userena.backends.UserenaAuthenticationBackend',
     'guardian.backends.ObjectPermissionBackend',
+    'django.contrib.auth.backends.ModelBackend',  # this is default
 )
+ANONYMOUS_USER_ID = 1
+AUTH_PROFILE_MODULE = 'user_profiles.UserProfile'
+USERENA_SIGNIN_REDIRECT_URL = '/user_profiles/%(username)s/'
+LOGIN_URL = '/user_profiles/signin/'
+LOGOUT_URL = '/user_profiles/signout/'
+USERENA_DISABLE_PROFILE_LIST = True
+USERENA_DISABLE_SIGNUP = True
+USERENA_REGISTER_USER = False
+USERENA_REGISTER_PROFILE = False
+USERENA_DEFAULT_PRIVACY = 'closed'
+USERENA_MUGSHOT_GRAVATAR = False
+
 path_log_file = os.path.join(BASE_DIR, 'logs')
 logfile_name = os.path.join(path_log_file, "server.log")
 logfile_debug_name = os.path.join(path_log_file, "server_debug.log")

@@ -17,6 +17,7 @@ from django.conf.urls import include,url
 from django.contrib import admin
 from django.contrib.auth import views
 from login.forms import LoginForm
+import user_profiles.forms
 import login
 from manati import settings
 
@@ -25,6 +26,7 @@ path_name = 'manati_project'
 urlpatterns = [
 
     url(r'^'+path_name+'/manati_ui/', include('manati_ui.urls')),
+    url(r'^'+path_name+'/user_profiles/', include('userena.urls')),
     url(r'^'+path_name+'/admin/', include(admin.site.urls)),
     url(r'^'+path_name+'/django-rq/', include('django_rq.urls')), # adding django-rq urls.
     url(r''+path_name+'/', include('login.urls')),

@@ -1,0 +1,62 @@
+{% extends 'manati_ui/base.html' %}
+{% load crispy_forms_tags %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Account setup" %}{% endblock %}
+
+{% block content_title %}<h2>{% blocktrans with profile.user.username as username %}Account &raquo; {{ username }}{% endblocktrans %}</h2>{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <form action="" enctype="multipart/form-data" method="post">
+                              {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="id_first_name">First Name</label>
+                                    <input class="form-control" maxlength="30" name="first_name" id="id_first_name"/>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_last_name">Last Name</label>
+                                    <input class="form-control" id="id_last_name" maxlength="30" name="last_name"/>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_passivetotal_key_api">PassiveTotal KEY API</label>
+                                    <textarea class="form-control" id="id_passivetotal_key_api" maxlength="255" name="passivetotal_key_api"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_passivetotal_user">PassiveTotal USERNAME/EMAIL</label>
+                                    <input class="form-control" id="id_passivetotal_user" maxlength="100" name="passivetotal_user"/>
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_virustotal_key_api">VirusTotal KEY API</label>
+                                    <textarea class="form-control" id="id_virustotal_key_api" maxlength="255" name="virustotal_key_api"></textarea>
+                                </div>
+                                 <div class="form-group">
+                                    <label for="id_email">Email</label>
+                                    <textarea class="form-control" id="id_email" maxlength="255" name="email"></textarea>
+                                </div>
+                                <a class="btn btn-info btn-xs"href="{% url 'userena_password_change' user.username %}">{% trans "Change password" %}</a>
+                                <a class="btn btn-info btn-xs" href="{% url 'userena_email_change' user.username %}">{% trans "Change email" %}</a>
+                                <input type="submit" class="btn btn-success" value="{% trans "Save changes" %}" />
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+{% endblock %}
+<ul id="box-nav">
+<li class="first"><a href="{% url 'userena_profile_detail' user.username %}"><span>{% trans 'View profile' %}</span></a></li>
+<li class="selected"><a href="{% url 'userena_profile_edit' user.username %}">{% trans "Edit profile" %}</a></li>
+<li><a href="{% url 'userena_password_change' user.username %}">{% trans "Change password" %}</a></li>
+<li class="last"><a href="{% url 'userena_email_change' user.username %}">{% trans "Change email" %}</a></li>
+</ul>
