@@ -623,12 +623,12 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
             success : function(json) {// handle a successful response
                 var whois_related_domains = json['whois_related_domains'];
+                var root_whois_features = json['root_whois_features'];
                 var was_related = json['was_related'];
-                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related);
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related,root_whois_features);
                 updateBodyModal(table);
                 if (was_related) {
-                    closingModal()
-
+                    closingModal();
                 }
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -1238,39 +1238,87 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related){
-        if(was_related == undefined || was_related == null) was_related = false;
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related,root_whois_features){
+        if(was_related === undefined || was_related === null) was_related = false;
         if(isEmpty(mod_attributes) && !was_related) return null;
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
-        table += "<tbody>";
-        console.log(mod_attributes);
+        // var table = "<table class='table table-bordered'>";
+        // table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
+        // table += "<tbody>";
+        // console.log(mod_attributes);
         var count = 1;
+        // if(isEmpty(mod_attributes) && was_related){
+        //     var tr = "<tr>";
+        //     tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
+        //     table+=tr;
+        // }else{
+        //     _.each(mod_attributes, function (domain) {
+        //         var tr = "<tr>";
+        //         tr += "<td>"+count+"</td>";
+        //         tr += "<td>"+domain+"</td>";
+        //         tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
+        //         tr += "</tr>";
+        //         table+=tr;
+        //         count++;
+        //     });
+        //
+        // }
+        //
+        // table += "</tbody>";
+        // table += "</table>";
+        // return table;
+
+        var feature_names_ref = {'emails':'diff_emails', 'domain_name':'dist_domain_name', 'name_servers':'diff_name_servers',
+                'registrar':'dist_registrar', 'name':'dist_name', 'duration':'dist_duration', 'zipcode':'dist_zipcode',
+                'org':'dist_org'};
+        var html = '';
+        html += '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
         if(isEmpty(mod_attributes) && was_related){
-            var tr = "<tr>";
-            tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
-            table+=tr;
+            html += "<div> NO WHOIS RELATED DOMAINS in this analysis session </div>";
         }else{
-            _.each(mod_attributes, function (domain) {
-                var tr = "<tr>";
-                tr += "<td>"+count+"</td>";
-                tr += "<td>"+domain+"</td>";
-                tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
-                tr += "</tr>";
-                table+=tr;
+            _.each(mod_attributes, function (features, domain) {
+                html += '<div class="panel panel-default">';
+                    html += '<div class="panel-heading" role="tab" id="heading'+count+'">';
+                        html += '<h4 class="panel-title" style="display: inline; margin-right: 10px">';
+                        html += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse'+count+'" aria-expanded="true" aria-controls="collapse'+count+'" >';
+                        html += domain;
+                        html += '</a></h4>';
+                        html += "<input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/>";
+                    html += '</div>';
+                    html += '<div id="collapse'+count+'"  class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading'+count+'" >';
+                        html += '<div class="panel-body">';
+                            var table = "<table class='table table-bordered'>";
+                            table += "<thead><tr><th>Feature Name</th><th>WHOIS info A</th><th>WHOIS info B</th><th>Distance</th></tr></thead>";
+                            table += "<tbody>";
+                            var tmp_count = 0;
+                            _.each(features[0], function (whois_info, feature_name) {
+                                var tr = "<tr>";
+                                tr += "<td>"+feature_name+"</td>";
+                                tr += "<td>"+root_whois_features[feature_name]+"</td>";
+                                tr += "<td>"+whois_info+"</td>";
+                                tr += "<td>"+features[1][feature_names_ref[feature_name]]+"</td>";
+                                tr += "</tr>";
+                                table+=tr;
+                            });
+                            table += "</tbody>";
+                            table += "</table>";
+                            html += table;
+                        html += '</div>';
+                    html += '</div>';
+                html += '</div>';
                 count++;
             });
 
         }
 
-        table += "</tbody>";
-        table += "</table>";
-        return table;
+        html += '</div>';
+        return html;
+
+
 
     }
     function getIOCs(weblog_id){
         initModal("IOCs Selected:" + weblog_id);
-        var data = {weblog_id:weblog_id}
+        var data = {weblog_id:weblog_id};
         $.ajax({
             type:"GET",
             dataType: "json",
