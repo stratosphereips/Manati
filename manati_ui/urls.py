@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^analysis_session/weblog/iocs', views.get_weblog_iocs, name='get_weblog_iocs'),
     url(r'^analysis_session/weblog/modules_changes_attributes', views.get_modules_changes, name='weblog_mod_changes'),
     url(r'^analysis_session/weblog/modules_whois_related', views.find_domains_whois_related, name='weblogs_whois_related'),
+    url(r'^analysis_session/find_wsd_details', views.find_whois_distance_similarity_details, name='weblogs_whois_related'),
     url(r'^analysis_session/weblog/reload_modal_domains_whois_related', views.refreshing_domains_whois_related,
         name='reload_modal_domains_whois_related'),
     url(r'^analysis_session/weblog/label_weblogs_whois_related', views.label_weblogs_whois_related, name='label_weblogs_whois_related'),

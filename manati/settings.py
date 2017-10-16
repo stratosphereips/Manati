@@ -263,6 +263,7 @@ LOGGING = {
 
 
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
+ANONYMOUS_USER_ID = 1
 
 if DEBUG:
     LOGGING['handlers']['file']['level'] = 'DEBUG'

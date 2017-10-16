@@ -58,6 +58,39 @@ def run_external_module(event_thrown, module_name, weblogs_seed_json):
     #     print_exception()
     # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
+def __run_find_whois_related_domains__(analysis_session_id, domains_json):
+    # special cases of running after events. re-do it now is a HACK!!!
+    external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+    module_name = external_module.module_name
+    event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
+
+    print("Running module: " + module_name)
+    logger.info("Running module: " + module_name)
+    path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+    assert os.path.isdir(path) is True
+    external_module = ExternalModule.objects.get(module_name=module_name)
+    module_path = os.path.join(path, external_module.filename)
+    module_instance = external_module.module_instance
+    module = imp.load_source(module_instance, module_path)
+    module.module_obj.run(event_thrown=event_name,
+                          analysis_session_id=analysis_session_id,
+                          domains=domains_json)
+
+
+def __bulk_labeling_by_whois_relation_aux__(username, analysis_session_id, domain,verdict):
+    ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
+    external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
+    mod_attribute = {
+        'verdict': verdict,
+        'description': 'Bulk labeled by WHOIS related function. The seed domain was: ' + domain +
+                       ' by the user: ' + username}
+
+    weblogs_whois_related = IOC.get_all_weblogs_WHOIS_related(domain, analysis_session_id)
+    Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
+                                             verdict,
+                                             mod_attribute,
+                                             external_module,
+                                             domain)
 
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
@@ -114,7 +147,6 @@ class ModulesManager:
                                                     m.events)
 
     @staticmethod
-    @background(schedule=timezone.now())
     def execute_module(external_module, event_thrown, weblogs_seed_json,
                        path=os.path.join(settings.BASE_DIR, 'api_manager/modules')):
         module_path = os.path.join(path, external_module.filename)
@@ -185,9 +217,9 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def set_whois_related_domains(module_name, analysis_session_id, domains_related):
+    def set_whois_related_domains(module_name, analysis_session_id, domain_a, domain_b, distance_feture_detail,numeric_distance):
         with transaction.atomic():
-            IOC.add_whois_related_domains(domains_related)
+            IOC.add_whois_related_couple_domains(domain_a, domain_b, distance_feture_detail,numeric_distance)
 
     @staticmethod
     def module_done(module_name):
@@ -297,41 +329,12 @@ class ModulesManager:
 
 
     @staticmethod
-    @background(schedule=timezone.now())
     def bulk_labeling_by_whois_relation(username, analysis_session_id, domain,verdict):
-        ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
-        external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
-        mod_attribute = {
-            'verdict': verdict,
-            'description': 'Bulk labeled by WHOIS related function. The seed domain was: ' + domain +
-                           ' by the user: ' + username}
-
-        weblogs_whois_related = IOC.get_all_weblogs_WHOIS_related(domain, analysis_session_id)
-        Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
-                                                 verdict,
-                                                 mod_attribute,
-                                                 external_module,
-                                                 domain)
-
-    @staticmethod
-    @background(schedule=timezone.now())
-    def __run_find_whois_related_domains__(analysis_session_id, domains_json):
-        # special cases of running after events. re-do it now is a HACK!!!
-        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
-        module_name = external_module.module_name
-        event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
-
-        print("Running module: " + module_name)
-        logger.info("Running module: " + module_name)
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        assert os.path.isdir(path) is True
-        external_module = ExternalModule.objects.get(module_name=module_name)
-        module_path = os.path.join(path, external_module.filename)
-        module_instance = external_module.module_instance
-        module = imp.load_source(module_instance, module_path)
-        module.module_obj.run(event_thrown=event_name,
-                              analysis_session_id=analysis_session_id,
-                              domains=domains_json)
+        queue = django_rq.get_queue('high')
+        queue.enqueue(__bulk_labeling_by_whois_relation_aux__,
+                      username,
+                      analysis_session_id,
+                      domain,verdict)
 
     # only for the module whois_relation_req
     @staticmethod
@@ -344,10 +347,14 @@ class ModulesManager:
 
     @staticmethod
     def find_whois_related_domains(analysis_session_id, domains):
+        queue = django_rq.get_queue('high')
         for domain in domains:
             IOC_WHOIS_RelatedExecuted.start(analysis_session_id, domain)
             domains_json = json.dumps([domain])
-            ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
+            queue.enqueue(__run_find_whois_related_domains__,
+                          analysis_session_id,
+                          domains_json)
+            # ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
 
 
     @staticmethod
