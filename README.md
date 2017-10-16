@@ -171,3 +171,7 @@ jobs running or enqueued go to
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
+=======
+# ManaTI
+A web-based tool to assist the work of the intuitive threat analysts.
+We are working to clean the source code and push it here, it will be ready the soonest possible !
