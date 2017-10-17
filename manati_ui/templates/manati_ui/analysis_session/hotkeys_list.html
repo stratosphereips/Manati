@@ -1,0 +1,41 @@
+{% extends 'manati_ui/base.html' %}
+{% block title %}
+    List of Active Hotkey
+{% endblock %}
+{% block content %}
+    <div class="row" >
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="modules-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Description Function</th>
+                                    <th>Command</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if hotkeys %}
+                                    {% for hotkey in hotkeys %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ hotkey.description }}</td>
+                                            <td>{{ hotkey.command }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="3">No Hotkey available.</td></tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+{% endblock %}

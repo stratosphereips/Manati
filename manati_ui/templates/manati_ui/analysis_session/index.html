@@ -14,6 +14,7 @@
                                         <tr>
                                             <th>#</th>
                                             <th>Name</th>
+                                            <th>Status</th>
                                             <th>Created at</th>
                                             <th># of weblogs</th>
                                             {% if user.is_authenticated %}
@@ -27,6 +28,7 @@
                                                 <tr>
                                                     <td>{{ forloop.counter }}</td>
                                                     <td><a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a></td>
+                                                    <td>{{ analysis_session.status }}</td>
                                                     <td>{{ analysis_session.created_at }}</td>
                                                     <td>{{ analysis_session.weblog_set.count  }}</td>
                                                     {% if user.is_authenticated %}

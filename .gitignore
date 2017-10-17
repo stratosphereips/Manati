@@ -3,8 +3,12 @@
 .idea
 */*.pyc
 *.pyc
-/logs/*.log
 *.ipynb
 /.ipynb_checkpoints/
-*.log
 *.mwb.bak
+/logs/*
+*/.DS_Store
+.DS_Store
+/static/
+.env
+*.pid

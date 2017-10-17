@@ -35,9 +35,15 @@
             </ul>
 
             <ul class="nav navbar-top-links navbar-right">
+                {% if user.is_authenticated %}
+                <li>
+                    Welcome, <b>{{   user.username  }}</b>
+
+                </li>
+                {% endif %}
                 <li>
                      <a href="{% url 'manati_ui:new_analysis_session' %}">
-                         Version {% version_app %}
+                         {% get_git_revision_number %}
                       </a>
                 </li>
             <li class="dropdown">
@@ -50,8 +56,10 @@
                     </li>
                     <li><a href="{% url 'manati_ui:index_external_modules' %}"><i class="fa fa-user fa-fw"></i> Modules Page</a>
                     </li>
-                    <li class="divider"></li>
-                    <li><a href="{% url 'manati_ui:export_metrics' %}"><i class="fa  fa-download"></i> Exporting Metrics</a></li>
+                        {% if user.is_superuser %}
+                            <li class="divider"></li>
+                            <li><a href="{% url 'manati_ui:export_metrics' %}"><i class="fa  fa-download"></i> Exporting Metrics</a></li>
+                        {% endif %}
                     <li class="divider"></li>
                     <li><a href="{% url 'django.contrib.auth.views.logout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>

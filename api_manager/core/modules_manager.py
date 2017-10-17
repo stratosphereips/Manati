@@ -3,9 +3,9 @@ import os
 import imp
 from manati import settings
 import whois
-from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, WhoisConsult
+from manati_ui.models import Weblog, ModuleAuxWeblog, AnalysisSession, IOC
 from django.utils import timezone
-from api_manager.models import ExternalModule
+from api_manager.models import ExternalModule, IOC_WHOIS_RelatedExecuted
 from background_task import background
 from django.core import serializers
 from django.db import transaction
@@ -13,15 +13,18 @@ from manati_ui.utils import *
 import re
 from django.db.models import Q
 from model_utils import Choices
+import share_modules
 from share_modules.constants import Constant
 from tryagain import retries
-from share_modules.util import convert_obj_to_json
+from manati_ui.serializers import WeblogSerializer
 import share_modules.whois_distance
 import threading
 import os
 from django.db import connection
 from django.core import management
 import logging
+import django_rq
+from django_rq import job
 
 
 # Get an instance of a logger
@@ -36,6 +39,58 @@ def postpone(function):
 
     return decorator
 
+
+def run_external_module(event_thrown, module_name, weblogs_seed_json):
+    print("Running module: " + module_name)
+    logger.info("Running module: " + module_name)
+    path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+    assert os.path.isdir(path) is True
+    external_module = ExternalModule.objects.get(module_name=module_name)
+    module_path = os.path.join(path, external_module.filename)
+    module_instance = external_module.module_instance
+    module = imp.load_source(module_instance, module_path)
+    # external_module.mark_running(save=True)
+    module.module_obj.run(event_thrown=event_thrown,
+                          weblogs_seed=weblogs_seed_json)
+    # except Exception as es:
+    #     print(str(es))
+    #
+    #     print_exception()
+    # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
+
+def __run_find_whois_related_domains__(analysis_session_id, domains_json):
+    # special cases of running after events. re-do it now is a HACK!!!
+    external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+    module_name = external_module.module_name
+    event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
+
+    print("Running module: " + module_name)
+    logger.info("Running module: " + module_name)
+    path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+    assert os.path.isdir(path) is True
+    external_module = ExternalModule.objects.get(module_name=module_name)
+    module_path = os.path.join(path, external_module.filename)
+    module_instance = external_module.module_instance
+    module = imp.load_source(module_instance, module_path)
+    module.module_obj.run(event_thrown=event_name,
+                          analysis_session_id=analysis_session_id,
+                          domains=domains_json)
+
+
+def __bulk_labeling_by_whois_relation_aux__(username, analysis_session_id, domain,verdict):
+    ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
+    external_module = ExternalModule.objects.get(module_name='bulk_labeling_whois_relation')
+    mod_attribute = {
+        'verdict': verdict,
+        'description': 'Bulk labeled by WHOIS related function. The seed domain was: ' + domain +
+                       ' by the user: ' + username}
+
+    weblogs_whois_related = IOC.get_all_weblogs_WHOIS_related(domain, analysis_session_id)
+    Weblog.bulk_verdict_and_attr_from_module(weblogs_whois_related,
+                                             verdict,
+                                             mod_attribute,
+                                             external_module,
+                                             domain)
 
 class ModulesManager:
     # ('labelling', 'bulk_labelling', 'labelling_malicious')
@@ -58,10 +113,10 @@ class ModulesManager:
                 module.status = ExternalModule.MODULES_STATUS.removed
                 module.save()
             else:
-                #update information
+                # update information
                 module_file = imp.load_source(module.module_instance, filename_path)
                 module_instanced = module_file.module_obj
-                module.description = module_instanced.description
+                module.description = module_instanced.description[0:198]
                 module.version = module_instanced.version
                 module.authors = module_instanced.authors
                 module.run_in_events = json.dumps(module_instanced.events)
@@ -92,7 +147,6 @@ class ModulesManager:
                                                     m.events)
 
     @staticmethod
-    @background(schedule=timezone.now())
     def execute_module(external_module, event_thrown, weblogs_seed_json,
                        path=os.path.join(settings.BASE_DIR, 'api_manager/modules')):
         module_path = os.path.join(path, external_module.filename)
@@ -107,15 +161,19 @@ class ModulesManager:
 
     @staticmethod
     def get_all_weblogs_json():
-        return serializers.serialize('json', Weblog.objects.all())
+        weblogs_qs = Weblog.objects.all()
+        weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+        return json.dumps(weblogs_json)
 
     @staticmethod
     def get_filtered_weblogs_json(**kwargs):
-        return serializers.serialize('json', Weblog.objects.filter(Q(**kwargs)))
+        weblogs_qs = Weblog.objects.filter(Q(**kwargs))
+        weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+        return json.dumps(weblogs_json)
 
     @staticmethod
     def get_filtered_analysis_session_json(**kwargs):
-        return serializers.serialize('json', AnalysisSession.objects.filter(Q(**kwargs)))
+        return AnalysisSession.objects.filter(Q(**kwargs))
 
     @staticmethod
     def get_whois_info_by_domain_obj(query_node, module=None):
@@ -130,27 +188,38 @@ class ModulesManager:
         return make_whois_domain(query_node)
 
     @staticmethod
-    def distance_domains(domain_a, domain_b):
-        return share_modules.whois_distance.distance_domains(domain_a, domain_b)
+    def get_whois_features_of(module_name, domains):
+        try:
+            external_module = ExternalModule.objects.get(module_name=module_name)
+            return share_modules.whois_distance.get_whois_information_features_of(external_module, domains)
+        except Exception as e:
+            print(e)
+            print_exception()
+            return None
+
+    @staticmethod
+    def distance_domains(module_name, domain_a, domain_b):
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        return share_modules.whois_distance.distance_domains(external_module,domain_a, domain_b)
+
+    @staticmethod
+    def distance_related_domains(module_name, domain_a, domain_b):
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        return share_modules.whois_distance.distance_related_by_whois_obj(external_module, domain_a, domain_b)
 
     @staticmethod
     @transaction.atomic
-    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute, **kwargs):
+    def update_mod_attribute_filtered_weblogs(module_name, mod_attribute,domain):
         with transaction.atomic():
             external_module = ExternalModule.objects.get(module_name=module_name)
-            weblogs = Weblog.objects.filter(Q(**kwargs))
-            for weblog in weblogs:
-                weblog.set_mod_attributes(external_module.module_name, mod_attribute, save=True)
-                if 'verdict' in mod_attribute:
-                    weblog.set_verdict_from_module(mod_attribute['verdict'], external_module, save=True)
+            verdict = mod_attribute.get('verdict', None)
+            Weblog.bulk_verdict_and_attr_from_module(domain,verdict,mod_attribute,external_module)
 
     @staticmethod
     @transaction.atomic
-    def update_whois_related_weblogs(whois_related, **kwargs):
+    def set_whois_related_domains(module_name, analysis_session_id, domain_a, domain_b, distance_feture_detail,numeric_distance):
         with transaction.atomic():
-            weblogs = Weblog.objects.filter(Q(**kwargs))
-            for weblog in weblogs:
-                weblog.set_whois_related_weblogs(whois_related[weblog.id])
+            IOC.add_whois_related_couple_domains(domain_a, domain_b, distance_feture_detail,numeric_distance)
 
     @staticmethod
     def module_done(module_name):
@@ -174,26 +243,6 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    @background(schedule=timezone.now())
-    def __run_modules(event_thrown, module_name, weblogs_seed_json):
-        try:
-            print("Running module: " + module_name)
-            logger.info("Running module: " + module_name)
-            path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-            assert os.path.isdir(path) is True
-            external_module = ExternalModule.objects.get(module_name=module_name)
-            module_path = os.path.join(path, external_module.filename)
-            module_instance = external_module.module_instance
-            module = imp.load_source(module_instance, module_path)
-            # external_module.mark_running(save=True)
-            module.module_obj.run(event_thrown=event_thrown,
-                                  weblogs_seed=weblogs_seed_json)
-        except Exception as es:
-            print(str(es))
-            logger.error(str(es))
-        # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
-
-    @staticmethod
     @retries(max_attempts=10, exceptions=(Exception), wait=5)
     def unstable_externa_module_is_free(module_name):
         em = ExternalModule.objects.get(module_name=module_name)
@@ -203,14 +252,35 @@ class ModulesManager:
             raise Exception("The module is not free")
 
     @staticmethod
-    def __attach_event(event_name, weblogs_seed_json):
-        # try:
+    @transaction.atomic
+    def get_all_IOC_by(analysis_session_id, ioc_type='domain'):
+        analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
+        if ioc_type == 'domain':
+            iocs = analysis_session.get_all_IOCs_domain()
+        elif ioc_type == 'ip':
+            iocs = analysis_session.get_all_IOCs_ip()
+        else:
+            logger.error('ioc_type is not correct ' + str(ioc_type))
+            return None
+        return [ioc.value for ioc in iocs]
 
+    @staticmethod
+    def __attach_event(event_name, weblogs_seed_json, async=True):
+        # try:
         external_modules = ExternalModule.objects.find_by_event(event_name)
-        print('Modules', len(external_modules))
         if len(external_modules) > 0:
-            for external_module in external_modules:
-                ModulesManager.__run_modules(event_name, external_module.module_name, weblogs_seed_json)
+            if async:
+                queue = django_rq.get_queue('default')
+                for external_module in external_modules:
+                    queue.enqueue(run_external_module,
+                                  event_name,
+                                  external_module.module_name,
+                                  weblogs_seed_json)
+
+            else:
+                for external_module in external_modules:
+                    run_external_module(event_name, external_module.module_name, weblogs_seed_json)
+
         # except Exception as e:
         #     print(e)
         #     print_exception()
@@ -225,32 +295,20 @@ class ModulesManager:
     def __run_background_task_service__():
         if not ModulesManager.background_task_thread and \
                 ModulesManager.db_table_exists('manati_externals_modules') and \
-                ModulesManager.db_table_exists('background_task') and \
                 ModulesManager.db_table_exists('django_content_type'):
 
             ModulesManager.checking_modules()  # checking modules
             ModulesManager.register_modules()  # registering new modules
-
-            path_log_file = os.path.join(settings.BASE_DIR, 'logs')
-            logfile_name = os.path.join(path_log_file, "background_tasks.log")
-            if not os.path.isfile(logfile_name):
-                os.makedirs(path_log_file)
-                f = open(logfile_name, "w")
-                print('Creating file: ' + logfile_name)
-            logfile_task_manager = os.path.join(path_log_file, "creating_task.log")
-            ModulesManager.background_task_thread = threading.Thread(target=management.call_command, args=('process_tasks',
-                                                                            "--sleep", "10",
-                                                                            "--log-level", "DEBUG",
-                                                                            "--log-std", logfile_name))
-            # thread.daemon = True  # Daemonize thread
-            ModulesManager.background_task_thread.start()
+            ModulesManager.background_task_thread = True
 
     @staticmethod
     def attach_all_event():
         ModulesManager.__run_background_task_service__()
-        aux_weblogs = ModuleAuxWeblog.objects.select_related('weblog').filter(status=ModuleAuxWeblog.STATUS.seed)
+        aux_weblogs = ModuleAuxWeblog.objects.filter(status=ModuleAuxWeblog.STATUS.seed)
         if aux_weblogs.exists():
-            weblogs_seed_json = serializers.serialize('json', [ w.weblog for w in aux_weblogs])
+            weblogs_qs = Weblog.objects.filter(moduleauxweblog__in=aux_weblogs.values_list('id', flat=True)).distinct()
+            weblogs_seed = WeblogSerializer(weblogs_qs, many=True).data
+            weblogs_seed_json = json.dumps(weblogs_seed)
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.labelling, weblogs_seed_json)
             ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.bulk_labelling, weblogs_seed_json)
             weblogs_malicious = [w.weblog for w in aux_weblogs.filter(weblog__verdict=Weblog.VERDICT_STATUS.malicious)]
@@ -262,18 +320,41 @@ class ModulesManager:
     @staticmethod
     def after_save_attach_event(analysis_session):
         # try:
-        # weblogs_seed_json = serializers.serialize('json', [w for w in analysis_session.weblog_set.all()])
-        # ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,
-        #                               weblogs_seed_json)
+        weblogs_qs = analysis_session.weblog_set.all()
+        weblogs_json = json.dumps(WeblogSerializer(weblogs_qs, many=True).data)
+        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.after_save,weblogs_json)
         # except Exception as e:
         #     print(e)
         #     print_exception()
-        pass
-    @staticmethod
-    def get_weblogs_whois_related(current_weblog):
-        weblogs_seed_json = serializers.serialize('json', [current_weblog])
-        ModulesManager.__attach_event(ModulesManager.MODULES_RUN_EVENTS.by_request, weblogs_seed_json)
 
+
+    @staticmethod
+    def bulk_labeling_by_whois_relation(username, analysis_session_id, domain,verdict):
+        queue = django_rq.get_queue('high')
+        queue.enqueue(__bulk_labeling_by_whois_relation_aux__,
+                      username,
+                      analysis_session_id,
+                      domain,verdict)
+
+    # only for the module whois_relation_req
+    @staticmethod
+    def whois_similarity_distance_module_done(module_name,analysis_session_id,domain):
+        module = ExternalModule.objects.get(module_name=module_name)
+        module.mark_idle(save=True)
+        IOC_WHOIS_RelatedExecuted.finish(analysis_session_id, domain)
+        logger.info("Finishing Module: " + module_name)
+        return module
+
+    @staticmethod
+    def find_whois_related_domains(analysis_session_id, domains):
+        queue = django_rq.get_queue('high')
+        for domain in domains:
+            IOC_WHOIS_RelatedExecuted.start(analysis_session_id, domain)
+            domains_json = json.dumps([domain])
+            queue.enqueue(__run_find_whois_related_domains__,
+                          analysis_session_id,
+                          domains_json)
+            # ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
 
 
     @staticmethod
@@ -290,12 +371,17 @@ class ModulesManager:
         indices = [i for (i, x) in enumerate(keys) if x in set(keys).intersection(possible_key_url)]
         if indices:
             key_url = str(keys[indices[0]])
-            if key_url == 'host':
-                return str(attributes_obj[key_url])
-            else:
-                return ModulesManager.get_domain(str(attributes_obj[key_url]))
+            return ModulesManager.get_domain_from_url(str(attributes_obj[key_url]))
         else:
             return None
+    @staticmethod
+    def get_domain_from_url(url):
+        return share_modules.util.get_data_from_url(url)
+
+    @staticmethod
+    def check_to_WHOIS_relate_domain(analysis_session_id, domain):
+        if not IOC_WHOIS_RelatedExecuted.relation_perfomed_by_domain(analysis_session_id, domain):
+            ModulesManager.find_whois_related_domains(analysis_session_id, [domain])
 
     @staticmethod
     def get_domain(url):

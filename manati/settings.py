@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 
 import os
+from decouple import config
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,22 +22,19 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '-$pobpxzory@2_$(pho&@@2xm=x$&o7%^1(ev(477qu*5dc^#%'
-
-
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),
-]
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
+DEBUG = config('DEBUG', default=True, cast=bool)
+if DEBUG:
+    print("Debug is enabled.")
+    ALLOWED_HOSTS = ["127.0.0.1"]
+else:
+    ALLOWED_HOSTS = ["*"]
 
 # Application definition
-
 INSTALLED_APPS = [
+    'django_rq',
     'guardian',
     'api_manager',
     'background_task',
@@ -87,30 +86,44 @@ TEMPLATES = [
 
 
 WSGI_APPLICATION = 'manati.wsgi.application'
+STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-#     }
-# }
 DATABASES = {
+    'default': dj_database_url.config(default=config('DATABASE_URL'))
+}
+
+RQ_QUEUES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'manati_db',  # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'manati_db_user',
-        'PASSWORD': 'password',
         'HOST': 'localhost',
-        # Empty for localhost through domain sockets or           '127.0.0.1' for localhost through TCP.
-        'PORT': '5432',  # Set to empty string for default.
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
+    },
+    'high': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
     }
 }
+
+RQ_SHOW_ADMIN_LINK = True
+
+
+
 
 
 # Password validation
@@ -137,7 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Prague'
 
 USE_I18N = True
 
@@ -147,16 +160,10 @@ USE_TZ = True
 
 SITE_ID = 1
 
-SASS_PROCESSOR_INCLUDE_DIRS = (
-    os.path.join(BASE_DIR, 'manati_ui/static/manati_ui/css/scss'),
-)
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'sass_processor.finders.CssFinder',
 )
-
-SASS_PRECISION = 8
 
 BACKGROUND_TASK_RUN_ASYNC = True # run the modules task, asynchronously
 MAX_RUN_TIME = 20
@@ -166,6 +173,10 @@ MAX_ATTEMPTS = 3
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = [ os.path.join(BASE_DIR, "static1"),]
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'
 
 READ_ONLY_FILE = os.path.join(BASE_DIR, 'readonly')
 
@@ -188,6 +199,7 @@ AUTHENTICATION_BACKENDS = (
 )
 path_log_file = os.path.join(BASE_DIR, 'logs')
 logfile_name = os.path.join(path_log_file, "server.log")
+logfile_debug_name = os.path.join(path_log_file, "server_debug.log")
 
 if not os.path.isfile(logfile_name):
     if not os.path.isdir(path_log_file):
@@ -205,10 +217,14 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        # "rq_console": {
+        #     "format": "%(asctime)s %(message)s",
+        #     "datefmt": "%H:%M:%S",
+        # },
     },
     'handlers': {
         'console': {
-            'level': 'DEBUG',
+            'level': 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
@@ -221,6 +237,12 @@ LOGGING = {
             "backupCount": 20,
             "encoding": "utf8"
         },
+        # "rq_console": {
+        #     "level": "DEBUG",
+        #     "class": "rq.utils.ColorizingStreamHandler",
+        #     "formatter": "rq_console",
+        #     "exclude": ["%(asctime)s"],
+        # },
     },
     'loggers': {
         'django': {
@@ -228,6 +250,10 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        # "rq.worker": {
+        #     "handlers": ["rq_console"],
+        #     "level": "DEBUG"
+        # },
     },
     "root": {
         "level": "INFO",
@@ -236,13 +262,41 @@ LOGGING = {
 }
 
 
-
-
-#
-# if DEBUG:
-#     # make all loggers use the console.
-#     for logger in LOGGING['loggers']:
-#         LOGGING['loggers'][logger]['handlers'] = ['console']
-
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
+ANONYMOUS_USER_ID = 1
 
+if DEBUG:
+    LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
+    LOGGING['handlers']['file']['filename'] = logfile_debug_name
+    LOGGING['handlers']['console']['level'] = 'DEBUG'
+
+    INTERNAL_IPS = ('127.0.0.1', 'localhost',)
+    MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
+
+    INSTALLED_APPS += ['debug_toolbar','pympler','template_profiler_panel']
+
+    DEBUG_TOOLBAR_PANELS = [
+           # 'djdt_flamegraph.FlamegraphPanel',
+           'ddt_request_history.panels.request_history.RequestHistoryPanel',
+           'debug_toolbar.panels.versions.VersionsPanel',
+           'debug_toolbar.panels.timer.TimerPanel',
+           'debug_toolbar.panels.settings.SettingsPanel',
+           'debug_toolbar.panels.headers.HeadersPanel',
+           'debug_toolbar.panels.request.RequestPanel',
+           'debug_toolbar.panels.sql.SQLPanel',
+           'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+           'debug_toolbar.panels.templates.TemplatesPanel',
+           'debug_toolbar.panels.cache.CachePanel',
+           'debug_toolbar.panels.signals.SignalsPanel',
+           'debug_toolbar.panels.logging.LoggingPanel',
+           'debug_toolbar.panels.redirects.RedirectsPanel',
+           # 'pympler.panels.MemoryPanel',
+           'template_profiler_panel.panels.template.TemplateProfilerPanel',
+    ]
+
+    # DEBUG_TOOLBAR_CONFIG = {
+    #         'INTERCEPT_REDIRECTS': False,
+    #         'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
+    #         'RESULTS_STORE_SIZE': 100,
+    #    }

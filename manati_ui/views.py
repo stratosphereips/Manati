@@ -18,6 +18,8 @@ from api_manager.models import *
 from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
+from manati_ui.serializers import WeblogSerializer
+import share_modules
 
 
 # Get an instance of a logger
@@ -53,10 +55,15 @@ def postpone(function):
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
+@postpone
+def call_after_sync_event():
+    ModulesManager.attach_all_event()  # it will check if will create the task or not
+
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-    context = {}
+    context = {'analysissession':AnalysisSession(), 'comment': Comment()}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
 #ajax connexions
@@ -71,7 +78,9 @@ def create_analysis_session(request):
         u_data_list = json.loads(request.POST.get('data[]',''))
         u_key_list = json.loads(request.POST.get('headers[]',''))
         type_file = request.POST.get('type_file','')
-        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,type_file)
+        uuid = request.POST.get('uuid','')
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,
+                                                          type_file,uuid)
 
         if not analysis_session :
             # messages.error(request, 'Analysis Session wasn\'t created .')
@@ -80,7 +89,10 @@ def create_analysis_session(request):
             # messages.success(request, 'Analysis Session was created .')
             analysis_session_id = analysis_session.id
             call_after_save_event(analysis_session)
-            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id, 'filename': analysis_session.name },
+            return JsonResponse(dict(data={'analysis_session_id': analysis_session_id,
+                                           'filename': analysis_session.name,
+                                           'data_length': analysis_session.weblog_set.count()
+                                           },
                                      msg='Analysis Session was created .'))
 
     else:
@@ -178,39 +190,113 @@ def get_weblog_history(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
-# def get_weblogs_whois_related(request, id):
-#     current_weblog = Weblog.objects.get(id=id)
-#     analysis_session = current_weblog.analysis_session
-#     ModulesManager.get_weblogs_whois_related(current_weblog,analysis_session)
+def label_weblogs_whois_related(request):
+    if request.method == 'POST':
+        current_user = request.user
+        weblog_id = str(request.POST.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
+        verdict = str(request.POST.get('verdict', ''))
+        ModulesManager.bulk_labeling_by_whois_relation(current_user.username,
+                                                       weblog.analysis_session_id,
+                                                       weblog.domain,
+                                                       verdict)
+        return JsonResponse(dict(msg='All the weblogs related with ' + weblog.domain + " will be label like " + verdict))
+    else:
+        return HttpResponseServerError("Only POST request")
+
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
-def get_weblogs_whois_related(request):
-    try:
-        if request.method == 'GET':
-            # current_user = request.user
-            weblog_id = str(request.GET.get('weblog_id', ''))
-            weblog = Weblog.objects.get(id=weblog_id)
-            weblogs_whois_related = weblog.whois_related_weblogs.all()
-            whois_related = {}
-            orig_was_whois_related = weblog.was_whois_related
-            if not orig_was_whois_related:
-                ModulesManager.get_weblogs_whois_related(weblog)
-                weblog.was_whois_related = True
-                weblog.save()
-
-            for w in weblogs_whois_related:
-                whois_related[w.id] = w.domain
-
-            return JsonResponse(dict(data=json.dumps(whois_related), was_whois_related=orig_was_whois_related,
-                                     msg='Getting Weblogs Whois-Related DONE'))
+def find_domains_whois_related(request): # BY DOMAIN
+    # try:
+    if request.method == 'GET':
+        # current_user = request.user
+        weblog_id = str(request.GET.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
+        domain_ioc = weblog.domain_ioc
+        domain = domain_ioc.value
+        analysis_session_id = weblog.analysis_session_id
+        if not domain_ioc:
+            return HttpResponseServerError("The selected weblogs, does not have domain in the given URL or host")
         else:
-            return HttpResponseServerError("Only POST request")
-    except Exception as e:
-        print(e)
-        print_exception()
-        return HttpResponseServerError("There was a error in the Server")
+            ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
+            whois_related_domains = domain_ioc.get_all_values_related_by(analysis_session_id)
+            return JsonResponse(dict(whois_related_domains=whois_related_domains,domain_primary=domain,
+                                 msg='Starting Module to process the relationship between domains...'))
+    else:
+        return HttpResponseServerError("Only GET request")
+
+@csrf_exempt
+def find_whois_distance_similarity_details(request):  # Between 2 domains
+    # try:
+    if request.method == 'GET':
+        current_user = request.user
+        if not current_user.is_authenticated():
+            current_user = User.objects.get(username='anonymous_user_for_metrics')
+        domain_a = str(request.GET.get('domain_a', ''))
+        domain_b = str(request.GET.get('domain_b', ''))
+        related, distance_numeric, dist_feature_detail = share_modules.whois_distance.distance_related_by_whois_obj(current_user, domain_a, domain_b)
+        if not dist_feature_detail:
+            return HttpResponseServerError("There is an error processing in the WSD algorithm")
+        else:
+            return JsonResponse(dict(related=related,
+                                     distance_numeric=distance_numeric,
+                                     distance_feature=dist_feature_detail,
+                                     msg='WHOIS Similarity Distance details were obtained successfully'))
+    else:
+        return HttpResponseServerError("Only GET request")
+
+
+
+@csrf_exempt
+def refreshing_domains_whois_related(request):
+    if request.method == 'GET':
+        current_user = request.user
+        if not current_user.is_authenticated():
+            current_user = User.objects.get(username='anonymous_user_for_metrics')
+        weblog_id = str(request.GET.get('weblog_id', ''))
+        weblog = Weblog.objects.get(id=weblog_id)
+        domain_ioc = weblog.domain_ioc
+        whois_related_domains = {}
+        root_whois_features = {}
+        if not domain_ioc:
+            msg = 'It does not have a IOC domain assigned'
+        else:
+            msg = 'Refreshing WHOIS related domains'
+            wris = domain_ioc.whois_related_iocs.filter(ioc_type=domain_ioc.ioc_type,
+                                                  weblogs__analysis_session_id=weblog.analysis_session_id).distinct()
+            wri_ids = [wri.id for wri in wris]
+
+            wris = WHOISRelatedIOC.objects.filter((Q(from_ioc=domain_ioc) & Q(to_ioc__in=wri_ids)) |
+                                                  (Q(to_ioc=domain_ioc) & Q(from_ioc__in=wri_ids) )).distinct()
+            for wri in wris:
+                if wri.from_ioc.id == domain_ioc.id:
+                    value = wri.to_ioc.value
+                elif wri.to_ioc.id == domain_ioc.id:
+                    value = wri.from_ioc.value
+                else:
+                    value = "null"
+
+                whois_features = WhoisConsult.get_whois_distance_features_by_domain(current_user, value)
+                whois_related_domains[value] = [whois_features, wri.features_description]
+
+            root_whois_features = WhoisConsult.get_whois_distance_features_by_domain(current_user, domain_ioc.value)
+
+        print(whois_related_domains)
+        print(root_whois_features)
+        return JsonResponse(dict(whois_related_domains=whois_related_domains,
+                                 root_whois_features=root_whois_features,
+                                 msg=msg,
+                                 was_related=IOC_WHOIS_RelatedExecuted.finished(weblog.analysis_session_id,
+                                                                                domain_ioc.value)))
+
+    else:
+        return HttpResponseServerError("Only GET request")
+
+
+
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_modules_changes(request):
@@ -240,32 +326,33 @@ def convert(data):
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
-    try:
-        if request.method == 'POST':
-            user = request.user
-            received_json_data = json.loads(request.body)
-            analysis_session_id = received_json_data['analysis_session_id']
-            data = {}
-            if user.is_authenticated():
-                if "headers[]" in received_json_data:
-                    headers = json.loads(received_json_data['headers[]'])
-                    analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
-                    analysis_session.set_columns_order_by(request.user, headers)
-                    print("Headers Updated")
-                data = convert(received_json_data['data'])
+    # try:
+    if request.method == 'POST':
+        user = request.user
+        received_json_data = json.loads(request.body)
+        analysis_session_id = received_json_data['analysis_session_id']
+        data = {}
+        if user.is_authenticated():
+            if "headers[]" in received_json_data:
+                headers = json.loads(received_json_data['headers[]'])
+                analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+                analysis_session.set_columns_order_by(request.user, headers)
+                print("Headers Updated")
+            data = convert(received_json_data['data'])
 
-            wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
-            json_query_set = serializers.serialize("json", wb_query_set)
-            ModulesManager.attach_all_event() # it will check if will create the task or not
-            return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
-        else:
-            messages.error(request, 'Only POST request')
-            return HttpResponseServerError("Only POST request")
-    except Exception as e:
-        error = print_exception()
-        logger.error(str(error))
-        logger.error(str(e.message))
-        return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
+        wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
+        json_query_set = serializers.serialize("json", wb_query_set)
+        call_after_sync_event()
+        return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
+    else:
+        messages.error(request, 'Only POST request')
+        return HttpResponseServerError("Only POST request")
+    # except Exception as e:
+    #     raise e
+        # error = print_exception()
+        # logger.error(str(error))
+        # logger.error(str(e.message))
+        #return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
@@ -315,8 +402,63 @@ def publish_analysis_session(request, id):
             return JsonResponse(dict(msg=msg))
 
         else:
-            messages.error(request, 'Only GET request')
-            return HttpResponseServerError("Only GET request")
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def change_status_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            current_user = request.user
+            analysis_session = AnalysisSession.objects.get(id=id)
+            status = request.POST.get('status', '')
+            old_status = analysis_session.status
+            if status == AnalysisSession.STATUS.closed:
+                msg = "the Analysis Session " + analysis_session.name + " was closed"
+                Metric.objects.close_analysis_session(current_user, analysis_session)
+            elif status == AnalysisSession.STATUS.open:
+                msg = "the Analysis Session " + analysis_session.name + " was opened "
+                Metric.objects.open_analysis_session(current_user, analysis_session)
+            else:
+                raise ValueError("Incorrect Value")
+            analysis_session.status = status
+            analysis_session.save()
+            return JsonResponse(dict(msg=msg,
+                                     new_status=analysis_session.status,
+                                     old_status=old_status))
+
+        else:
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def update_uuid_analysis_session(request, id):
+    try:
+        if request.method == 'POST':
+            current_user = request.user
+            analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=id)
+            uuid = request.POST.get('uuid', '')
+            weblogs_ids = json.loads(request.POST.get('weblogs_ids[]', ''))
+            weblogs_uuids = json.loads(request.POST.get('weblogs_uuids[]', ''))
+            if uuid:
+                AnalysisSession.objects.update_uuid(analysis_session, uuid, weblogs_ids, weblogs_uuids)
+                msg = "the Analysis Session " + analysis_session.name + " UUID updated"
+            else:
+                msg = "the Analysis Session " + analysis_session.name + " UUID not updated"
+            return JsonResponse(dict(msg=msg,
+                                     analysis_session_id=analysis_session.id))
+
+        else:
+            messages.error(request, 'Only POST request')
+            return HttpResponseServerError("Only POST request")
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
@@ -328,10 +470,13 @@ def get_weblogs(request):
         if request.method == 'GET':
             user = request.user
             analysis_session_id = request.GET.get('analysis_session_id', '')
-            analysis_session = AnalysisSession.objects.get(id=analysis_session_id)
+            analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
             headers = convert(analysis_session.get_columns_order_by(user))
-            return JsonResponse(dict(weblogs=serializers.serialize("json", analysis_session.weblog_set.all()),
+            weblogs_qs = analysis_session.weblog_set.all()
+            weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
+            return JsonResponse(dict(weblogs=weblogs_json,
                                      analysissessionid=analysis_session_id,
+                                     analysissessionuuid=analysis_session.uuid,
                                      name=analysis_session.name,
                                      headers=json.dumps(headers)))
 
@@ -365,6 +510,56 @@ class IndexExternalModules(generic.ListView):
 
     def get_queryset(self):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
+
+from django.views.generic.detail import SingleObjectTemplateResponseMixin
+
+class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
+    login_url = REDIRECT_TO_LOGIN
+    redirect_field_name = 'redirect_to'
+    template_name = 'manati_ui/analysis_session/hotkeys_list.html'
+    context_object_name = 'hotkeys'
+
+    def render_to_response(self, context):
+        # Look for a 'format=json' GET argument
+        if self.request.is_ajax():
+            return JsonResponse(dict(hotkeys=context['hotkeys']))
+        else:
+            return super(IndexHotkeys, self).render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(IndexHotkeys, self).get_context_data(**kwargs)
+        return context
+
+    def get_queryset(self):
+        hotkeys = [
+            dict(description='Sync up ', command='cmd+s | ctrl+s'),
+            dict(description='Label selected weblog like Malicious', command='cmd+m | ctrl+m'),
+            dict(description='Label selected weblog like Legitimate', command='cmd+l | ctrl+l'),
+            dict(description='Label selected weblog like False Positive', command='cmd+p | ctrl+p'),
+            dict(description='Label selected weblog like Suspicious', command='cmd+i | ctrl+i'),
+            dict(description='Label selected weblog like Undefined', command='cmd+u | ctrl+u'),
+            dict(description='Filter table by Malicious weblog', command='cmd+1 | ctrl+1'),
+            dict(description='Filter table by Legitimate weblog', command='cmd+2 | ctrl+2'),
+            dict(description='Filter table by Suspicious weblog', command='cmd+3 | ctrl+3'),
+            dict(description='Filter table by False Positive weblog', command='cmd+4 | ctrl+4'),
+            dict(description='Filter table by Undefined weblog', command='cmd+5 | ctrl+5'),
+            dict(description='Open VirusTotal Pop-up by DOMAIN', command='cmd+shift+v | ctrl+shift+v'),
+            dict(description='Open VirusTotal Pop-up by IP', command='cmd+shift+i | ctrl+shift+i'),
+            dict(description='Open WHOIS Pop-up by DOMAIN', command='cmd+shift+p | ctrl+shift+p'),
+            dict(description='Open WHOIS Pop-up by IP', command='cmd+shift+o | ctrl+shift+o'),
+            dict(description='Open WHOIS related domains Pop-up', command='command+shift+d | ctrl+shift+d'),
+            dict(description='Moving down in the table (VI-Style)', command='j'),
+            dict(description='Moving up in the table (VI-Style)', command='k'),
+            dict(description='Mark a row to be labeled', command='space'),
+            dict(description='Move to the previous page in the table', command='left'),
+            dict(description='Move to the next page in the table', command='right'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same IP, in the current session ', command='p'),
+            dict(description='Mark with the verdict of the selected row, all the ' +
+                             'weblogs with the same domain, in the current session ', command='d'),
+        ]
+        return hotkeys
 
 
 class EditAnalysisSession(generic.DetailView):
@@ -412,6 +607,68 @@ def update_comment_analysis_session(request, id):
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
+
+
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def update_comment_weblog(request):
+    try:
+        if request.method == 'POST':
+            user = request.user
+            weblog_id = request.POST.get('weblog_id', '')
+            weblog = Weblog.objects.get(id=weblog_id)
+            comment = weblog.comments.last() if weblog.comments.exists() else Comment(user=user,content_object=weblog)
+            text = request.POST.get('text', None)
+            if text:
+                comment.text = text
+                comment.full_clean()
+                comment.save()
+                msg = "The comment was save correctly"
+            else:
+                msg = "Empty comment was not saved"
+            return JsonResponse({'msg': msg})
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_comment_weblog(request):
+    try:
+        if request.method == 'GET':
+            user = request.user
+            weblog_id = request.GET.get('weblog_id', '')
+            weblog = Weblog.objects.get(id=weblog_id)
+            if weblog.comments.exists():
+                comment = weblog.comments.last()
+                text = comment.text
+            else:
+                text = ""
+            return JsonResponse({'text': text})
+
+        else:
+            return HttpResponseServerError("Only POST request")
+    except Exception as e:
+        print_exception()
+        return HttpResponseServerError("There was a error in the Server")
+
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
+@csrf_exempt
+def get_weblog_iocs(request):
+    # try:
+    if request.method == 'GET':
+        weblog_id = request.GET.get('weblog_id', '')
+        iocs = Weblog.objects.prefetch_related('ioc_set').get(id=weblog_id).ioc_set.all()
+        iocs_list = [{'value': ioc.value, 'ioc_type': ioc.ioc_type} for ioc in iocs]
+        return JsonResponse(dict(iocs=iocs_list))
+    # except Exception as e:
+    #     print_exception()
+    #     return HttpResponseServerError("There was a error in the Server")
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt

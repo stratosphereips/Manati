@@ -13,17 +13,21 @@ var _data_uploaded,_data_headers;
 var _data_headers_keys = {};
 var TIME_SYNC_DB = 15000;
 var _sync_db_interval;
+var refreshIntervalId;
+var idSyncDBIntervalId;
 
 //Concurrent variables for saving on PG DB
 var _analysis_session_id = -1;
-var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT;
+var _analysis_session_uuid;
+var COLUMN_DT_ID,COLUMN_REG_STATUS,COLUMN_VERDICT, COLUMN_UUID;
 var COLUMN_END_POINTS_SERVER, COLUMN_HTTP_URL;
-var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var CLASS_MC_HTTP_URL_STR, CLASS_MC_END_POINTS_SERVER_STR;
+var COL_HTTP_URL_STR, COL_END_POINTS_SERVER_STR;
 var REG_STATUS = {modified: 1};
 var COL_VERDICT_STR = 'verdict';
 var COL_REG_STATUS_STR = 'register_status';
 var COL_DT_ID_STR = 'dt_id';
+var COL_UUID_STR = 'uuid';
 var REG_EXP_DOMAINS = /[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+/;
 var REG_EXP_IP = /(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/;
 var _verdicts = ["malicious","legitimate","suspicious","falsepositive", "undefined"];
@@ -38,10 +42,43 @@ var _helper;
 var _filterDataTable;
 
 var _m;
-
+var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
 
 var _loadingPlugin;
 
+function stopInterval (){
+    clearInterval(_sync_db_interval);
+}
+
+function update_constant(str, index){
+    if(COL_UUID_STR === str){
+        COLUMN_UUID = index;
+    }
+    else if(COL_DT_ID_STR=== str){
+        COLUMN_DT_ID = index;
+    }
+    else if(COL_REG_STATUS_STR === str){
+        COLUMN_REG_STATUS = index;
+    }
+    else if(COL_VERDICT_STR === str){
+        COLUMN_VERDICT = index;
+    }
+    else if(COL_HTTP_URL_STR === str){
+        COLUMN_HTTP_URL = index
+    }
+    else if(COL_END_POINTS_SERVER_STR === str){
+        COLUMN_END_POINTS_SERVER = index;
+    }
+}
+function scrollIntoViewIfNeeded(target) {
+    var rect = target.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) {
+        target.scrollIntoView(false);
+    }
+    if (rect.top < 0) {
+        target.scrollIntoView();
+    }
+}
 function checkVerdict(_verdicts_merged, verdict){
     if (verdict == undefined || verdict == null) return verdict;
     var merged = verdict.split('_');
@@ -78,6 +115,7 @@ function AnalysisSessionLogic(){
     this.columns_order_changed = false;
     thiz = this;
     _m = new Metrics(true,this);
+    var _verdict_sync = {};
 
     this.getColumnsOrderFlat =function(){
         return this.columns_order_changed;
@@ -88,11 +126,25 @@ function AnalysisSessionLogic(){
     this.getAnalysisSessionId = function () {
         return _analysis_session_id;
     };
+    this.setAnalysisSessionId = function(id){
+        _analysis_session_id = id;
+    };
     this.getAnalysisSessionName = function () {
         return _filename;
     };
     this.isSaved = function (){
-        return _analysis_session_id != -1
+        return _analysis_session_id !== -1
+    };
+    this.generateAnalysisSessionUUID = function(){
+        if (_analysis_session_uuid == undefined || _analysis_session_uuid == null){
+            _analysis_session_uuid = uuid.v4();
+        }
+    };
+    this.setAnalysisSessionUUID = function(uuid){
+        _analysis_session_uuid = uuid;
+    };
+    this.getAnalysisSessionUUID = function(){
+        return _analysis_session_uuid;
     };
     this.getAnalysisSessionTypeFile = function(){
        return _analysis_session_type_file
@@ -109,7 +161,7 @@ function AnalysisSessionLogic(){
         var columns = [];
         for(var i = 0; i< headers.length ; i++){
             var v = headers[i];
-            columns.add({title: v, name: v, class: v});
+            columns.push({title: v, name: v, class: v});
         }
         //verifying if already exist a table, in that case, destroy it
         if(_dt != null || _dt != undefined) {
@@ -132,34 +184,49 @@ function AnalysisSessionLogic(){
             columnDefs: [
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_REG_STATUS_STR)},
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_DT_ID_STR)},
+                {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
             colReorder: true,
             renderer: "bootstrap",
-            responsive: true,
-            buttons: ['copy','csv','excel', 'colvis',
-                // {
-                //     text: 'Filter by Verdicts',
-                //     className: 'filter-verdicts',
-                //     action: function ( e, dt, node, config ) {
-                //         _filterDataTable.showMenuContext(dt,node.offset());
-                //     }
-                // }
+            // responsive: true,
+            buttons: [  {extend:'copy', title:thiz.getAnalysisSessionName()},
+                        {extend:'excel', title: thiz.getAnalysisSessionName()},
+                        {extend:'csv', title: thiz.getAnalysisSessionName()},
+                        {extend:'colvis', title: thiz.getAnalysisSessionName()}
             ],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
-                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
-                var str = aData[COLUMN_DT_ID].split(":");
+                var id = aData[COLUMN_DT_ID];
+                var str = id.split(":");
+                var id_row = str.length > 1 ? str[1] : str[0];
+                var verdict = aData[COLUMN_VERDICT];
+                var reg_status = aData[COLUMN_REG_STATUS];
+                if(_verdict_sync.hasOwnProperty(id)){
+                    var internal_row = _dt.rows('[data-dbid="'+id_row+'"]');
+                    var index_row = internal_row.indexes()[0];
+                    var elem = _verdict_sync[id];
+                    verdict = elem.verdict;
+                    reg_status = elem.register_status;
+                    internal_row.nodes().to$().addClass('selected-sync');
+                    _dt.cell(index_row, COLUMN_VERDICT).data(verdict);
+                    _dt.cell(index_row, COLUMN_REG_STATUS).data(reg_status);
+                    addClassVerdict('selected-sync',verdict);
+                    // thiz.markVerdict(verdict,'selected-sync');
+                    internal_row.nodes().to$().removeClass('modified');
 
-                if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
-                    if(!row.hasClass('modified')) row.addClass('modified');
+                    delete _verdict_sync[id];
                 }
-                if(str.length > 1){
-                    row.attr("data-dbid", str[1]);
-                }else{
-                    row.attr("data-dbid", str[0]);
+
+                row.addClass(checkVerdict(_verdicts_merged,verdict ));
+                if((reg_status === REG_STATUS.modified) && !row.hasClass('modified')){
+                    row.addClass('modified');
+                }else if((reg_status !== REG_STATUS.modified) &&  row.hasClass('modified')){
+                    row.removeClass('modified');
                 }
+                row.attr("data-dbid", id_row);
+
             },
             drawCallback: function(){
               $('.paginate_button.next', this.api().table().container())
@@ -172,24 +239,20 @@ function AnalysisSessionLogic(){
               var input_filter = div_filter.find('input').detach();
               var label_filter = div_filter.find('label').detach();
               input_filter.attr('placeholder', 'Search:');
-              input_filter.css('width', 260);
+              input_filter.css('width', '100%');
               input_filter.removeClass();
               label_filter.removeClass();
               div_filter.addClass('fluid-label');
               div_filter.append(input_filter);
               div_filter.append(label_filter);
 
-              // div_filter.appendTo('#new-search-area');
-
-              $('.fluid-label').fluidLabel({
-                focusClass: 'focused'
-              });
+              $('.fluid-label').fluidLabel({ focusClass: 'focused' });
               $('.wrap-buttons').html($('.searching-buttons').clone());
 
               $('.wrap-select-page').html($('.wrap-page-select').clone());
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-2"f><"col-md-5 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-4"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
                 '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
@@ -197,15 +260,29 @@ function AnalysisSessionLogic(){
             "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
 
+
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-            $(this).toggleClass('selected');
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function (event) {
+            event.preventDefault();
+            $('tr.action').not(this).removeClass('action');
+            if((isMac && event.metaKey ) || (!isMac && event.shiftKey)){
+                $(this).toggleClass('selected');
+            }
+            $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
-        } );
+        }).on('dblclick', 'tr',function () {
+            $(this).toggleClass('selected');
+        });
+
         hideLoading();
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
             thiz.setColumnsOrderFlat(true);
+            for(var i=0; i < settings.aoColumns.length; i++){
+                var name = settings.aoColumns[i].name;
+                update_constant(name, i);
+                // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
+            }
          });
          _dt.on( 'buttons-action', function ( e, buttonApi, dataTable, node, config ) {
             thiz.setColumnsOrderFlat(true);
@@ -221,7 +298,6 @@ function AnalysisSessionLogic(){
              consultVirusTotal(query_node);
 
         });
-
          // adding options to select datatable's pages
          var list = document.getElementsByClassName('page-select')[1];
          for(var index=0; index<_dt.page.info().pages; index++) {
@@ -254,6 +330,14 @@ function AnalysisSessionLogic(){
              }
 
          });
+         // _dt.on( 'column-reorder', function ( e, settings, details ) {
+         //    for(var i=0; i < settings.aoColumns.length; i++){
+         //        var name = settings.aoColumns[i].name;
+         //
+         //        // TO-DO to fix problem when you move the columns and the attributes COLUMN_XXXX must be updated.
+         //    }
+
+        // } );
 
     }
     function initData(data, headers) {
@@ -266,17 +350,20 @@ function AnalysisSessionLogic(){
         var data_processed = _.map(_data_uploaded,function(v, i){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
-                                    values.add('undefined');
-                                    values.add(-1);
-                                    values.add(_countID.toString());
+                                    var uuid_str = uuid.v4();
+                                    values.push('undefined');
+                                    values.push(-1);
+                                    values.push(_countID.toString());
+                                    values.push(uuid_str);
                                     _data_uploaded[i][COL_VERDICT_STR] = "undefined";
                                     _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
                                     _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
+                                    _data_uploaded[i][COL_UUID_STR] = uuid_str;
                                  }
                                 _countID++;
                                 return values
                             });
-        processingFlows_WORKER(_data_uploaded);
+
         $.each(_data_headers,function(i, v){
             _data_headers_keys[v] = i;
         });
@@ -284,6 +371,7 @@ function AnalysisSessionLogic(){
         COLUMN_DT_ID = _data_headers_keys[COL_DT_ID_STR];
         COLUMN_REG_STATUS = _data_headers_keys[COL_REG_STATUS_STR];
         COLUMN_VERDICT =  _data_headers_keys[COL_VERDICT_STR];
+        COLUMN_UUID = _data_headers_keys[COL_UUID_STR];
 
         for(var index = 0; index < NAMES_HTTP_URL.length; index++){
             var key = NAMES_HTTP_URL[index];
@@ -299,6 +387,7 @@ function AnalysisSessionLogic(){
                 break;
             }
         }
+        processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
         // COL_HTTP_URL_STR = "http.url";
         // COL_END_POINTS_SERVER_STR = "endpoints.server";
         COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
@@ -326,7 +415,14 @@ function AnalysisSessionLogic(){
         var rows_affected = [];
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
-            rows_affected.add(d);
+
+            var temp_data = {};
+            temp_data[COL_UUID_STR] = d[COLUMN_UUID];
+            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
+            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
+            temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
+
+            rows_affected.push(temp_data);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
@@ -339,19 +435,20 @@ function AnalysisSessionLogic(){
         return rows_affected;
 
     };
+
     var syncDB = function (show_loading){
-        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading === undefined || show_loading === null) show_loading = false;
         if(show_loading) showLoading();
         var arr_list = _dt.rows('.modified').data();
+        _dt.rows('.modified').nodes().to$().addClass('modified-sync').removeClass('modified');
         var data_row = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1){
+            if(elem[COLUMN_REG_STATUS] !== -1){
                 var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
                 data_row[key_id]=elem[COLUMN_VERDICT];
             }
         });
-        var data = {'analysis_session_id': _analysis_session_id,
-                        'data': data_row };
+        var data = {'analysis_session_id': _analysis_session_id, 'data': data_row };
         if(thiz.getColumnsOrderFlat()){
             data['headers[]']=JSON.stringify(get_headers_info());
             thiz.setColumnsOrderFlat(false);
@@ -367,21 +464,29 @@ function AnalysisSessionLogic(){
                 // console.log(json); // log the returned json to the console
                 var data = JSON.parse(json['data']);
                 console.log(data);
+
                 $.each(data,function (index, elem) {
-                    console.log(elem);
-                    var dt_id = parseInt(elem.pk.split(':')[1]);
-                    var row = _dt.rows('[data-dbid="'+dt_id+'"]');
-                    var index_row = row.indexes()[0];
-                     row.nodes().to$().addClass('selected-sync');
-                    thiz.setColumnsOrderFlat(false);
-                     thiz.markVerdict(elem.fields.verdict,'selected-sync');
-                    row.nodes().to$().removeClass('modified');
-                    _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
-                    _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
+                    var id = elem.pk;
+                    _verdict_sync[id] = {
+                        verdict: elem.fields.verdict,
+                        register_status: elem.fields.register_status
+                    };
+                    // console.log(elem);
+                    // var dt_id = parseInt(elem.pk.split(':')[1]);
+                    // var row = _dt.rows('[data-dbid="'+id+'"]');
+                    // var index_row = row.indexes()[0];
+                    //  row.nodes().to$().addClass('selected-sync');
+                    // thiz.setColumnsOrderFlat(false);
+                    //  thiz.markVerdict(elem.fields.verdict,'selected-sync');
+                    // row.nodes().to$().removeClass('modified');
+                    // _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
+                    // _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
 
 
 
                 });
+                $('tr.modified-sync').removeClass('modified-sync');
+                _dt.draw(false);
                 console.log("DB Synchronized");
                 if(show_loading) hideLoading();
             },
@@ -423,7 +528,8 @@ function AnalysisSessionLogic(){
                 filename: _filename,
                 "headers[]": JSON.stringify(get_headers_info()),
                 'data[]': JSON.stringify(rows.data().toArray()),
-                type_file: thiz.getAnalysisSessionTypeFile()
+                type_file: thiz.getAnalysisSessionTypeFile(),
+                uuid: thiz.getAnalysisSessionUUID()
             };
             //send the name of the file, and the first 10 registers
             $.ajax({
@@ -443,7 +549,7 @@ function AnalysisSessionLogic(){
                         if(!tr.hasClass("modified")) cell.innerHTML = 0;
                     } );
                     _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
-                    $.notify("All Weblogs ("+json['data_length']+ ") were created successfully ", 'success');
+                    $.notify("All Weblogs ("+json['data']['data_length']+ ") were created successfully ", 'success');
                     $('#save-table').hide();
                     $('#public-btn').show();
                     $('#wrap-form-upload-file').hide();
@@ -507,8 +613,42 @@ function AnalysisSessionLogic(){
             }
         });
     }
+
+    function refreshingDomainsWhoisRelatedModal(weblog_id){
+        var data = {weblog_id: weblog_id};
+        $.ajax({
+            type:"GET",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
+            success : function(json) {// handle a successful response
+                var whois_related_domains = json['whois_related_domains'];
+                var root_whois_features = json['root_whois_features'];
+                var was_related = json['was_related'];
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related,root_whois_features);
+                updateBodyModal(table);
+                if (was_related) {
+                    closingModal();
+                }
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+        });
+
+
+
+    }
+    var closingModal = function(){
+        clearInterval(refreshIntervalId);
+        refreshIntervalId = null;
+    };
     function getWeblogsWhoisRelated(weblog_id){
-        initModal("Modules Weblogs related by whois information: " + weblog_id);
+
+        updateFooterModal('<a id="search-domain-selected" class="btn btn-info" data-dismiss="modal">Search Selected</a>');
+        initModal("Activating WHOIS Similarity Distance Module..." , closingModal);
         var data = {weblog_id: weblog_id};
         $.ajax({
             type:"GET",
@@ -516,20 +656,42 @@ function AnalysisSessionLogic(){
             dataType: "json",
             url: "/manati_project/manati_ui/analysis_session/weblog/modules_whois_related",
             success : function(json) {// handle a successful response
-                var whois_related_info = JSON.parse(json['data']);
-                var was_whois_related = json['was_whois_related'];
-                if(!was_whois_related){
-                    $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+               // / var whois_related_domains = json['whois_related_domains'];
+                $.notify(json['msg'], "info");
+                updateTitleModal("List of domains WHOIS related with: " + json['domain_primary']);
+                // var was_whois_related = json['was_whois_related'];
+                // if(!was_whois_related){
+                //     $.notify("One request for the DB was realized, maybe it will take time to process it and" +
+                //             " show the information in the modal.",
+                //             "warn", {autoHideDelay: 2000});
+                // }
+                // var table = buildTable_WeblogsWhoisRelated(whois_related_domains);
+                // updateBodyModal(table);
+                refreshIntervalId = setInterval(refreshingDomainsWhoisRelatedModal, 3000,weblog_id)
+
+
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        });
+
+    }
+    function labelWeblogsWhoisRelated(weblog_id, verdict){
+        $.notify("One request for the DB was realized, maybe it will take time to process it and" +
                             " show the information in the modal.",
                             "warn", {autoHideDelay: 2000});
-                }
-                var table = buildTable_WeblogsWhoisRelated(whois_related_info,was_whois_related);
-
-                updateBodyModal(table);
-                // var info_report = JSON.parse(json['info_report']);
-                // var query_node = json['query_node'];
-                // var table = buildTableInfo_VT(info_report);
-                // updateBodyModal(table);
+        var data = {weblog_id: weblog_id, verdict: verdict};
+        $.ajax({
+            type:"POST",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/weblog/label_weblogs_whois_related",
+            success : function(json) {// handle a successful response
+                $.notify(json.msg, "info")
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
                 $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -557,6 +719,13 @@ function AnalysisSessionLogic(){
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
         });
+        items_menu['unselect'] = {
+            name: "Unselect",
+            icon: "fa-paint-brush " + "unselect",
+            callback: function(key, options){
+                $('tr.selected').removeClass('selected');
+            }
+        };
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
@@ -626,24 +795,38 @@ function AnalysisSessionLogic(){
                         var qn = bigData[COLUMN_END_POINTS_SERVER];
                         consultWhois(qn, "ip");
                     }
-                },
-                "fold2-key3":{
-                    name: "Find Weblogs Related by whois info", icon: "fa-search",
-                    callback: function (key, option) {
-                        var weblog_id = bigData[COLUMN_DT_ID].toString();
-                        weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                        getWeblogsWhoisRelated(weblog_id);
-
-                    }
-
                 }
             }
         };
-        items_menu['fold3'] = {
-            name: "External Intelligence", icon: "fa-search",
-            items: items_submenu_external_query
-        };
-        if(thiz.getAnalysisSessionId() != -1) {
+        var fn = function (){ $('#button-ok-modal').off()};
+
+        if(thiz.isSaved()) {
+            items_menu['fold1']['items']['fold1-key3'] = {
+                name: "Mark all WBs WHOIS related (domain from column:" + COL_HTTP_URL_STR +")",
+                icon: "fa-paint-brush",
+                className: CLASS_MC_HTTP_URL_STR,
+                callback: function(key, options) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    labelWeblogsWhoisRelated(weblog_id,_bulk_verdict)
+
+                    // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                    // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
+                }
+
+            };
+            items_submenu_external_query['whois_consult']['items']['fold2-key3'] = {
+                name: "Find WHOIS related domains (from column:" + COL_HTTP_URL_STR +")",
+                icon: "fa-search",
+                callback: function (key, option) {
+                    var weblog_id = bigData[COLUMN_DT_ID].toString();
+                    weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                    getWeblogsWhoisRelated(weblog_id);
+
+                }
+            };
+
+
             items_menu['fold4'] = {
                 name: "Registry History", icon: "fa-search",
                 items: {
@@ -668,9 +851,97 @@ function AnalysisSessionLogic(){
                     }
                 }
             };
+            items_menu['fold4'] = {
+                name: "Registry History", icon: "fa-search",
+                items: {
+                    "fold2-key1": {
+                        name: "Veredict History",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                                weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                                getWeblogHistory(weblog_id);
+
+                        }
+                    },
+                    "fold2-key2": {
+                        name: "Modules Changes",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getModulesChangesHistory(weblog_id);
+                        }
+                    },
+                    "fold2-key3": {
+                        name: "IOCs",
+                        icon: "fa-paper-plane-o",
+                        callback: function (key, options) {
+                            var weblog_id = bigData[COLUMN_DT_ID].toString();
+                            weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
+                            getIOCs(weblog_id);
+                        }
+                    }
+                }
+            };
+
+            items_menu['sep5'] = "-----------";
+            items_menu['fold5'] = {
+                name: "Create a comment", icon: "fa-pencil-square-o",
+                callback: function (key, options){
+                    initModal("Add a comment",fn);
+                    var weblog_id = bigData[COLUMN_DT_ID];
+                    $('#button-ok-modal').on('click', function (ev){
+                        var comment_data = $("#textarea-comment").val();
+                        $.ajax({
+                            url:'/manati_project/manati_ui/weblog/comment/create',
+                            type:"POST",
+                            dataType: "json",
+                            data: {text: comment_data, weblog_id: weblog_id},
+                            success: function (json){
+                                $.notify(json['msg'], "info");
+                            },
+                            error: function (xhr,errmsg,err) {
+                                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                                console.log(xhr.status + ": " + xhr.responseText);
+                                // provide a bit more info about the
+                                // error to the console
+                            }
+                        })
+
+                    });
+                    $.ajax({
+                            url:'/manati_project/manati_ui/weblog/comment/get',
+                            type:"GET",
+                            dataType: "json",
+                            data: {weblog_id: weblog_id},
+                            success: function (json){
+                                var comment = json['text'];
+                                var str_data = "<textarea id='textarea-comment' maxlength='250' " +
+                                    "class='form-control' " +
+                                    "row='5'></textarea>";
+                                updateBodyModal(str_data);
+                                $("#textarea-comment").val(comment);
+                            },
+                            error: function (xhr,errmsg,err) {
+                                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                                console.log(xhr.status + ": " + xhr.responseText);
+                                // provide a bit more info about the
+                                // error to the console
+                            }
+                        })
+
+
+                }
+            };
         }
-        items_menu['sep3'] = "-----------";
-        items_menu['fold2'] = {
+
+        items_menu['fold6'] = {
+            name: "External Intelligence", icon: "fa-search",
+            items: items_submenu_external_query
+        };
+        items_menu['sep6'] = "-----------";
+        items_menu['fold7'] = {
             name: "Copy to clipboard", icon: "fa-files-o",
             items: {
                 "fold2-key1": {
@@ -689,12 +960,52 @@ function AnalysisSessionLogic(){
                 }
             }
         };
+        items_menu['sep7'] = "-----------";
+        items_menu['fold8'] = {
+            name: "Hotkeys List", icon: "fa-files-o",
+            callback: function (key, options){
+                initModal("List of Hotkeys");
+                $.ajax({url:'/manati_project/manati_ui/hotkeys/list',
+                    type:"GET",
+                    dataType: "json",
+                    success: function (json){
+                        var table = buildTableHotkeys(json['hotkeys']);
+                        updateBodyModal(table);
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    }
+                })
+
+            },
+        };
 
 
 
         return items_menu;
 
     };
+    function buildTableHotkeys(hotkeys){
+        var table = "<table class='table table-bordered table-striped'>";
+        table += "<thead><tr><th style='width: 110px;'>#</th><th>Description</th><th>Command</th></tr></thead>";
+        table += "<tbody>";
+            var count = 1;
+            _.each(hotkeys, function (value){
+                table += "<tr>";
+                table += "<td>"+count+"</td>";
+                table += "<td>"+value['description']+"</td>";
+                table += "<td>"+value['command']+"</td>";
+                table += "</tr>";
+                count++;
+
+            });
+
+        table += "</tbody>";
+        table += "</table>";
+        return table;
+
+    }
     function buildTableInfo_VT(info_report){
         var table = "<table class='table table-bordered table-striped'>";
         table += "<thead><tr><th style='width: 110px;'>List Attributes</th><th> Values</th></tr></thead>";
@@ -709,7 +1020,7 @@ function AnalysisSessionLogic(){
                         var data = info[index];
                         if(data instanceof Object){
                              html_temp += buildTableInfo_VT(data, true) ;
-                        }else if(typeof(data) == "string") {
+                        }else if(typeof(data) === "string") {
                             table += "<td>" + info.join(", ") + "</td>" ;
                             break;
                         }
@@ -743,18 +1054,21 @@ function AnalysisSessionLogic(){
                 table += "<tr>";
                 table += "<th>"+key+"</th>";
                 var info = info_report[key];
-                if (info instanceof Array){
+                if (info instanceof Array) {
                     var html_temp = "";
-                    for(var index = 0; index < info.length; index++){
+                    for (var index = 0; index < info.length; index++) {
                         var data = info[index];
-                        if(data instanceof Object){
-                             html_temp += buildTableInfo_Whois(data, true) ;
-                        }else if(typeof(data) == "string") {
-                            table += "<td>" + info.join(", ") + "</td>" ;
+                        if (data instanceof Object) {
+                            html_temp += buildTableInfo_Whois(data, true);
+                        } else if (typeof(data) == "string") {
+                            table += "<td>" + info.join(", ") + "</td>";
                             break;
                         }
-
                     }
+                    if (html_temp != "") table += "<td>" + html_temp + "</td>";
+                }else if(info instanceof Object){
+                    var html_temp = "";
+                    html_temp += buildTableInfo_Whois(info, false) ;
                     if(html_temp != "") table += "<td>"+ html_temp+ "</td>"
                 }else{
                     table += "<td>" + info + "</td>" ;
@@ -768,14 +1082,23 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function initModal(title){
+    function initModal(title, after_hidden_function){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
+            $(this).find(".append").html('');
+            if(after_hidden_function !== undefined && after_hidden_function !== null){
+                after_hidden_function();
+            }
+
         });
+    }
+    function updateTitleModal(title){
+        $('#vt_consult_screen #vt_modal_title').html(title);
+
     }
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
@@ -783,6 +1106,10 @@ function AnalysisSessionLogic(){
             modal_body.find('.table-section').html(table).show();
             modal_body.find(".loading").hide();
         }
+    }
+    function updateFooterModal(html_append){
+        var modal_footer = $('#vt_consult_screen .modal-footer .append');
+        modal_footer.html(html_append)
     }
     function consultVirusTotal(query_node, query_type){
         if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
@@ -799,8 +1126,16 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/consult_virus_total",
             success : function(json) {// handle a successful response
                 var info_report = JSON.parse(json['info_report']);
-                var query_node = json['query_node'];
+                var node = json['query_node'];
                 var table = buildTableInfo_VT(info_report);
+                if(query_type === 'ip'){
+                    query_node = "<a target='_blank' href='https://virustotal" +
+                        ".com/en/ip-address/"+node+"/information/'>"+node+"</a>"
+                }
+                else if(query_type === 'domain'){
+                    query_node = "<a target='_blank' href='https://virustotal" +
+                        ".com/en/domain/"+node+"/information/'>"+node+"</a>"
+                }
                 initModal("Virus Total Query: <span>"+query_node+"</span>");
                 updateBodyModal(table);
             },
@@ -826,7 +1161,7 @@ function AnalysisSessionLogic(){
             dataType: "json",
             url: "/manati_project/manati_ui/consult_whois",
             success : function(json) {// handle a successful response
-                var info_report = JSON.parse(json['info_report']);
+                var info_report = json['info_report'];
                 var query_node = json['query_node'];
                 var table = buildTableInfo_Whois(info_report);
                 initModal("Whois Query: <span>"+query_node+"</span>");
@@ -863,6 +1198,22 @@ function AnalysisSessionLogic(){
         return table;
 
     }
+    function buildTableIOCs(iocs) {
+        var table = "<table class='table table-bordered'>";
+        table += "<thead><tr><th>#</th><th>IOCs</th><th>Value</th></tr></thead>";
+        table += "<tbody>";
+        var count = 1;
+        _.each(iocs, function (ioc) {
+            var tr = "<tr>";
+            tr += "<td>" + count + "</td>";
+            tr += "<td>" + ioc['ioc_type'] + "</td>";
+            tr += "<td>" + ioc['value'] + "</td>";
+            tr += "</tr>";
+            count++;
+            table += tr;
+        });
+        return table;
+    }
     function buildTableInfo_Mod_attributes(mod_attributes) {
         var table = "<table class='table table-bordered'>";
         table += "<thead><tr><th>Module Name</th><th>Attributes</th><th>Values</th></tr></thead>";
@@ -887,22 +1238,104 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_whois_related){
-        if(isEmpty(mod_attributes) && was_whois_related == false) return null;
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>ID</th><th>Domain Name</th></tr></thead>";
-        table += "<tbody>";
-        console.log(mod_attributes);
-        _.each(mod_attributes, function (domain, id) {
-            var tr = "<tr>";
-            tr += "<td>"+id+"</td>";
-            tr += "<td>"+domain+"</td>";
-            tr += "</tr>";
-            table+=tr;
-        });
-        table += "</tbody>";
-        table += "</table>";
-        return table;
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related,root_whois_features){
+        if(was_related === undefined || was_related === null) was_related = false;
+        if(isEmpty(mod_attributes) && !was_related) return null;
+        // var table = "<table class='table table-bordered'>";
+        // table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
+        // table += "<tbody>";
+        // console.log(mod_attributes);
+        var count = 1;
+        // if(isEmpty(mod_attributes) && was_related){
+        //     var tr = "<tr>";
+        //     tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
+        //     table+=tr;
+        // }else{
+        //     _.each(mod_attributes, function (domain) {
+        //         var tr = "<tr>";
+        //         tr += "<td>"+count+"</td>";
+        //         tr += "<td>"+domain+"</td>";
+        //         tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
+        //         tr += "</tr>";
+        //         table+=tr;
+        //         count++;
+        //     });
+        //
+        // }
+        //
+        // table += "</tbody>";
+        // table += "</table>";
+        // return table;
+
+        var feature_names_ref = {'emails':'diff_emails', 'domain_name':'dist_domain_name', 'name_servers':'diff_name_servers',
+                'registrar':'dist_registrar', 'name':'dist_name', 'duration':'dist_duration', 'zipcode':'dist_zipcode',
+                'org':'dist_org'};
+        var html = '';
+        html += '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
+        if(isEmpty(mod_attributes) && was_related){
+            html += "<div> NO WHOIS RELATED DOMAINS in this analysis session </div>";
+        }else{
+            _.each(mod_attributes, function (features, domain) {
+                html += '<div class="panel panel-default">';
+                    html += '<div class="panel-heading" role="tab" id="heading'+count+'">';
+                        html += '<h4 class="panel-title" style="display: inline; margin-right: 10px">';
+                        html += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse'+count+'" aria-expanded="true" aria-controls="collapse'+count+'" >';
+                        html += domain;
+                        html += '</a></h4>';
+                        html += "<input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/>";
+                    html += '</div>';
+                    html += '<div id="collapse'+count+'"  class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading'+count+'" >';
+                        html += '<div class="panel-body">';
+                            var table = "<table class='table table-bordered'>";
+                            table += "<thead><tr><th>Feature Name</th><th>WHOIS info A</th><th>WHOIS info B</th><th>Distance</th></tr></thead>";
+                            table += "<tbody>";
+                            var tmp_count = 0;
+                            _.each(features[0], function (whois_info, feature_name) {
+                                var tr = "<tr>";
+                                tr += "<td>"+feature_name+"</td>";
+                                tr += "<td>"+root_whois_features[feature_name]+"</td>";
+                                tr += "<td>"+whois_info+"</td>";
+                                tr += "<td>"+features[1][feature_names_ref[feature_name]]+"</td>";
+                                tr += "</tr>";
+                                table+=tr;
+                            });
+                            table += "</tbody>";
+                            table += "</table>";
+                            html += table;
+                        html += '</div>';
+                    html += '</div>';
+                html += '</div>';
+                count++;
+            });
+
+        }
+
+        html += '</div>';
+        return html;
+
+
+
+    }
+    function getIOCs(weblog_id){
+        initModal("IOCs Selected:" + weblog_id);
+        var data = {weblog_id:weblog_id};
+        $.ajax({
+            type:"GET",
+            dataType: "json",
+            data:data,
+            url: "/manati_project/manati_ui/analysis_session/weblog/iocs",
+            success : function(json) {// handle a successful response
+                var iocs = json['iocs'];
+                var table = buildTableIOCs(iocs);
+                updateBodyModal(table);
+            },
+            error : function(xhr,errmsg,err) { // handle a non-successful response
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+
+            }
+
+        })
 
     }
     function getModulesChangesHistory(weblog_id){
@@ -981,8 +1414,7 @@ function AnalysisSessionLogic(){
                     return {
                         callback: function(key, options) {
                             var verdict = key;
-                            var rows_affected = thiz.markVerdict(verdict);
-                            _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
+                            labelingRows(verdict);
                             return true;
                         },
                         items: generateContextMenuItems($trigger)
@@ -993,6 +1425,13 @@ function AnalysisSessionLogic(){
 
             });
     }
+    var labelingRows = function (verdict){
+        var rows_affected = thiz.markVerdict(verdict);
+        _m.EventMultipleLabelingsByMenuContext(rows_affected,verdict);
+    };
+    var executeFilterBtn = function (verdict){
+        $('.searching-buttons .btn').filter('[data-verdict="'+ verdict+'"]').click()
+    };
     var setFileName = function(file_name){
         $("#weblogfile-name").html(file_name);
         _filename = file_name;
@@ -1000,8 +1439,261 @@ function AnalysisSessionLogic(){
     var getFileName = function (){
         return _filename;
     };
+    var hotkeys_definition = function () {
+        var preventDefault = function (e){
+            if (e.preventDefault) {
+                e.preventDefault();
+            } else {
+                // internet explorer
+                e.returnValue = false;
+            }
+        };
+        // active sync button
+        Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
+            preventDefault(e);
+            if(thiz.isSaved()) syncDB(true);
+        });
+        // mark malicious
+        Mousetrap.bind(['ctrl+m', 'command+m'], function(e) {
+            preventDefault(e);
+            labelingRows('malicious');
+        });
+        // mark legitimate
+        Mousetrap.bind(['ctrl+l', 'command+l'], function(e) {
+            preventDefault(e);
+            labelingRows('legitimate');
+        });
+        // mark suspicious
+        Mousetrap.bind(['ctrl+i', 'command+i'], function(e) {
+            preventDefault(e);
+            labelingRows('suspicious');
+        });
+        // mark false positive
+        Mousetrap.bind(['ctrl+p', 'command+p'], function(e) {
+            preventDefault(e);
+            labelingRows('falsepositive');
+        });
+        // mark undefined
+        Mousetrap.bind(['ctrl+u', 'command+u'], function(e) {
+            preventDefault(e);
+            labelingRows('undefined');
+        });
+         // unselect selected rows
+        Mousetrap.bind(['shift+ctrl+u', 'shift+command+u'], function(e) {
+            preventDefault(e);
+            $('tr.selected').removeClass('selected');
+        });
+        // Filter all Malicious
+        Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('malicious');
+        });
+        // Filter all Legitimate
+        Mousetrap.bind(['ctrl+2', 'command+2'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('legitimate');
+        });
+        // Filter all Suspicious
+        Mousetrap.bind(['ctrl+3', 'command+3'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('suspicious');
+        });
+         // Filter all False Positive
+        Mousetrap.bind(['ctrl+4', 'command+4'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('falsepositive');
+        });
+         // Filter all Undefined
+        Mousetrap.bind(['ctrl+5', 'command+5'], function(e) {
+            preventDefault(e);
+            executeFilterBtn('undefined');
+        });
+        //  // Unfilter everthing
+        // Mousetrap.bind(['ctrl+5', 'command+0'], function(e) {
+        //     preventDefault(e);
+        //     // TO-DO
+        // });
+        //
+        //  // Unfilter everthing
+        // Mousetrap.bind(['space', 'space'], function(e) {
+        //     preventDefault(e);
+        //     // TO-DO
+        // });
+         // open VirusTotal Modal By domain, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
+            consultVirusTotal(qn, "domain");
+        });
+         // open WHOIS Modal By domain, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
+            consultWhois(qn, "domain");
+        });
+         // open VirusTotal Modal By IP, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
+            preventDefault(e);
+            var qn = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER];
+            consultVirusTotal(qn, "ip");
+        });
+         // open WHOIS Modal By IP, the first selected weblog
+        Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
+            preventDefault(e);
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT];
+             setBulkVerdict_WORKER(verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
+        });
+        //show whois similarity modal
+        Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
+            preventDefault(e);
+            var weblog_id = _dt.rows('.action').data()[0][COLUMN_DT_ID].toString();
+            weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
+            getWeblogsWhoisRelated(weblog_id);
+        });
+
+        // VI-Style
+        // moving down with J
+        Mousetrap.bind(['j'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var next_tr;
+            if(current_tr.length){
+                next_tr = current_tr.next().first();
+                if(!next_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(_dt.page.info().pages > current_page+1){
+                        // moving to the next one
+                        _dt.page(current_page+1).draw('page');
+                    }else{
+                        // moving to the first page, first row
+                        _dt.page(0).draw('page');
+                    }
+                    next_tr = $('#weblogs-datatable tbody tr').first();
+                    current_tr = null;
+                }
+            }else{
+                next_tr = $('#weblogs-datatable tbody tr').first();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            next_tr.addClass('action');
+            if(current_tr){
+                scrollIntoViewIfNeeded(current_tr[0])
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+
+         // moving up with k
+        Mousetrap.bind(['k'], function(e) {
+            preventDefault(e);
+            var scroll_tr;
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var prev_tr;
+            if(current_tr.length){
+                prev_tr = current_tr.prev().first();
+                if(!prev_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(0 <= current_page-1){
+                        // moving to the previous page
+                        _dt.page(current_page-1).draw('page');
+                    }else{
+                        // moving to the last page, last row
+                        var pages = _dt.page.info().pages;
+                        _dt.page(pages-1).draw('page');
+                    }
+                    prev_tr = $('#weblogs-datatable tbody tr').last();
+                    scroll_tr =prev_tr;
+                    current_tr = null;
+                }
+            }else{
+                prev_tr = $('#weblogs-datatable tbody tr').last();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            prev_tr.addClass('action');
+            scroll_tr = scroll_tr ? scroll_tr : prev_tr.prev();
+            if(scroll_tr.length){
+                scrollIntoViewIfNeeded(scroll_tr[0]);
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+        // select row to be label.
+        Mousetrap.bind(['space'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            current_tr.toggleClass('selected');
+
+        });
+
+        Mousetrap.bind(['left'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page - 1 >= 0){
+                _dt.page(current_page-1).draw('page');
+            }else{
+                _dt.page(pages-1).draw('page');
+            }
+        });
+
+        Mousetrap.bind(['right'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page + 1 < pages){
+                _dt.page(current_page+1).draw('page');
+            }else{
+                _dt.page(0).draw('page');
+            }
+        });
+
+        //mark all the weblogs in the current session with the same IP
+        Mousetrap.bind(['p'],function (e) {
+            preventDefault(e);
+            var ip_value = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER].toString();
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value));
+        });
+
+        //mark all  the weblogs in the current session with the same domain
+        Mousetrap.bind(['d'],function (e) {
+            preventDefault(e);
+            var url =  _dt.rows('.action').data()[0][COLUMN_HTTP_URL].toString();
+            var domain = findDomainOfURL(url); // getting domain
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain));
+        });
+
+
+
+
+
+    };
+
+
     function on_ready_fn (){
         $(document).ready(function() {
+            $(document).on('click', '#search-domain-selected', function(ev){
+                var query_search = "(";
+                var aux = '';
+                $('#vt_consult_screen input[name="search_domain_table[]"]:checked').each(function (obj) {
+                    query_search += aux + $(this).val();
+                    if(aux == '') aux = '|';
+                });
+                query_search += ")";
+                if(query_search.length > 2){
+                    $("#weblogs-datatable_filter input[type='search']").html(query_search);
+                    _dt.search(query_search).draw();
+                }
+
+
+            });
             $("#edit-input").hide();
             $("#weblogfile-name").on('click',function(){
                 var _thiz = $(this);
@@ -1036,7 +1728,7 @@ function AnalysisSessionLogic(){
 
             //filter table
             $('body').on('click','.searching-buttons .btn', function () {
-                var btn = $(this)
+                var btn = $(this);
                 var verdict = btn.data('verdict');
                 if(btn.hasClass('active')){
                     _filterDataTable.removeFilter(_dt,verdict);
@@ -1051,7 +1743,7 @@ function AnalysisSessionLogic(){
             $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
                 _filterDataTable.removeFilter(_dt);
-                $('#searching-buttons .btn').removeClass('active')
+                $('.searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
@@ -1086,15 +1778,7 @@ function AnalysisSessionLogic(){
                 })
             });
 
-            Mousetrap.bind(['ctrl+s', 'command+s'], function(e) {
-                if (e.preventDefault) {
-                    e.preventDefault();
-                } else {
-                    // internet explorer
-                    e.returnValue = false;
-                }
-                if(thiz.isSaved()) syncDB(true);
-            });
+            hotkeys_definition();
 
             $("input#share-checkbox").change(function() {
                 $.ajax({
@@ -1104,6 +1788,36 @@ function AnalysisSessionLogic(){
                     dataType: 'json',
                     success: function (json){
                         $.notify(json.msg, "info");
+                    },
+                    error: function (xhr,errmsg,err) {
+                        $.notify(xhr.status + ": " + xhr.responseText, "error");
+                        console.log(xhr.status + ": " + xhr.responseText);
+
+
+                    }
+                })
+            });
+
+            $("button#change-status").on('click',function() {
+                $.ajax({
+                    url: '/manati_project/manati_ui/analysis_session/'+thiz.getAnalysisSessionId()+'/change_status',
+                    type: 'POST',
+                    data: {'status':$(this).data('status') },
+                    dataType: 'json',
+                    success: function (json){
+                        $.notify(json.msg, "info");
+                        var old_status = json.old_status;
+                        var new_status = json.new_status;
+                        var btn = $('#change-status');
+                        btn.removeClass();
+                        btn.addClass('btn btn-special-'+old_status);
+                        btn.data('status',old_status);
+                        var text = new_status === 'open' ? 'Close it !' : 'Open it !';
+                        btn.text(text);
+                        if(new_status === 'closed'){
+                            $.notify("This Analysis Session is done, you will be redirect to the index page ", "info", {autoHideDelay: 3000 });
+                            window.location.href = "/manati_project/manati_ui/analysis_sessions";
+                        }
                     },
                     error: function (xhr,errmsg,err) {
                         $.notify(xhr.status + ": " + xhr.responseText, "error");
@@ -1125,7 +1839,7 @@ function AnalysisSessionLogic(){
         reader_files = ReaderFile(thiz);
         on_ready_fn();
         // window.onbeforeunload = function() {
-        //     return "Dude, are you sure you want to leave? Think of the kittens!";
+        //     return "Mate, are you sure you want to leave? Think of the kittens!";
         // }
 
     };
@@ -1154,10 +1868,11 @@ function AnalysisSessionLogic(){
                     rowCount = results.data.length;
                     var data = results.data;
                     var headers = results.meta.fields;
-                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR],function (i, value){
+                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
                         headers.push(value);
                     });
                     initData(data,headers);
+                    thiz.generateAnalysisSessionUUID();
                     hideLoading();
                     _m.EventFileUploadingFinished(_filename, rowCount);
                 }
@@ -1183,17 +1898,20 @@ function AnalysisSessionLogic(){
 
     var initDataEdit = function (weblogs, analysis_session_id,headers_info) {
         _analysis_session_id = analysis_session_id;
+        var weblogs_id_uuid = {};
+        var update_uuid_weblogs = false;
         if(weblogs.length > 1){
             // sorting header
             var headers;
             if(_.isEmpty(headers_info)){
                 var elem = weblogs[0];
-                var attributes = JSON.parse(elem.fields.attributes);
+                var attributes = elem.attributes;
                 if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
                 headers_info = _.keys(attributes);
                 headers_info.push(COL_VERDICT_STR);
                 headers_info.push(COL_REG_STATUS_STR);
                 headers_info.push(COL_DT_ID_STR);
+                headers_info.push(COL_UUID_STR);
                 thiz.setColumnsOrderFlat(true);
                 headers = headers_info;
             }else{
@@ -1203,16 +1921,26 @@ function AnalysisSessionLogic(){
                 headers = $.map(headers_info,function(v,i){
                     return v.column_name
                 });
+                if(headers.indexOf(COL_UUID_STR) <= -1){
+                    headers.push(COL_UUID_STR);
+                    update_uuid_weblogs = true;
+                }
             }
+
             //getting data
             var data = [];
             $.each(weblogs, function (index, elem){
-                var id = elem.pk;
-                var attributes = JSON.parse(elem.fields.attributes);
+                var id = elem.id;
+                var attributes = elem.attributes;
                 if(!(attributes instanceof Object)) attributes = JSON.parse(attributes);
-                attributes[COL_VERDICT_STR] = elem.fields.verdict.toString();
-                attributes[COL_REG_STATUS_STR] = elem.fields.register_status.toString();
+                attributes[COL_VERDICT_STR] = elem.verdict.toString();
+                attributes[COL_REG_STATUS_STR] = elem.register_status.toString();
                 attributes[COL_DT_ID_STR] = id.toString();
+                if (attributes.uuid == undefined || attributes.uuid == null){
+                    var w_uuid = uuid.v4();
+                    attributes[COL_UUID_STR] = w_uuid;
+                    weblogs_id_uuid[id]=w_uuid;
+                }
                 var sorted_attributes = {};
                 _.each(headers, function(value, index){
                     sorted_attributes[value] = attributes[value];
@@ -1228,9 +1956,12 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-                setInterval(syncDB, TIME_SYNC_DB ); 
+               _sync_db_interval= setInterval(syncDB, TIME_SYNC_DB );
 
             });
+            if(update_uuid_weblogs){
+                updateAnalysisSessionUUID(thiz.getAnalysisSessionId(), weblogs_id_uuid);
+            }
         }else{
             hideLoading();
             $.notify("The current AnalysisSession does not have weblogs saved", "info", {autoHideDelay: 5000 });
@@ -1238,23 +1969,53 @@ function AnalysisSessionLogic(){
 
 
     };
+    var  updateAnalysisSessionUUID = function (analysis_session_id, weblogs_id_uuid){
+        thiz.generateAnalysisSessionUUID();
+        var ids = _.keys(weblogs_id_uuid);
+        var uuids = _.values(weblogs_id_uuid);
+        $.ajax({
+                url: '/manati_project/manati_ui/analysis_session/'+analysis_session_id+'/update_uuid',
+                type: 'POST',
+                data: {'uuid': thiz.getAnalysisSessionUUID(),
+                    "weblogs_ids[]": JSON.stringify(ids),
+                    "weblogs_uuids[]": JSON.stringify(uuids)
+                },
+                dataType: "json",
+                success: function (json){
+                    $.notify(json.msg,"info");
+                },
+                error : function(xhr,errmsg,err) { // handle a non-successful response
+                    $.notify(xhr.status + ": " + xhr.responseText, "error");
+                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                    _m.EventLoadingEditingError(analysis_session_id);
+
+                }
+        });
+
+    };
 
     this.callingEditingData = function (analysis_session_id){
-        var data = {'analysis_session_id':analysis_session_id};
+        thiz.setAnalysisSessionId(analysis_session_id);
+
+        var data = {'analysis_session_id': thiz.getAnalysisSessionId()};
         $.notify("The page is being loaded, maybe it will take time", "info", {autoHideDelay: 3000 });
         showLoading();
-        _m.EventLoadingEditingStart(analysis_session_id);
+        _m.EventLoadingEditingStart(thiz.getAnalysisSessionId());
         $.ajax({
                 type:"GET",
                 data: data,
                 dataType: "json",
                 url: "/manati_project/manati_ui/analysis_session/get_weblogs",
                 success : function(json) {// handle a successful response
-                    var weblogs = JSON.parse(json['weblogs']);
+                    var weblogs = json['weblogs'];
                     var analysis_session_id = json['analysissessionid'];
+                    var analysis_session_uuid = json['analysissessionuuid'];
                     var file_name = json['name'];
                     var headers = JSON.parse(json['headers']);
                     setFileName(file_name);
+                    if (analysis_session_uuid!=null && analysis_session_uuid !== '' ){
+                        thiz.setAnalysisSessionUUID(analysis_session_uuid);
+                    }
 
                     initDataEdit(weblogs, analysis_session_id,headers);
                     _m.EventLoadingEditingFinished(analysis_session_id, weblogs.length)
@@ -1307,17 +2068,19 @@ function AnalysisSessionLogic(){
             COLUMN_DT_ID, COLUMN_VERDICT,document.location.origin, COLUMN_REG_STATUS, REG_STATUS]);
     };
 
-    var processingFlows_WORKER = function (flows) {
+    var processingFlows_WORKER = function (flows,col_host_str, col_ip_str) {
          $("#statical-section").html('');
         _flows_grouped = {};
         var blob = new Blob([ "onmessage = function(e) { " +
             "var flows = e.data[1];"+
             "var flows_grouped = e.data[0];"+
             "var origin = e.data[2];"+
+            "var col_host_str = e.data[3];"+
+            "var co_ip_str = e.data[4];"+
             "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
             "self.importScripts(origin+'/static/manati_ui/js/struct_helper.js');"+
-            "var helper = new FlowsProcessed(flows_grouped);"+
-            "for(var i = 0; i< flows.length; i++) helper.addFlows(flows[i]);"+
+            "var helper = new FlowsProcessed(col_host_str,co_ip_str);"+
+            "helper.addBulkFlows(flows);"+
             "self.postMessage(helper.getFlowsGrouped());" +
         "}"]);
 
@@ -1328,11 +2091,12 @@ function AnalysisSessionLogic(){
         worker.addEventListener('message', function(e) {
             worker.terminate();
             _flows_grouped = e.data;
-            _helper = new FlowsProcessed(_flows_grouped);
+            _helper = new FlowsProcessed(col_host_str, col_ip_str);
+            _helper.setFlowsGrouped(_flows_grouped);
             _helper.makeStaticalSection();
             console.log("Worker Done");
 	    });
-        worker.postMessage([_flows_grouped,flows,document.location.origin]);
+        worker.postMessage([_flows_grouped,flows,document.location.origin, col_host_str, col_ip_str]);
 
     };
 
