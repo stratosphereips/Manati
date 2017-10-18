@@ -24,6 +24,8 @@ This project is partially supported by Cisco Systems.
 ## Installation
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
+        sudo apt-get update ;; sudo apt-get upgrade -y
+
 1. Clone the repository 
 
         git clone git@github.com:stratosphereips/Manati.git
@@ -32,9 +34,9 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
    
         git clone https://github.com/stratosphereips/Manati.git
 
-2. Install Virtualenv to isolate the required python libraries for ManaTI
+2. Install Virtualenv to isolate the required python libraries for ManaTI,also will be installed python libraries for development
 
-        sudo apt-get install virtualenv
+        sudo apt-get install virtualenv python python-pip python-dev libpq-dev
         
 3. Create virtualenv folder 
         
