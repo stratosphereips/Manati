@@ -9,9 +9,8 @@ from manati_ui.models import AppParameter
 
 
 def create_virus_total_api_key(apps, schema_editor):
-    # using my virus total account (raulbeni@gmail.com) api key by default
     AppParameter.objects.create(key=AppParameter.KEY_OPTIONS.virus_total_key_api,
-                                value='efc4346703100a29d72e72c2d91d8b9c7f25bd7c59a5bb9309918b91729220d5')
+                                value='d65148c145756fe3d093eff9d1630db21bad73895b6bca30839a69e28ab810a2')
 
 
 class Migration(migrations.Migration):
