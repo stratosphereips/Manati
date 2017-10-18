@@ -22,6 +22,7 @@ import threading
 import os
 from django.db import connection
 from django.core import management
+import django.core.exceptions
 import logging
 import django_rq
 from django_rq import job
@@ -60,7 +61,12 @@ def run_external_module(event_thrown, module_name, weblogs_seed_json):
 
 def __run_find_whois_related_domains__(analysis_session_id, domains_json):
     # special cases of running after events. re-do it now is a HACK!!!
-    external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+    try:
+        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
+    except django.core.exceptions.ObjectDoesNotExist as ex:
+        ModulesManager.__run_background_task_service__()
+        __run_find_whois_related_domains__(analysis_session_id, domains_json)
+
     module_name = external_module.module_name
     event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
 
