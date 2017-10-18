@@ -34,7 +34,7 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 
 2. Install Virtualenv to isolate the required python libraries for ManaTI
 
-        apt-get install virtualenv
+        sudo apt-get install virtualenv
         
 3. Create virtualenv folder 
         
