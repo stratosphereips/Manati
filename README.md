@@ -27,6 +27,10 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 1. Clone the repository 
 
         git clone git@github.com:stratosphereips/Manati.git
+      
+   or if you don't want to use SSH, use HTTPS
+   
+        git clone https://github.com/stratosphereips/Manati.git
 
 2. Install Virtualenv to isolate the required python libraries for ManaTI
 
