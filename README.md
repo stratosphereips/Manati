@@ -81,7 +81,8 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
         
         CTRL-D (to output the postgres db shell)
         
-** OPTIONAL **
+**OPTIONAL**
+
 To change the password by default of the postgres user (you can put the same password if you want), specially good idea if you want to use pgAdmin3-4 as a postgres client. Remember don't exit of "sudo - postgres"
 
         psql
