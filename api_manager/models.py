@@ -47,7 +47,7 @@ class ExternalModule(TimeStampedModel):
     MODULES_STATUS = Choices('idle', 'running', 'removed')
     module_instance = models.CharField(max_length=50, unique=True)
     module_name = models.CharField(max_length=50, unique=True)
-    description = models.CharField(max_length=200)
+    description = models.TextField()
     version = models.CharField(max_length=30)
     authors = JSONField(default=json.dumps({}))
     run_in_events = JSONField(default=json.dumps({}))
