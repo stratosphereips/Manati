@@ -1,4 +1,4 @@
-# Project ManaTI. 
+# Project ManaTI
 *Machine Learning for Threat Intuitive Analysis* 
 
 The goal of the ManaTI project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
@@ -24,13 +24,19 @@ This project is partially supported by Cisco Systems.
 ## Installation
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
+        sudo apt-get update ;; sudo apt-get upgrade -y
+
 1. Clone the repository 
 
-        git clone git@bitbucket.org:stratosphereips/project_manati.git
+        git clone git@github.com:stratosphereips/Manati.git
+      
+   or if you don't want to use SSH, use HTTPS
+   
+        git clone https://github.com/stratosphereips/Manati.git
 
-2. Install Virtualenv to isolate the required python libraries for ManaTI
+2. Install Virtualenv to isolate the required python libraries for ManaTI,also will be installed python libraries for development
 
-        apt-get install virtualenv
+        sudo apt-get install virtualenv python python-pip python-dev libpq-dev
         
 3. Create virtualenv folder 
         
@@ -173,7 +179,3 @@ jobs running or enqueued go to
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
-=======
-# ManaTI
-A web-based tool to assist the work of the intuitive threat analysts.
-We are working to clean the source code and push it here, it will be ready the soonest possible !
