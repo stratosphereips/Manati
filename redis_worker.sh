@@ -23,5 +23,5 @@ echo "RQ Worker running:"
 echo $return
 if [ "$return" != "true" ]; then
    echo "Run rqworker"
-   /Users/raulbeniteznetto/Projects/python_env/manati/bin/python ./manage.py rqworker high default low &
+   python ./manage.py rqworker high default low &
 fi;
