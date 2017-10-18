@@ -24,7 +24,7 @@ This project is partially supported by Cisco Systems.
 ## Installation
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
-        sudo apt-get update ;; sudo apt-get upgrade -y
+        sudo apt-get update ; sudo apt-get upgrade -y
 
 1. Clone the repository 
 
@@ -36,27 +36,31 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
 
 2. Install Virtualenv to isolate the required python libraries for ManaTI,also will be installed python libraries for development
 
-        sudo apt-get install virtualenv python python-pip python-dev libpq-dev
+        sudo apt-get install virtualenv python-pip python-dev libpq-dev build-essential libssl-dev libffi-dev
         
 3. Create virtualenv folder 
         
-        virtualenv vmanati
+        virtualenv .vmanati
         
 4. Active Virtualenv
 
-        source vmanati/bin/activate
+        source .vmanati/bin/activate
         
 5. Install PostgreSQL DB engine
 
-        sudo apt-get install postgresql-server-dev-all
+        sudo apt-get install postgresql-server-dev-all postgresql-9.5 postgresql-client-9.5
         
 6. Install required python libraries
     
         pip install -r requirements.txt
         
+   Maybe you will have some issues with permission in the folder ~/.cache, just perform the next command and problem solved:
+        
+        sudo chmod 777 ~/.cache
+        
 7. Start postgresql
 
-        /etc/init.d/postgresql start
+        sudo /etc/init.d/postgresql start
 
 ## Configure the database
 8. As root: (There should be a user postgres after installing the database)
@@ -74,6 +78,16 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
         grant all privileges on database manati_db to manati_db_user;
 
         alter role manati_db_user createrole createdb;
+        
+        CTRL-D (to output the postgres db shell)
+        
+**OPTIONAL**
+
+To change the password by default of the postgres user (you can put the same password if you want), specially good idea if you want to use pgAdmin3-4 as a postgres client. Remember don't exit of "sudo - postgres"
+
+        psql
+        
+        \password;
 
         CTRL-D (to output the postgres db shell)
 
