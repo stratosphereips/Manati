@@ -63,9 +63,9 @@ def __run_find_whois_related_domains__(analysis_session_id, domains_json):
     # special cases of running after events. re-do it now is a HACK!!!
     try:
         external_module = ExternalModule.objects.get(module_name='whois_relation_req')
-    except django.core.exceptions.ObjectDoesNotExist as ex:
+    except:
         ModulesManager.__run_background_task_service__()
-        __run_find_whois_related_domains__(analysis_session_id, domains_json)
+        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
 
     module_name = external_module.module_name
     event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
