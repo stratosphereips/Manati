@@ -253,9 +253,6 @@ def distance_related_by_whois_obj(external_module,domain_a, domain_b):
         whois_info_a = result[domains[0]]
         whois_info_b = result[domains[0]]
 
-    print(whois_info_a)
-    print("##########################")
-    print(whois_info_b)
     distance, feature_distance = get_whois_distance(whois_info_a,whois_info_b)
     return distance <= RELATION_THRESHOLD,distance,feature_distance
 
