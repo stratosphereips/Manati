@@ -165,6 +165,10 @@ class ModulesManager:
     def run_modules():
         pass
 
+
+##########################
+#### API METHODS #########
+##########################
     @staticmethod
     def get_all_weblogs_json():
         weblogs_qs = Weblog.objects.all()
@@ -176,6 +180,10 @@ class ModulesManager:
         weblogs_qs = Weblog.objects.filter(Q(**kwargs))
         weblogs_json = WeblogSerializer(weblogs_qs, many=True).data
         return json.dumps(weblogs_json)
+
+    def get_filtered_weblogs(**kwargs):
+        weblogs_qs = Weblog.objects.filter(Q(**kwargs))
+        return weblogs_qs
 
     @staticmethod
     def get_filtered_analysis_session_json(**kwargs):
@@ -249,15 +257,6 @@ class ModulesManager:
                     weblog.set_verdict_from_module(fields['mod_attributes']['verdict'], module, save=True)
 
     @staticmethod
-    @retries(max_attempts=10, exceptions=(Exception), wait=5)
-    def unstable_externa_module_is_free(module_name):
-        em = ExternalModule.objects.get(module_name=module_name)
-        if em and em.status == ExternalModule.MODULES_STATUS.idle:
-            return em
-        else:
-            raise Exception("The module is not free")
-
-    @staticmethod
     @transaction.atomic
     def get_all_IOC_by(analysis_session_id, ioc_type='domain'):
         analysis_session = AnalysisSession.objects.prefetch_related('weblog_set').get(id=analysis_session_id)
@@ -269,6 +268,10 @@ class ModulesManager:
             logger.error('ioc_type is not correct ' + str(ioc_type))
             return None
         return [ioc.value for ioc in iocs]
+
+    ##########################
+    #### ENDS API METHODS #########
+    ##########################
 
     @staticmethod
     def __attach_event(event_name, weblogs_seed_json, async=True):
@@ -389,34 +392,6 @@ class ModulesManager:
         if not IOC_WHOIS_RelatedExecuted.relation_perfomed_by_domain(analysis_session_id, domain):
             ModulesManager.find_whois_related_domains(analysis_session_id, [domain])
 
-    @staticmethod
-    def get_domain(url):
-        """Return top two domain levels from URI"""
-        re_3986_enhanced = re.compile(r"""
-            # Parse and capture RFC-3986 Generic URI components.
-            ^                                    # anchor to beginning of string
-            (?:  (?P<scheme>    [^:/?#\s]+): )?  # capture optional scheme
-            (?://(?P<authority>  [^/?#\s]*)  )?  # capture optional authority
-                 (?P<path>        [^?#\s]*)      # capture required path
-            (?:\?(?P<query>        [^#\s]*)  )?  # capture optional query
-            (?:\#(?P<fragment>      [^\s]*)  )?  # capture optional fragment
-            $                                    # anchor to end of string
-            """, re.MULTILINE | re.VERBOSE)
-        re_domain = re.compile(r"""
-            # Pick out top two levels of DNS domain from authority.
-            (?P<domain>[^.]+\.[A-Za-z]{2,6})  # $domain: top two domain levels.
-            (?::[0-9]*)?                      # Optional port number.
-            $                                 # Anchor to end of string.
-            """,
-                               re.MULTILINE | re.VERBOSE)
-        result = ""
-        m_uri = re_3986_enhanced.match(url)
-        if m_uri and m_uri.group("authority"):
-            auth = m_uri.group("authority")
-            m_domain = re_domain.search(auth)
-            if m_domain and m_domain.group("domain"):
-                result = m_domain.group("domain")
-        return result
 
 
 
