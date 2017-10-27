@@ -12,3 +12,4 @@
 /static/
 .env
 *.pid
+.activate
