@@ -13,6 +13,7 @@ class UserProfile(UserenaBaseProfile):
     passivetotal_key_api = EncryptedTextField(null=True, max_length=255)
     passivetotal_user = EncryptedEmailField(null=True, max_length=60)
     virustotal_key_api = EncryptedTextField(null=True, max_length=255)
+    threshold_whois_distance = models.IntegerField(default=75, null=True)
     created_at = AutoCreatedField(_('created_at'))
     updated_at = AutoLastModifiedField(_('updated_at'))
 
