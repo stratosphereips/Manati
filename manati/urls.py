@@ -25,6 +25,7 @@ path_name = 'manati_project'
 urlpatterns = [
 
     url(r'^'+path_name+'/manati_ui/', include('manati_ui.urls')),
+    url(r'^'+path_name+'/user_profiles/', include('user_profiles.urls')),
     url(r'^'+path_name+'/admin/', include(admin.site.urls)),
     url(r'^'+path_name+'/django-rq/', include('django_rq.urls')), # adding django-rq urls.
     url(r''+path_name+'/', include('login.urls')),
