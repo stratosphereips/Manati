@@ -223,10 +223,10 @@ def features_domains(whois_info_a={}, whois_info_b={}):
                          expiration_date_b, emails_b, name_servers_b)
 
 def distance_domains(whois_info_a, whois_info_b):
-    feature_values = features_domains(whois_info_a, whois_info_b)[1]
+    feature_distance,feature_values = features_domains(whois_info_a, whois_info_b)
     multiply = list(np.multiply(feature_values, weights))
     sum_features = sum(multiply)
-    return abs(sum_features)
+    return abs(sum_features), feature_distance
 
 def get_input_and_target_from(dmfs):
     inputs = []
@@ -253,11 +253,8 @@ def distance_related_by_whois_obj(external_module,domain_a, domain_b):
         whois_info_a = result[domains[0]]
         whois_info_b = result[domains[0]]
 
-    print(whois_info_a)
-    print("##########################")
-    print(whois_info_b)
-    distance = get_whois_distance(whois_info_a,whois_info_b)
-    return distance <= RELATION_THRESHOLD,distance
+    distance, feature_distance = get_whois_distance(whois_info_a,whois_info_b)
+    return distance <= RELATION_THRESHOLD,distance,feature_distance
 
 
 def get_whois_information_features_of(external_module, domains):

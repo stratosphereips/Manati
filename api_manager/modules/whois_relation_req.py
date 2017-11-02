@@ -11,7 +11,7 @@ class WhoisRelationReq(Module):
     version = 'v0.1'
     authors = ['Raul B. Netto']
     events = [ModulesManager.MODULES_RUN_EVENTS.by_request]
-    CONSTANT_THRESHOLD = 0.5  # I found this value after the experiment number 5.
+    # CONSTANT_THRESHOLD = 0.5  # I found this value after the experiment number 5.
 
     def run(self, **kwargs):
         event = kwargs['event_thrown']
@@ -20,13 +20,14 @@ class WhoisRelationReq(Module):
         domains_list = ModulesManager.get_all_IOC_by(analysis_session_id)
 
         for domain_b in domains_list:
-            related, distance_numeric = ModulesManager.distance_related_domains(self.module_name,
+            related, distance_numeric, distance_feature_detail = ModulesManager.distance_related_domains(self.module_name,
                                                                                 domain_primary,
                                                                                 domain_b)
             if related:
                 ModulesManager.set_whois_related_domains(self.module_name,
                                                          analysis_session_id,
-                                                        [domain_primary,domain_b])
+                                                        domain_primary,domain_b,
+                                                         distance_feature_detail,distance_numeric)
         ModulesManager.whois_similarity_distance_module_done(self.module_name,
                                                              analysis_session_id,
                                                              domain_primary)

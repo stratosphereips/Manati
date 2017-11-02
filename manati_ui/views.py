@@ -19,6 +19,7 @@ from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
 from manati_ui.serializers import WeblogSerializer
+import share_modules
 
 
 # Get an instance of a logger
@@ -227,22 +228,66 @@ def find_domains_whois_related(request): # BY DOMAIN
     else:
         return HttpResponseServerError("Only GET request")
 
+@csrf_exempt
+def find_whois_distance_similarity_details(request):  # Between 2 domains
+    # try:
+    if request.method == 'GET':
+        current_user = request.user
+        if not current_user.is_authenticated():
+            current_user = User.objects.get(username='anonymous_user_for_metrics')
+        domain_a = str(request.GET.get('domain_a', ''))
+        domain_b = str(request.GET.get('domain_b', ''))
+        related, distance_numeric, dist_feature_detail = share_modules.whois_distance.distance_related_by_whois_obj(current_user, domain_a, domain_b)
+        if not dist_feature_detail:
+            return HttpResponseServerError("There is an error processing in the WSD algorithm")
+        else:
+            return JsonResponse(dict(related=related,
+                                     distance_numeric=distance_numeric,
+                                     distance_feature=dist_feature_detail,
+                                     msg='WHOIS Similarity Distance details were obtained successfully'))
+    else:
+        return HttpResponseServerError("Only GET request")
+
 
 
 @csrf_exempt
 def refreshing_domains_whois_related(request):
     if request.method == 'GET':
-
+        current_user = request.user
+        if not current_user.is_authenticated():
+            current_user = User.objects.get(username='anonymous_user_for_metrics')
         weblog_id = str(request.GET.get('weblog_id', ''))
         weblog = Weblog.objects.get(id=weblog_id)
         domain_ioc = weblog.domain_ioc
+        whois_related_domains = {}
+        root_whois_features = {}
         if not domain_ioc:
-            whois_related_domains = []
             msg = 'It does not have a IOC domain assigned'
         else:
             msg = 'Refreshing WHOIS related domains'
-            whois_related_domains = domain_ioc.get_all_values_related_by(weblog.analysis_session_id)
+            wris = domain_ioc.whois_related_iocs.filter(ioc_type=domain_ioc.ioc_type,
+                                                  weblogs__analysis_session_id=weblog.analysis_session_id).distinct()
+            wri_ids = [wri.id for wri in wris]
+
+            wris = WHOISRelatedIOC.objects.filter((Q(from_ioc=domain_ioc) & Q(to_ioc__in=wri_ids)) |
+                                                  (Q(to_ioc=domain_ioc) & Q(from_ioc__in=wri_ids) )).distinct()
+            for wri in wris:
+                if wri.from_ioc.id == domain_ioc.id:
+                    value = wri.to_ioc.value
+                elif wri.to_ioc.id == domain_ioc.id:
+                    value = wri.from_ioc.value
+                else:
+                    value = "null"
+
+                whois_features = WhoisConsult.get_whois_distance_features_by_domain(current_user, value)
+                whois_related_domains[value] = [whois_features, wri.features_description]
+
+            root_whois_features = WhoisConsult.get_whois_distance_features_by_domain(current_user, domain_ioc.value)
+
+        print(whois_related_domains)
+        print(root_whois_features)
         return JsonResponse(dict(whois_related_domains=whois_related_domains,
+                                 root_whois_features=root_whois_features,
                                  msg=msg,
                                  was_related=IOC_WHOIS_RelatedExecuted.finished(weblog.analysis_session_id,
                                                                                 domain_ioc.value)))

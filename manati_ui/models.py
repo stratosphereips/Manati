@@ -565,12 +565,10 @@ class IOCManager(models.Manager):
 
 class IOC(TimeStampedModel):
     value = models.CharField(max_length=256, null=False, unique=True)
-    IOC_TYPES = Choices(('domain', 'Domain Name'),
-                        ('ip', 'IP Address'),)
+    IOC_TYPES = Choices(('domain', 'Domain Name'),('ip', 'IP Address'),)
     ioc_type = models.CharField(choices=IOC_TYPES, max_length=20, null=False)
     weblogs = models.ManyToManyField(Weblog)
-    whois_related_iocs = models.ManyToManyField("self", related_name='whois_related_iocs+')
-
+    whois_related_iocs = models.ManyToManyField('self', through='WHOISRelatedIOC', symmetrical=False)
     objects = IOCManager()
 
     @staticmethod
@@ -582,10 +580,31 @@ class IOC(TimeStampedModel):
         exclude_list = []
         for ioc in iocs:
             exclude_list.append(ioc.id)
-            for ioc_b in iocs.exclude(id__in=exclude_list):     # the relation is symmetric,
-                                                                # it is not necessary to re join relationships
-                ioc.whois_related_iocs.add(ioc_b)
+            # the relation is not symmetric,
+            # it is necessary to re join relationships
+            for ioc_b in iocs.exclude(id__in=exclude_list):
+                if not WHOISRelatedIOC.objects.filter(from_ioc=ioc,to_ioc=ioc_b).exists() and \
+                        not WHOISRelatedIOC.objects.filter(from_ioc=ioc_b,to_ioc=ioc).exists():
+                    wri = WHOISRelatedIOC(from_ioc=ioc,to_ioc=ioc_b)
+                    wri.save()
+                # ioc.whois_related_iocs.add(ioc_b)
 
+        return iocs
+
+    @staticmethod
+    def add_whois_related_couple_domains(domain_a, domain_b, distance_feature, numeric_distance):
+
+        iocs = IOC.objects.prefetch_related('whois_related_iocs').filter(value__in=[domain_a,domain_b],
+                                                                         ioc_type='domain').distinct()
+        if iocs.count() > 1:
+            ioc_a = iocs[0]
+            ioc_b = iocs[1]
+            if not WHOISRelatedIOC.objects.filter(from_ioc=ioc_a,to_ioc=ioc_b).exists() and \
+                    not WHOISRelatedIOC.objects.filter(from_ioc=ioc_b,to_ioc=ioc_a).exists():
+                wri = WHOISRelatedIOC(from_ioc=ioc_a,to_ioc=ioc_b,
+                                      features_description=distance_feature,
+                                      numeric_distance=numeric_distance)
+                wri.save()
         return iocs
 
     def get_all_values_related_by(self, analysis_session_id):
@@ -615,6 +634,16 @@ class IOC(TimeStampedModel):
 
     class Meta:
         db_table = 'manati_indicators_of_compromise'
+
+
+class WHOISRelatedIOC(TimeStampedModel):
+    from_ioc = models.ForeignKey(IOC, related_name='from_ioc_id')
+    to_ioc = models.ForeignKey(IOC, related_name='to_ioc_id')
+    features_description = JSONField(default=json.dumps({}), null=True)
+    numeric_distance = models.IntegerField(null=True)
+
+    class Meta:
+        db_table = 'manati_indicators_of_compromise_whois_related_iocs'
 
 
 class WeblogHistory(TimeStampedModel):
@@ -952,6 +981,39 @@ class WhoisConsult(TimeStampedModel):
             if save:
                 self.save()
 
+    @staticmethod
+    def get_whois_distance_features_by_domain(content_object, domain_name):
+        query_type = 'domain'
+        whois_objs = WhoisConsult.objects.filter(query_node=domain_name, query_type=query_type)
+        if whois_objs.exists():
+            whois = whois_objs.first()
+        else:
+            whois = WhoisConsult.objects.create(query_node=domain_name, query_type=query_type,
+                                                content_object=content_object)
+        return whois.whois_distance_features()
+
+    def whois_distance_features(self):
+        features = self.check_features_info().copy()
+        del features['creation_date']
+        del features['expiration_date']
+        features['duration'] = self.domain_duration()
+        return features
+
+    def domain_duration(self):
+        if self.features_info:
+            creation_date_a = self.features_info['creation_date']
+            expiration_date_a = self.features_info['expiration_date']
+            if not creation_date_a or not expiration_date_a:
+                return None
+            cd_a = dateutil.parser.parse(creation_date_a) if not isinstance(creation_date_a,datetime.datetime) else creation_date_a
+            ed_a = dateutil.parser.parse(expiration_date_a) if not isinstance(expiration_date_a,datetime.datetime) else expiration_date_a
+            if cd_a and ed_a:
+                return float(abs(cd_a - ed_a).days)
+            else:
+                return None
+
+
+
     def process_features_by_ip(self, ip):
         pass
 
@@ -1006,17 +1068,7 @@ class WhoisConsult(TimeStampedModel):
         if not query_node:
             return {}
         elif query_type == 'domain':
-            whois_objs = WhoisConsult.objects.filter(query_node=query_node, query_type=query_type)
-            if whois_objs.exists():
-                whois = whois_objs.first()
-            else:
-                whois = WhoisConsult.objects.create(query_node=query_node, query_type=query_type,
-                                                    content_object=content_object)
-
-            if not whois.features_info:
-                whois.process_features_by_domain(query_node)
-            features = whois.features_info
-            return features 
+            return WhoisConsult.get_features_info_by_domain(content_object,query_node)
         elif query_type == 'ip':
             # TO-DO IP version
             return {}
@@ -1024,7 +1076,23 @@ class WhoisConsult(TimeStampedModel):
             pass
 
     @staticmethod
-    def __get_query_info__(query_node, user, **kwargs ):
+    def get_features_info_by_domain(content_object,domain_name):
+        query_type = 'domain'
+        whois_objs = WhoisConsult.objects.filter(query_node=domain_name, query_type=query_type)
+        if whois_objs.exists():
+            whois = whois_objs.first()
+        else:
+            whois = WhoisConsult.objects.create(query_node=domain_name, query_type=query_type,
+                                                content_object=content_object)
+
+        if not whois.features_info:
+            whois.process_features_by_domain(domain_name)
+        features = whois.features_info
+        return features
+
+
+    @staticmethod
+    def __get_query_info__(query_node, user, **kwargs):
 
         class ComplexEncoder(json.JSONEncoder):
             def default(self, obj):
