@@ -61,7 +61,7 @@
                             <li><a href="{% url 'manati_ui:export_metrics' %}"><i class="fa  fa-download"></i> Exporting Metrics</a></li>
                         {% endif %}
                     <li class="divider"></li>
-                    <li><a href="/user_profiles/signout/"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
+                    <li><a href="{% url 'userena_signout' %}"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
                     </li>
                     {% else %}
                         <li><a href="/manati_project/login"><i class="fa fa-user fa-fw"></i>Login</a></li>

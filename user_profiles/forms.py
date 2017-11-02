@@ -1,4 +1,4 @@
-#encoding:utf-8
+# encoding:utf-8
 
 from __future__ import unicode_literals
 from django import forms
@@ -18,10 +18,12 @@ class EditProfileFormExtra(EditProfileForm):
     passivetotal_key_api = forms.CharField(widget=forms.Textarea, label=_('PassiveTotal KEY API'),
                                            required=False, max_length=255)
     passivetotal_user = forms.CharField(label=_('PassiveTotal EMAIL USER'),required=False, max_length=60)
+    threshold_whois_distance = forms.IntegerField(label=_('WDS Threshold'),required=False)
     virustotal_key_api = forms.CharField(widget=forms.Textarea, label=_('VirusTotal KEY API'),
                                          required=False, max_length=255)
 
     def __init__(self, *args, **kwargs):
+        super(EditProfileFormExtra, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Field('first_name'),
@@ -29,6 +31,7 @@ class EditProfileFormExtra(EditProfileForm):
             Field('passivetotal_user'),
             Field('passivetotal_key_api', rows="3", css_class='input-xlarge'),
             Field('virustotal_key_api', rows="3", css_class='input-xlarge'),
+            Field('threshold_whois_distance', type='numeric'),
             FormActions(
                 HTML("<a href='{% url 'userena_password_change' user.username %}' "
                      "class='btn btn-link'>Change password</a>"),
@@ -39,7 +42,6 @@ class EditProfileFormExtra(EditProfileForm):
                 Submit('save_changes', 'Save changes', css_class="btn-primary"),
             )
         )
-        super(EditProfileFormExtra, self).__init__(*args, **kwargs)
 
     class Meta:
         model = get_profile_model()

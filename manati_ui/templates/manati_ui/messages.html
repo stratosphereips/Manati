@@ -16,3 +16,8 @@
 {#{% endif %}#}
 <div id="flash-messages-container">
 </div>
+<script type="application/javascript">
+    {% for message in messages %}
+        $.notify("{{ message }}", '{{ message.tags }}');
+    {% endfor %}
+</script>

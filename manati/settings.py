@@ -92,6 +92,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'manati.wsgi.application'
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
 
 # Database
@@ -285,10 +286,10 @@ LOGGING = {
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
 
 if DEBUG:
-    LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['level'] = 'INFO'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
-    LOGGING['handlers']['console']['level'] = 'DEBUG'
+    LOGGING['handlers']['console']['level'] = 'INFO'
 
     INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
