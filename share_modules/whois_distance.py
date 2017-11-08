@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2017 Stratosphere Lab.
+# Copyright (c) 2017 Stratosphere Laboratory.
 #
 # This file is part of ManaTI Project
 # (see <https://stratosphereips.org>). It was created by 'Raul B. Netto <raulbeni@gmail.com>'
