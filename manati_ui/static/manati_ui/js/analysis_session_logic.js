@@ -42,9 +42,14 @@ var _helper;
 var _filterDataTable;
 
 var _m;
-
+var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
 
 var _loadingPlugin;
+
+function stopInterval (){
+    clearInterval(_sync_db_interval);
+}
+
 function update_constant(str, index){
     if(COL_UUID_STR === str){
         COLUMN_UUID = index;
@@ -63,6 +68,15 @@ function update_constant(str, index){
     }
     else if(COL_END_POINTS_SERVER_STR === str){
         COLUMN_END_POINTS_SERVER = index;
+    }
+}
+function scrollIntoViewIfNeeded(target) {
+    var rect = target.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight) {
+        target.scrollIntoView(false);
+    }
+    if (rect.top < 0) {
+        target.scrollIntoView();
     }
 }
 function checkVerdict(_verdicts_merged, verdict){
@@ -101,6 +115,7 @@ function AnalysisSessionLogic(){
     this.columns_order_changed = false;
     thiz = this;
     _m = new Metrics(true,this);
+    var _verdict_sync = {};
 
     this.getColumnsOrderFlat =function(){
         return this.columns_order_changed;
@@ -146,7 +161,7 @@ function AnalysisSessionLogic(){
         var columns = [];
         for(var i = 0; i< headers.length ; i++){
             var v = headers[i];
-            columns.add({title: v, name: v, class: v});
+            columns.push({title: v, name: v, class: v});
         }
         //verifying if already exist a table, in that case, destroy it
         if(_dt != null || _dt != undefined) {
@@ -172,9 +187,9 @@ function AnalysisSessionLogic(){
                 {"searchable": false, visible: false, "targets": headers.indexOf(COL_UUID_STR)}
             ],
             "scrollX": true,
-            colReorder: true, //true, // TO-DO for now, until prevent an error
+            colReorder: true,
             renderer: "bootstrap",
-            responsive: true,
+            // responsive: true,
             buttons: [  {extend:'copy', title:thiz.getAnalysisSessionName()},
                         {extend:'excel', title: thiz.getAnalysisSessionName()},
                         {extend:'csv', title: thiz.getAnalysisSessionName()},
@@ -183,17 +198,35 @@ function AnalysisSessionLogic(){
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
                 var row = $(nRow);
-                row.addClass(checkVerdict(_verdicts_merged, aData[COLUMN_VERDICT]));
-                var str = aData[COLUMN_DT_ID].split(":");
+                var id = aData[COLUMN_DT_ID];
+                var str = id.split(":");
+                var id_row = str.length > 1 ? str[1] : str[0];
+                var verdict = aData[COLUMN_VERDICT];
+                var reg_status = aData[COLUMN_REG_STATUS];
+                if(_verdict_sync.hasOwnProperty(id)){
+                    var internal_row = _dt.rows('[data-dbid="'+id_row+'"]');
+                    var index_row = internal_row.indexes()[0];
+                    var elem = _verdict_sync[id];
+                    verdict = elem.verdict;
+                    reg_status = elem.register_status;
+                    internal_row.nodes().to$().addClass('selected-sync');
+                    _dt.cell(index_row, COLUMN_VERDICT).data(verdict);
+                    _dt.cell(index_row, COLUMN_REG_STATUS).data(reg_status);
+                    addClassVerdict('selected-sync',verdict);
+                    // thiz.markVerdict(verdict,'selected-sync');
+                    internal_row.nodes().to$().removeClass('modified');
 
-                if(aData[COLUMN_REG_STATUS] == REG_STATUS.modified){
-                    if(!row.hasClass('modified')) row.addClass('modified');
+                    delete _verdict_sync[id];
                 }
-                if(str.length > 1){
-                    row.attr("data-dbid", str[1]);
-                }else{
-                    row.attr("data-dbid", str[0]);
+
+                row.addClass(checkVerdict(_verdicts_merged,verdict ));
+                if((reg_status === REG_STATUS.modified) && !row.hasClass('modified')){
+                    row.addClass('modified');
+                }else if((reg_status !== REG_STATUS.modified) &&  row.hasClass('modified')){
+                    row.removeClass('modified');
                 }
+                row.attr("data-dbid", id_row);
+
             },
             drawCallback: function(){
               $('.paginate_button.next', this.api().table().container())
@@ -206,24 +239,20 @@ function AnalysisSessionLogic(){
               var input_filter = div_filter.find('input').detach();
               var label_filter = div_filter.find('label').detach();
               input_filter.attr('placeholder', 'Search:');
-              input_filter.css('width', 260);
+              input_filter.css('width', '100%');
               input_filter.removeClass();
               label_filter.removeClass();
               div_filter.addClass('fluid-label');
               div_filter.append(input_filter);
               div_filter.append(label_filter);
 
-              // div_filter.appendTo('#new-search-area');
-
-              $('.fluid-label').fluidLabel({
-                focusClass: 'focused'
-              });
+              $('.fluid-label').fluidLabel({ focusClass: 'focused' });
               $('.wrap-buttons').html($('.searching-buttons').clone());
 
               $('.wrap-select-page').html($('.wrap-page-select').clone());
             },
              // "sPaginationType": "listbox",
-            dom:'<"top"<"row"<"col-md-3"f><"col-md-3 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-5"p>>>' +
+            dom:'<"top"<"row"<"col-md-2"f><"col-md-5 wrap-buttons"><"col-md-1 wrap-select-page"><"col-md-4"p>>>' +
                 'rt' +
                 '<"bottom"<"row"<"col-md-2"l><"col-md-5"B><"col-md-5"p>>>' +
                 '<"row"<"col-md-offset-7 col-md-5"<"pull-right"i>>>'+
@@ -231,11 +260,20 @@ function AnalysisSessionLogic(){
             "lengthMenu": [[25, 50, 100, 500], [25, 50, 100, 500]]
         });
 
+
         _dt.buttons().container().appendTo( '#weblogs-datatable_wrapper .col-sm-6:eq(0)' );
-        $('#weblogs-datatable tbody').on( 'click', 'tr', function () {
-            $(this).toggleClass('selected');
+        $('#weblogs-datatable tbody').on( 'click', 'tr', function (event) {
+            event.preventDefault();
+            $('tr.action').not(this).removeClass('action');
+            if((isMac && event.metaKey ) || (!isMac && event.shiftKey)){
+                $(this).toggleClass('selected');
+            }
+            $(this).toggleClass('action');
             $('.contextMenuPlugin').remove();
-        } );
+        }).on('dblclick', 'tr',function () {
+            $(this).toggleClass('selected');
+        });
+
         hideLoading();
         $('#panel-datatable').show();
          _dt.on( 'column-reorder', function ( e, settings, details ) {
@@ -260,7 +298,6 @@ function AnalysisSessionLogic(){
              consultVirusTotal(query_node);
 
         });
-
          // adding options to select datatable's pages
          var list = document.getElementsByClassName('page-select')[1];
          for(var index=0; index<_dt.page.info().pages; index++) {
@@ -314,14 +351,14 @@ function AnalysisSessionLogic(){
                                 var values = _.values(v);
                                 if(values.length < _data_headers.length){
                                     var uuid_str = uuid.v4();
-                                    values.add('undefined');
-                                    values.add(-1);
-                                    values.add(_countID.toString());
-                                    values.add(uuid_str);
+                                    values.push('undefined');
+                                    values.push(-1);
+                                    values.push(_countID.toString());
+                                    values.push(uuid_str);
                                     _data_uploaded[i][COL_VERDICT_STR] = "undefined";
                                     _data_uploaded[i][COL_REG_STATUS_STR] = (-1).toString();
                                     _data_uploaded[i][COL_DT_ID_STR] =_countID.toString();
-                                    _data_uploaded[i][COL_UUID_STR] = uuid_str
+                                    _data_uploaded[i][COL_UUID_STR] = uuid_str;
                                  }
                                 _countID++;
                                 return values
@@ -385,7 +422,7 @@ function AnalysisSessionLogic(){
             temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
             temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
 
-            rows_affected.add(temp_data);
+            rows_affected.push(temp_data);
             var old_verdict = d[COLUMN_VERDICT];
             d[COLUMN_VERDICT]= verdict; // update data source for the row
             d[COLUMN_REG_STATUS] = REG_STATUS.modified;
@@ -398,19 +435,20 @@ function AnalysisSessionLogic(){
         return rows_affected;
 
     };
+
     var syncDB = function (show_loading){
-        if(show_loading == undefined || show_loading == null) show_loading = false;
+        if(show_loading === undefined || show_loading === null) show_loading = false;
         if(show_loading) showLoading();
         var arr_list = _dt.rows('.modified').data();
+        _dt.rows('.modified').nodes().to$().addClass('modified-sync').removeClass('modified');
         var data_row = {};
         arr_list.each(function(elem){
-            if(elem[COLUMN_REG_STATUS] != -1){
+            if(elem[COLUMN_REG_STATUS] !== -1){
                 var key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id+":"+elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID] ;
                 data_row[key_id]=elem[COLUMN_VERDICT];
             }
         });
-        var data = {'analysis_session_id': _analysis_session_id,
-                        'data': data_row };
+        var data = {'analysis_session_id': _analysis_session_id, 'data': data_row };
         if(thiz.getColumnsOrderFlat()){
             data['headers[]']=JSON.stringify(get_headers_info());
             thiz.setColumnsOrderFlat(false);
@@ -426,21 +464,29 @@ function AnalysisSessionLogic(){
                 // console.log(json); // log the returned json to the console
                 var data = JSON.parse(json['data']);
                 console.log(data);
+
                 $.each(data,function (index, elem) {
-                    console.log(elem);
-                    var dt_id = parseInt(elem.pk.split(':')[1]);
-                    var row = _dt.rows('[data-dbid="'+dt_id+'"]');
-                    var index_row = row.indexes()[0];
-                     row.nodes().to$().addClass('selected-sync');
-                    thiz.setColumnsOrderFlat(false);
-                     thiz.markVerdict(elem.fields.verdict,'selected-sync');
-                    row.nodes().to$().removeClass('modified');
-                    _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
-                    _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
+                    var id = elem.pk;
+                    _verdict_sync[id] = {
+                        verdict: elem.fields.verdict,
+                        register_status: elem.fields.register_status
+                    };
+                    // console.log(elem);
+                    // var dt_id = parseInt(elem.pk.split(':')[1]);
+                    // var row = _dt.rows('[data-dbid="'+id+'"]');
+                    // var index_row = row.indexes()[0];
+                    //  row.nodes().to$().addClass('selected-sync');
+                    // thiz.setColumnsOrderFlat(false);
+                    //  thiz.markVerdict(elem.fields.verdict,'selected-sync');
+                    // row.nodes().to$().removeClass('modified');
+                    // _dt.cell(index_row, COLUMN_VERDICT).data(elem.fields.verdict);
+                    // _dt.cell(index_row, COLUMN_REG_STATUS).data(elem.fields.register_status);
 
 
 
                 });
+                $('tr.modified-sync').removeClass('modified-sync');
+                _dt.draw(false);
                 console.log("DB Synchronized");
                 if(show_loading) hideLoading();
             },
@@ -577,12 +623,12 @@ function AnalysisSessionLogic(){
             url: "/manati_project/manati_ui/analysis_session/weblog/reload_modal_domains_whois_related",
             success : function(json) {// handle a successful response
                 var whois_related_domains = json['whois_related_domains'];
+                var root_whois_features = json['root_whois_features'];
                 var was_related = json['was_related'];
-                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related);
+                var table = buildTable_WeblogsWhoisRelated(whois_related_domains,was_related,root_whois_features);
                 updateBodyModal(table);
                 if (was_related) {
-                    closingModal()
-
+                    closingModal();
                 }
             },
             error : function(xhr,errmsg,err) { // handle a non-successful response
@@ -673,6 +719,13 @@ function AnalysisSessionLogic(){
         _verdicts.forEach(function(v){
             items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
         });
+        items_menu['unselect'] = {
+            name: "Unselect",
+            icon: "fa-paint-brush " + "unselect",
+            callback: function(key, options){
+                $('tr.selected').removeClass('selected');
+            }
+        };
         items_menu['sep1'] = "-----------";
         items_menu['fold1'] = {
             name: "Mark all WBs with same: ",
@@ -1049,7 +1102,7 @@ function AnalysisSessionLogic(){
     }
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
-        if (table != null) {
+        if (table !== null) {
             modal_body.find('.table-section').html(table).show();
             modal_body.find(".loading").hide();
         }
@@ -1185,39 +1238,94 @@ function AnalysisSessionLogic(){
         });
         return table;
     }
-    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related){
-        if(was_related == undefined || was_related == null) was_related = false;
+    function buildTable_WeblogsWhoisRelated(mod_attributes,was_related,root_whois_features){
+        if(was_related === undefined || was_related === null) was_related = false;
         if(isEmpty(mod_attributes) && !was_related) return null;
-        var table = "<table class='table table-bordered'>";
-        table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
-        table += "<tbody>";
-        console.log(mod_attributes);
+        var threshold_default = 75;
         var count = 1;
+        var feature_names_ref = {'emails':'diff_emails', 'domain_name':'dist_domain_name', 'name_servers':'diff_name_servers',
+                'registrar':'dist_registrar', 'name':'dist_name', 'duration':'dist_duration', 'zipcode':'dist_zipcode',
+                'org':'dist_org'};
+        var html = '';
+        html += "<span id='slider-range-span' class='example-val'></span>";
+        html += "<div id='slider-range'></div>";
+
+        html += "<br/>";
+        html += '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
         if(isEmpty(mod_attributes) && was_related){
-            var tr = "<tr>";
-            tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
-            table+=tr;
+            html += "<div> NO WHOIS RELATED DOMAINS in this analysis session </div>";
         }else{
-            _.each(mod_attributes, function (domain) {
+            _.each(mod_attributes, function (features, domain) {
+
+
+                var table = "<table class='table table-bordered'>";
+                table += "<thead><tr><th>Feature Name</th><th>WHOIS info A</th><th>WHOIS info B</th><th>Distance</th></tr></thead>";
+                table += "<tbody>";
+                var tmp_count = 0;
+                var total_dist = 0;
+                _.each(features[0], function (whois_info, feature_name) {
+                    var local_dist = parseFloat(features[1][feature_names_ref[feature_name]]);
+                    var tr = "<tr>";
+                    tr += "<td>"+feature_name+"</td>";
+                    tr += "<td>"+root_whois_features[feature_name]+"</td>";
+                    tr += "<td>"+whois_info+"</td>";
+                    tr += "<td>"+local_dist.toString()+"</td>";
+                    tr += "</tr>";
+                    table+=tr;
+                    total_dist += local_dist;
+                });
                 var tr = "<tr>";
-                tr += "<td>"+count+"</td>";
-                tr += "<td>"+domain+"</td>";
-                tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
+                tr += "<td colspan='3'>Total Distance</td>";
+                tr += "<td>"+total_dist.toString()+"</td>";
                 tr += "</tr>";
                 table+=tr;
+                table += "</tbody>";
+                table += "</table>";
+                var style = total_dist <= threshold_default ? "" : "display:none;";
+                html += '<div class="panel panel-default panel-comparison" style="'+style+'" data-totaldist="'+total_dist+'">';
+                    html += '<div class="panel-heading" role="tab" id="heading'+count+'">';
+                        html += '<h4 class="panel-title" style="display: inline; margin-right: 10px">';
+                        html += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse'+count+'" aria-expanded="true" aria-controls="collapse'+count+'" >';
+                        html += domain;
+                        html += '</a></h4>';
+                        html += "<input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/>";
+                    html += '</div>';
+                    html += '<div id="collapse'+count+'"  class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading'+count+'" >';
+                        html += '<div class="panel-body">';
+                                html += table;
+                        html += '</div>';
+                    html += '</div>';
+                html += '</div>';
                 count++;
             });
 
         }
+        html += '</div>';
+        html += '<script type="application/javascript">';
+        html += "var slider1 = document.getElementById('slider-range');";
+        html += "var slider1Value = document.getElementById('slider-range-span');";
+        html += "noUiSlider.create(slider1, {start: "+threshold_default+", animate: true, range: { min: 5, max: 200}});";
+        html += "slider1.noUiSlider.on('update', function( values, handle ){ " +
+                    "var new_threshold = values[handle];" +
+                    "slider1Value.innerHTML = new_threshold;" +
+                    "$('.panel-comparison').each(function (){" +
+                        "var elem = $(this);" +
+                        "if(parseFloat(elem.data('totaldist')) <= new_threshold){" +
+                            "elem.show();"+
+                        "}else{" +
+                            "elem.hide();"+
+                        "}" +
+                    "});" +
+                "});";
+        html += '</script>';
+        return html;
 
-        table += "</tbody>";
-        table += "</table>";
-        return table;
+
 
     }
     function getIOCs(weblog_id){
         initModal("IOCs Selected:" + weblog_id);
-        var data = {weblog_id:weblog_id}
+        var data = {weblog_id:weblog_id};
         $.ajax({
             type:"GET",
             dataType: "json",
@@ -1377,6 +1485,11 @@ function AnalysisSessionLogic(){
             preventDefault(e);
             labelingRows('undefined');
         });
+         // unselect selected rows
+        Mousetrap.bind(['shift+ctrl+u', 'shift+command+u'], function(e) {
+            preventDefault(e);
+            $('tr.selected').removeClass('selected');
+        });
         // Filter all Malicious
         Mousetrap.bind(['ctrl+1', 'command+1'], function(e) {
             preventDefault(e);
@@ -1416,38 +1529,161 @@ function AnalysisSessionLogic(){
          // open VirusTotal Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+v', 'command+shift+v'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultVirusTotal(qn, "domain");
         });
          // open WHOIS Modal By domain, the first selected weblog
         Mousetrap.bind(['ctrl+shift+p', 'command+shift+p'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_HTTP_URL];
+            var qn = _dt.rows('.action').data()[0][COLUMN_HTTP_URL];
             consultWhois(qn, "domain");
         });
          // open VirusTotal Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+i', 'command+shift+i'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
+            var qn = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER];
             consultVirusTotal(qn, "ip");
         });
          // open WHOIS Modal By IP, the first selected weblog
         Mousetrap.bind(['ctrl+shift+o', 'command+shift+o'], function(e) {
             preventDefault(e);
-            var qn = _dt.rows('.selected').data()[0][COLUMN_END_POINTS_SERVER];
-            consultWhois(qn, "ip");
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT];
+             setBulkVerdict_WORKER(verdict, _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR]);
         });
+        //show whois similarity modal
         Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function(e) {
             preventDefault(e);
-            var weblog_id = _dt.rows('.selected').data()[0][COLUMN_DT_ID].toString();
+            var weblog_id = _dt.rows('.action').data()[0][COLUMN_DT_ID].toString();
             weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
             getWeblogsWhoisRelated(weblog_id);
         });
+
+        // VI-Style
+        // moving down with J
+        Mousetrap.bind(['j'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var next_tr;
+            if(current_tr.length){
+                next_tr = current_tr.next().first();
+                if(!next_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(_dt.page.info().pages > current_page+1){
+                        // moving to the next one
+                        _dt.page(current_page+1).draw('page');
+                    }else{
+                        // moving to the first page, first row
+                        _dt.page(0).draw('page');
+                    }
+                    next_tr = $('#weblogs-datatable tbody tr').first();
+                    current_tr = null;
+                }
+            }else{
+                next_tr = $('#weblogs-datatable tbody tr').first();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            next_tr.addClass('action');
+            if(current_tr){
+                scrollIntoViewIfNeeded(current_tr[0])
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+
+         // moving up with k
+        Mousetrap.bind(['k'], function(e) {
+            preventDefault(e);
+            var scroll_tr;
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            var prev_tr;
+            if(current_tr.length){
+                prev_tr = current_tr.prev().first();
+                if(!prev_tr.length){
+                    //move the page if it is possible
+                    var current_page = _dt.page.info().page;
+                    if(0 <= current_page-1){
+                        // moving to the previous page
+                        _dt.page(current_page-1).draw('page');
+                    }else{
+                        // moving to the last page, last row
+                        var pages = _dt.page.info().pages;
+                        _dt.page(pages-1).draw('page');
+                    }
+                    prev_tr = $('#weblogs-datatable tbody tr').last();
+                    scroll_tr =prev_tr;
+                    current_tr = null;
+                }
+            }else{
+                prev_tr = $('#weblogs-datatable tbody tr').last();
+            }
+
+            $('#weblogs-datatable tbody tr.action').removeClass('action');
+            prev_tr.addClass('action');
+            scroll_tr = scroll_tr ? scroll_tr : prev_tr.prev();
+            if(scroll_tr.length){
+                scrollIntoViewIfNeeded(scroll_tr[0]);
+            }else{
+                $("html, body").animate({ scrollTop: 0 }, "slow");
+            }
+
+        });
+        // select row to be label.
+        Mousetrap.bind(['space'], function(e) {
+            preventDefault(e);
+            var current_tr= $('#weblogs-datatable tbody tr.action').first();
+            current_tr.toggleClass('selected');
+
+        });
+
+        Mousetrap.bind(['left'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page - 1 >= 0){
+                _dt.page(current_page-1).draw('page');
+            }else{
+                _dt.page(pages-1).draw('page');
+            }
+        });
+
+        Mousetrap.bind(['right'], function (e) {
+            preventDefault(e);
+            var pages = _dt.page.info().pages;
+            var current_page = _dt.page.info().page;
+            if(current_page + 1 < pages){
+                _dt.page(current_page+1).draw('page');
+            }else{
+                _dt.page(0).draw('page');
+            }
+        });
+
+        //mark all the weblogs in the current session with the same IP
+        Mousetrap.bind(['p'],function (e) {
+            preventDefault(e);
+            var ip_value = _dt.rows('.action').data()[0][COLUMN_END_POINTS_SERVER].toString();
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value));
+        });
+
+        //mark all  the weblogs in the current session with the same domain
+        Mousetrap.bind(['d'],function (e) {
+            preventDefault(e);
+            var url =  _dt.rows('.action').data()[0][COLUMN_HTTP_URL].toString();
+            var domain = findDomainOfURL(url); // getting domain
+            var verdict = _dt.rows('.action').data()[0][COLUMN_VERDICT].toString();
+            setBulkVerdict_WORKER(verdict, _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain));
+        });
+
 
 
 
 
     };
+
+
     function on_ready_fn (){
         $(document).ready(function() {
             $(document).on('click', '#search-domain-selected', function(ev){
@@ -1514,7 +1750,7 @@ function AnalysisSessionLogic(){
             $('body').on('click','.unselect', function (ev){
                 ev.preventDefault();
                 _filterDataTable.removeFilter(_dt);
-                $('#searching-buttons .btn').removeClass('active')
+                $('.searching-buttons .btn').removeClass('active')
             });
 
             contextMenuSettings();
@@ -1610,7 +1846,7 @@ function AnalysisSessionLogic(){
         reader_files = ReaderFile(thiz);
         on_ready_fn();
         // window.onbeforeunload = function() {
-        //     return "Dude, are you sure you want to leave? Think of the kittens!";
+        //     return "Mate, are you sure you want to leave? Think of the kittens!";
         // }
 
     };
@@ -1727,7 +1963,7 @@ function AnalysisSessionLogic(){
 
             $(document).ready(function(){
                 $('#panel-datatable').show();
-               idSyncDBIntervalId= setInterval(syncDB, TIME_SYNC_DB );
+               _sync_db_interval= setInterval(syncDB, TIME_SYNC_DB );
 
             });
             if(update_uuid_weblogs){

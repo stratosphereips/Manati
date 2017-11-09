@@ -24,26 +24,27 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 
+ENCRYPTED_FIELDS_KEYDIR = os.path.join(BASE_DIR, 'fieldkeys')
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 if DEBUG:
     print("Debug is enabled.")
     ALLOWED_HOSTS = ["127.0.0.1"]
 else:
     ALLOWED_HOSTS = ["*"]
 
-
-
 # Application definition
-
 INSTALLED_APPS = [
-    # 'cacheops',
+    'user_profiles',
+    'userena',
+    'easy_thumbnails',
+    'django_rq',
     'guardian',
     'api_manager',
     'background_task',
     'rest_framework',
     'bootstrap3',
-    'sass_processor',
     'django_extensions',
     'manati_ui.apps.ManatiUiConfig',
     'django.contrib.admin',
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'crispy_forms',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -90,6 +92,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'manati.wsgi.application'
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
 
 # Database
@@ -97,6 +100,35 @@ STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 DATABASES = {
     'default': dj_database_url.config(default=config('DATABASE_URL'))
 }
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
+    },
+    'high': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+    },
+    'low': {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+        'PASSWORD': config('REDIS_PASSWORD'),
+        'DEFAULT_TIMEOUT': 360,
+    }
+}
+
+RQ_SHOW_ADMIN_LINK = True
+
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 
 
@@ -126,7 +158,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Prague'
 
 USE_I18N = True
 
@@ -170,9 +202,22 @@ NOTEBOOK_ARGUMENTS = [
 ]
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend', # this is default
+    'userena.backends.UserenaAuthenticationBackend',
     'guardian.backends.ObjectPermissionBackend',
+    'django.contrib.auth.backends.ModelBackend',  # this is default
 )
+ANONYMOUS_USER_ID = 1
+AUTH_PROFILE_MODULE = 'user_profiles.UserProfile'
+USERENA_SIGNIN_REDIRECT_URL = '/user_profiles/%(username)s/'
+LOGIN_URL = '/user_profiles/signin/'
+LOGOUT_URL = '/user_profiles/signout/'
+USERENA_DISABLE_PROFILE_LIST = True
+USERENA_DISABLE_SIGNUP = True
+USERENA_REGISTER_USER = False
+USERENA_REGISTER_PROFILE = False
+USERENA_DEFAULT_PRIVACY = 'closed'
+USERENA_MUGSHOT_GRAVATAR = False
+
 path_log_file = os.path.join(BASE_DIR, 'logs')
 logfile_name = os.path.join(path_log_file, "server.log")
 logfile_debug_name = os.path.join(path_log_file, "server_debug.log")
@@ -193,6 +238,10 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        # "rq_console": {
+        #     "format": "%(asctime)s %(message)s",
+        #     "datefmt": "%H:%M:%S",
+        # },
     },
     'handlers': {
         'console': {
@@ -209,6 +258,12 @@ LOGGING = {
             "backupCount": 20,
             "encoding": "utf8"
         },
+        # "rq_console": {
+        #     "level": "DEBUG",
+        #     "class": "rq.utils.ColorizingStreamHandler",
+        #     "formatter": "rq_console",
+        #     "exclude": ["%(asctime)s"],
+        # },
     },
     'loggers': {
         'django': {
@@ -216,16 +271,53 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        # "rq.worker": {
+        #     "handlers": ["rq_console"],
+        #     "level": "DEBUG"
+        # },
     },
     "root": {
         "level": "INFO",
         "handlers": ["console", "file"]
     }
 }
+
+
+GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
+ANONYMOUS_USER_ID = 1
+
 if DEBUG:
-    LOGGING['handlers']['file']['level'] = 'DEBUG'
-    LOGGING['handlers']['console']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['level'] = 'INFO'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
-GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance'
+    LOGGING['handlers']['console']['level'] = 'INFO'
 
+    INTERNAL_IPS = ('127.0.0.1', 'localhost',)
+    MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]
+
+    INSTALLED_APPS += ['debug_toolbar','pympler','template_profiler_panel']
+
+    DEBUG_TOOLBAR_PANELS = [
+           # 'djdt_flamegraph.FlamegraphPanel',
+           'ddt_request_history.panels.request_history.RequestHistoryPanel',
+           'debug_toolbar.panels.versions.VersionsPanel',
+           'debug_toolbar.panels.timer.TimerPanel',
+           'debug_toolbar.panels.settings.SettingsPanel',
+           'debug_toolbar.panels.headers.HeadersPanel',
+           'debug_toolbar.panels.request.RequestPanel',
+           'debug_toolbar.panels.sql.SQLPanel',
+           'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+           'debug_toolbar.panels.templates.TemplatesPanel',
+           'debug_toolbar.panels.cache.CachePanel',
+           'debug_toolbar.panels.signals.SignalsPanel',
+           'debug_toolbar.panels.logging.LoggingPanel',
+           'debug_toolbar.panels.redirects.RedirectsPanel',
+           # 'pympler.panels.MemoryPanel',
+           'template_profiler_panel.panels.template.TemplateProfilerPanel',
+    ]
+
+    # DEBUG_TOOLBAR_CONFIG = {
+    #         'INTERCEPT_REDIRECTS': False,
+    #         'SHOW_TOOLBAR_CALLBACK': 'ddt_request_history.panels.request_history.allow_ajax',
+    #         'RESULTS_STORE_SIZE': 100,
+    #    }

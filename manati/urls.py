@@ -17,27 +17,29 @@ from django.conf.urls import include,url
 from django.contrib import admin
 from django.contrib.auth import views
 from login.forms import LoginForm
-from api_manager.core.modules_manager import ModulesManager
 import login
-from django.core import management
-import threading
 from manati import settings
-import os
-from django.db import connection
 
 path_name = 'manati_project'
 
 urlpatterns = [
 
     url(r'^'+path_name+'/manati_ui/', include('manati_ui.urls')),
+    url(r'^'+path_name+'/user_profiles/', include('user_profiles.urls')),
     url(r'^'+path_name+'/admin/', include(admin.site.urls)),
+    url(r'^'+path_name+'/django-rq/', include('django_rq.urls')), # adding django-rq urls.
     url(r''+path_name+'/', include('login.urls')),
     url(r'^'+path_name+'/index.html$', login.views.home, name="home"),
     url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': LoginForm}),
     url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
     url(r'^', login.views.home, name="home"),
-
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
 
 
 

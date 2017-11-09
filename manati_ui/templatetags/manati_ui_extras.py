@@ -1,16 +1,25 @@
 from django import template
 import subprocess
 import manati
+import manati.settings as settings
 register = template.Library()
 
 
-#@register.simple_tag
-#def get_git_revision_number():
-#    return subprocess.check_output(['git', 'rev-list', '--count', 'HEAD'])
+@register.simple_tag
+def get_git_revision_number():
+    if settings.DEBUG:
+        try:
+            return "git rev.: " +str(subprocess.check_output(['git', 'rev-list', '--count', 'HEAD']))
+        except OSError as ose:
+            return "v" + version_app()
+        except Exception as ex:
+            return "v" + version_app()
+    else:
+        return "v" + version_app()
 
 @register.simple_tag
 def version_app():
-   return manati.__version__
+    return manati.__version__
 
 @register.simple_tag
 def display_flash_messages(messages):

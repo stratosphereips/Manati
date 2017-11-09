@@ -11,3 +11,7 @@
 .DS_Store
 .env
 static/*
+/static/
+.env
+*.pid
+.activate

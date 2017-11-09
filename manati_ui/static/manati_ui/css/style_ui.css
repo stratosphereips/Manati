@@ -51,9 +51,14 @@
   background-color: #C4E3F7;
 }
 .dataTables_wrapper table tbody tr.selected td {
-  background-color: #447e9b;
+    background-color: #447e9b;
     color: white;
 }
+.dataTables_wrapper table tbody tr.action td {
+    border-bottom: 2px goldenrod solid;
+    border-top: 2px goldenrod solid;
+}
+
 
 
 .jCProgress {
@@ -145,7 +150,7 @@ width: 0;
 
 
 
- .btn-6{
+.btn-6{
     -webkit-transition: none;
     -moz-transition: none;
     transition: none;
@@ -240,5 +245,15 @@ width: 0;
     color: #fff;
     background-color: #337ab7;
     border-color: #2e6da4;
+}
+.example-val {
+    font: 400 12px Arial;
+    color: #888;
+    display: block;
+    margin: 15px 0;
+}
+.example-val:before{
+    content: "WSD Threshold: ";
+    font: 700 12px Arial;
 }
 
