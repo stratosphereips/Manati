@@ -103,26 +103,28 @@ DATABASES = {
 
 RQ_QUEUES = {
     'default': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
+        # 'HOST': 'localhost',
+        # 'PORT': 6379,
+        # 'DB': 0,
+        # 'PASSWORD': config('REDIS_PASSWORD'),
         'DEFAULT_TIMEOUT': 360,
-        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
+        'URL': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
     },
     'high': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
+        # 'HOST': 'localhost',
+        # 'PORT': 6379,
+        # 'DB': 0,
+        # 'PASSWORD': config('REDIS_PASSWORD'),
         'DEFAULT_TIMEOUT': 360,
+        'URL': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
     },
     'low': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
+        # 'HOST': 'localhost',
+        # 'PORT': 6379,
+        # 'DB': 0,
+        # 'PASSWORD': config('REDIS_PASSWORD'),
         'DEFAULT_TIMEOUT': 360,
+        'URL': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
     }
 }
 
