@@ -11,5 +11,6 @@
 .DS_Store
 /static/
 .env
+.env-docker
 *.pid
 .activate

@@ -1102,7 +1102,7 @@ function AnalysisSessionLogic(){
     }
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
-        if (table != null) {
+        if (table !== null) {
             modal_body.find('.table-section').html(table).show();
             modal_body.find(".loading").hide();
         }
@@ -1241,42 +1241,48 @@ function AnalysisSessionLogic(){
     function buildTable_WeblogsWhoisRelated(mod_attributes,was_related,root_whois_features){
         if(was_related === undefined || was_related === null) was_related = false;
         if(isEmpty(mod_attributes) && !was_related) return null;
-        // var table = "<table class='table table-bordered'>";
-        // table += "<thead><tr><th>#</th><th>Domain Name</th><th>Select?</th></tr></thead>";
-        // table += "<tbody>";
-        // console.log(mod_attributes);
+        var threshold_default = 75;
         var count = 1;
-        // if(isEmpty(mod_attributes) && was_related){
-        //     var tr = "<tr>";
-        //     tr += "<td colspan='3' style='text-align: center;'> NO WHOIS RELATED DOMAINS in this analysis session </td>";
-        //     table+=tr;
-        // }else{
-        //     _.each(mod_attributes, function (domain) {
-        //         var tr = "<tr>";
-        //         tr += "<td>"+count+"</td>";
-        //         tr += "<td>"+domain+"</td>";
-        //         tr += "<td><input type='checkbox' name='search_domain_table[]' value='"+domain+"' checked='True'/></td>";
-        //         tr += "</tr>";
-        //         table+=tr;
-        //         count++;
-        //     });
-        //
-        // }
-        //
-        // table += "</tbody>";
-        // table += "</table>";
-        // return table;
-
         var feature_names_ref = {'emails':'diff_emails', 'domain_name':'dist_domain_name', 'name_servers':'diff_name_servers',
                 'registrar':'dist_registrar', 'name':'dist_name', 'duration':'dist_duration', 'zipcode':'dist_zipcode',
                 'org':'dist_org'};
         var html = '';
+        html += "<span id='slider-range-span' class='example-val'></span>";
+        html += "<div id='slider-range'></div>";
+
+        html += "<br/>";
         html += '<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
         if(isEmpty(mod_attributes) && was_related){
             html += "<div> NO WHOIS RELATED DOMAINS in this analysis session </div>";
         }else{
             _.each(mod_attributes, function (features, domain) {
-                html += '<div class="panel panel-default">';
+
+
+                var table = "<table class='table table-bordered'>";
+                table += "<thead><tr><th>Feature Name</th><th>WHOIS info A</th><th>WHOIS info B</th><th>Distance</th></tr></thead>";
+                table += "<tbody>";
+                var tmp_count = 0;
+                var total_dist = 0;
+                _.each(features[0], function (whois_info, feature_name) {
+                    var local_dist = parseFloat(features[1][feature_names_ref[feature_name]]);
+                    var tr = "<tr>";
+                    tr += "<td>"+feature_name+"</td>";
+                    tr += "<td>"+root_whois_features[feature_name]+"</td>";
+                    tr += "<td>"+whois_info+"</td>";
+                    tr += "<td>"+local_dist.toString()+"</td>";
+                    tr += "</tr>";
+                    table+=tr;
+                    total_dist += local_dist;
+                });
+                var tr = "<tr>";
+                tr += "<td colspan='3'>Total Distance</td>";
+                tr += "<td>"+total_dist.toString()+"</td>";
+                tr += "</tr>";
+                table+=tr;
+                table += "</tbody>";
+                table += "</table>";
+                var style = total_dist <= threshold_default ? "" : "display:none;";
+                html += '<div class="panel panel-default panel-comparison" style="'+style+'" data-totaldist="'+total_dist+'">';
                     html += '<div class="panel-heading" role="tab" id="heading'+count+'">';
                         html += '<h4 class="panel-title" style="display: inline; margin-right: 10px">';
                         html += '<a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse'+count+'" aria-expanded="true" aria-controls="collapse'+count+'" >';
@@ -1286,22 +1292,7 @@ function AnalysisSessionLogic(){
                     html += '</div>';
                     html += '<div id="collapse'+count+'"  class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading'+count+'" >';
                         html += '<div class="panel-body">';
-                            var table = "<table class='table table-bordered'>";
-                            table += "<thead><tr><th>Feature Name</th><th>WHOIS info A</th><th>WHOIS info B</th><th>Distance</th></tr></thead>";
-                            table += "<tbody>";
-                            var tmp_count = 0;
-                            _.each(features[0], function (whois_info, feature_name) {
-                                var tr = "<tr>";
-                                tr += "<td>"+feature_name+"</td>";
-                                tr += "<td>"+root_whois_features[feature_name]+"</td>";
-                                tr += "<td>"+whois_info+"</td>";
-                                tr += "<td>"+features[1][feature_names_ref[feature_name]]+"</td>";
-                                tr += "</tr>";
-                                table+=tr;
-                            });
-                            table += "</tbody>";
-                            table += "</table>";
-                            html += table;
+                                html += table;
                         html += '</div>';
                     html += '</div>';
                 html += '</div>';
@@ -1309,8 +1300,24 @@ function AnalysisSessionLogic(){
             });
 
         }
-
         html += '</div>';
+        html += '<script type="application/javascript">';
+        html += "var slider1 = document.getElementById('slider-range');";
+        html += "var slider1Value = document.getElementById('slider-range-span');";
+        html += "noUiSlider.create(slider1, {start: "+threshold_default+", animate: true, range: { min: 5, max: 200}});";
+        html += "slider1.noUiSlider.on('update', function( values, handle ){ " +
+                    "var new_threshold = values[handle];" +
+                    "slider1Value.innerHTML = new_threshold;" +
+                    "$('.panel-comparison').each(function (){" +
+                        "var elem = $(this);" +
+                        "if(parseFloat(elem.data('totaldist')) <= new_threshold){" +
+                            "elem.show();"+
+                        "}else{" +
+                            "elem.hide();"+
+                        "}" +
+                    "});" +
+                "});";
+        html += '</script>';
         return html;
 
 

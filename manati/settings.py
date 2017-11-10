@@ -44,6 +44,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 
+ENCRYPTED_FIELDS_KEYDIR = os.path.join(BASE_DIR, 'fieldkeys')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 if DEBUG:
@@ -54,13 +56,15 @@ else:
 
 # Application definition
 INSTALLED_APPS = [
+    'user_profiles',
+    'userena',
+    'easy_thumbnails',
     'django_rq',
     'guardian',
     'api_manager',
     'background_task',
     'rest_framework',
     'bootstrap3',
-    'sass_processor',
     'django_extensions',
     'manati_ui.apps.ManatiUiConfig',
     'django.contrib.admin',
@@ -70,6 +74,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.sites',
     'django.contrib.staticfiles',
+    'crispy_forms',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -90,7 +95,7 @@ ROOT_URLCONF = 'manati.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ["templates"],
+        'DIRS': ["templates", "templates/errors"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -107,40 +112,74 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'manati.wsgi.application'
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
-
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-DATABASES = {
-    'default': dj_database_url.config(default=config('DATABASE_URL'))
-}
-
-RQ_QUEUES = {
-    'default': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
-        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
-    },
-    'high': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
-    },
-    'low': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
+DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', False)
+if not DOCKER_COMPOSE:
+    DATABASE_URL = dj_database_url.config(default=config('DATABASE_URL', default='', cast=str))
+    DATABASES = {
+        'default': DATABASE_URL
     }
-}
+else:
+    DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'NAME': os.environ.get('DB_NAME', config('DB_NAME', default='postgres', cast=str)),
+                'USER': os.environ.get('DB_USER', config('DB_USER', default='postgres', cast=str)),
+                'PASSWORD': os.environ.get('DB_PASS', config('DB_PASS', default='postgres', cast=str)),
+                'HOST': os.environ.get('DB_SERVICE', config('DB_HOST', default='localhost', cast=str)),
+                'PORT': os.environ.get('DB_PORT', config('DB_PORT', default='5432', cast=str))
+            }
+        }
+
+# Redis Settings
+
+REDIS_URL = os.getenv('HEROKU_REDIS_MAROON_URL', os.getenv('REDISTOGO_URL_DOCKER', None))
+if REDIS_URL:
+    RQ_QUEUES = {
+        'default': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL,
+        },
+        'high': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL
+        },
+        'low': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL
+        }
+    }
+else:
+    RQ_QUEUES = {
+        'default': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
+            'DEFAULT_TIMEOUT': 360,
+        },
+        'high': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
+            'DEFAULT_TIMEOUT': 360,
+        },
+        'low': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
+            'DEFAULT_TIMEOUT': 360,
+        }
+    }
 
 RQ_SHOW_ADMIN_LINK = True
+
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 
 
@@ -214,9 +253,22 @@ NOTEBOOK_ARGUMENTS = [
 ]
 
 AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend', # this is default
+    'userena.backends.UserenaAuthenticationBackend',
     'guardian.backends.ObjectPermissionBackend',
+    'django.contrib.auth.backends.ModelBackend',  # this is default
 )
+ANONYMOUS_USER_ID = 1
+AUTH_PROFILE_MODULE = 'user_profiles.UserProfile'
+USERENA_SIGNIN_REDIRECT_URL = '/user_profiles/%(username)s/'
+LOGIN_URL = '/user_profiles/signin/'
+LOGOUT_URL = '/user_profiles/signout/'
+USERENA_DISABLE_PROFILE_LIST = True
+USERENA_DISABLE_SIGNUP = True
+USERENA_REGISTER_USER = False
+USERENA_REGISTER_PROFILE = False
+USERENA_DEFAULT_PRIVACY = 'closed'
+USERENA_MUGSHOT_GRAVATAR = False
+
 path_log_file = os.path.join(BASE_DIR, 'logs')
 logfile_name = os.path.join(path_log_file, "server.log")
 logfile_debug_name = os.path.join(path_log_file, "server_debug.log")
@@ -286,10 +338,10 @@ GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati_ui.models.get_anonymous_user_instance
 ANONYMOUS_USER_ID = 1
 
 if DEBUG:
-    LOGGING['handlers']['file']['level'] = 'DEBUG'
+    LOGGING['handlers']['file']['level'] = 'INFO'
     LOGGING['handlers']['file']['maxBytes'] = 1024*1024*30 # 30 MB
     LOGGING['handlers']['file']['filename'] = logfile_debug_name
-    LOGGING['handlers']['console']['level'] = 'DEBUG'
+    LOGGING['handlers']['console']['level'] = 'INFO'
 
     INTERNAL_IPS = ('127.0.0.1', 'localhost',)
     MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware',]

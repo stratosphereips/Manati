@@ -19,7 +19,6 @@
 # for copying permission.
 #
 import json
-import os
 import imp
 from manati import settings
 import whois
@@ -79,28 +78,26 @@ def run_external_module(event_thrown, module_name, weblogs_seed_json):
     #     print_exception()
     # ModulesManager.execute_module(external_module, event_thrown, weblogs_seed_json, path) # background task
 
-def __run_find_whois_related_domains__(analysis_session_id, domains_json):
-    # special cases of running after events. re-do it now is a HACK!!!
+def __run_find_whois_related_domains__(analysis_session_id,domain, domains_json):
     try:
         external_module = ExternalModule.objects.get(module_name='whois_relation_req')
-    except:
-        ModulesManager.__run_background_task_service__()
-        external_module = ExternalModule.objects.get(module_name='whois_relation_req')
-
-    module_name = external_module.module_name
-    event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
-
-    print("Running module: " + module_name)
-    logger.info("Running module: " + module_name)
-    path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-    assert os.path.isdir(path) is True
-    external_module = ExternalModule.objects.get(module_name=module_name)
-    module_path = os.path.join(path, external_module.filename)
-    module_instance = external_module.module_instance
-    module = imp.load_source(module_instance, module_path)
-    module.module_obj.run(event_thrown=event_name,
-                          analysis_session_id=analysis_session_id,
-                          domains=domains_json)
+        module_name = external_module.module_name
+        event_name = ModulesManager.MODULES_RUN_EVENTS.by_request
+        print("Running module: " + module_name)
+        logger.info("Running module: " + module_name)
+        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
+        assert os.path.isdir(path) is True
+        external_module = ExternalModule.objects.get(module_name=module_name)
+        module_path = os.path.join(path, external_module.filename)
+        module_instance = external_module.module_instance
+        module = imp.load_source(module_instance, module_path)
+        module.module_obj.run(event_thrown=event_name,
+                              analysis_session_id=analysis_session_id,
+                              domains=domains_json)
+    except Exception as ex:
+        logger.error(str(ex))
+        logger.error("ERROR Running module: whois_relation_req was stopped")
+        IOC_WHOIS_RelatedExecuted.mark_error(analysis_session_id, domain)
 
 
 def __bulk_labeling_by_whois_relation_aux__(username, analysis_session_id, domain,verdict):
@@ -125,52 +122,6 @@ class ModulesManager:
     INFO_ATTRIBUTES = AnalysisSession.INFO_ATTRIBUTES
     URL_ATTRIBUTES_AVAILABLE = Constant.URL_ATTRIBUTES_AVAILABLE
     background_task_thread = None
-
-    @staticmethod
-    @transaction.atomic
-    def checking_modules():
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        modules = ExternalModule.objects.all()
-        for module in modules:
-            filename = module.filename
-            filename_path = os.path.join(path, filename)
-            if os.path.exists(filename_path) is False:
-                # remove module or change its status
-                module.status = ExternalModule.MODULES_STATUS.removed
-                module.save()
-            else:
-                # update information
-                module_file = imp.load_source(module.module_instance, filename_path)
-                module_instanced = module_file.module_obj
-                module.description = module_instanced.description[0:198]
-                module.version = module_instanced.version
-                module.authors = module_instanced.authors
-                module.run_in_events = json.dumps(module_instanced.events)
-                module.status = ExternalModule.MODULES_STATUS.idle
-                module.save()
-
-    @staticmethod
-    @postpone
-    def register_modules():
-        path = os.path.join(settings.BASE_DIR, 'api_manager/modules')
-        assert os.path.isdir(path) is True
-        for filename in os.listdir(path):
-            if filename == '__init__.py' or filename == '__init__.pyc' or filename[-4:] == '.pyc':
-                continue
-            module_instance = "".join(filename[0:-3].title().split('_'))
-            module_path = os.path.join(path, filename)
-            module = imp.load_source(module_instance, module_path)
-            m = module.module_obj
-            exms = ExternalModule.objects.filter(module_name=m.module_name)
-            if exms.exists():
-                exm = exms.first()
-                if exm.status == ExternalModule.MODULES_STATUS.removed:
-                    module.status = ExternalModule.MODULES_STATUS.idle
-                    module.save()
-            else:
-                ExternalModule.objects.create(module_instance, filename, m.module_name,
-                                                    m.description, m.version, m.authors,
-                                                    m.events)
 
     @staticmethod
     def execute_module(external_module, event_thrown, weblogs_seed_json,
@@ -251,7 +202,7 @@ class ModulesManager:
 
     @staticmethod
     @transaction.atomic
-    def set_whois_related_domains(module_name, analysis_session_id, domain_a, domain_b, distance_feture_detail,numeric_distance):
+    def add_whois_related_domain(module_name, analysis_session_id, domain_a, domain_b, distance_feture_detail, numeric_distance):
         with transaction.atomic():
             IOC.add_whois_related_couple_domains(domain_a, domain_b, distance_feture_detail,numeric_distance)
 
@@ -321,18 +272,7 @@ class ModulesManager:
         return table_name in connection.introspection.table_names()
 
     @staticmethod
-    def __run_background_task_service__():
-        if not ModulesManager.background_task_thread and \
-                ModulesManager.db_table_exists('manati_externals_modules') and \
-                ModulesManager.db_table_exists('django_content_type'):
-
-            ModulesManager.checking_modules()  # checking modules
-            ModulesManager.register_modules()  # registering new modules
-            ModulesManager.background_task_thread = True
-
-    @staticmethod
     def attach_all_event():
-        ModulesManager.__run_background_task_service__()
         aux_weblogs = ModuleAuxWeblog.objects.filter(status=ModuleAuxWeblog.STATUS.seed)
         if aux_weblogs.exists():
             weblogs_qs = Weblog.objects.filter(moduleauxweblog__in=aux_weblogs.values_list('id', flat=True)).distinct()
@@ -382,8 +322,8 @@ class ModulesManager:
             domains_json = json.dumps([domain])
             queue.enqueue(__run_find_whois_related_domains__,
                           analysis_session_id,
+                          domain,
                           domains_json)
-            # ModulesManager.__run_find_whois_related_domains__(analysis_session_id, domains_json)
 
 
     @staticmethod
@@ -409,7 +349,7 @@ class ModulesManager:
 
     @staticmethod
     def check_to_WHOIS_relate_domain(analysis_session_id, domain):
-        if not IOC_WHOIS_RelatedExecuted.relation_perfomed_by_domain(analysis_session_id, domain):
+        if not IOC_WHOIS_RelatedExecuted.started(analysis_session_id, domain):
             ModulesManager.find_whois_related_domains(analysis_session_id, [domain])
 
 

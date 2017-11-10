@@ -6,6 +6,7 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 This project is partially supported by Cisco Systems.
 
 ## Versions
+- Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
 - Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
 - Sun Mar  5 00:04:41 CEST 2017: Version 0.7
 - Thu Nov 10 12:30:45 CEST 2016: Version 0.6.2.1
@@ -123,11 +124,16 @@ You can change the password of the manati_db_user in the database and the in the
 
         
 12. Run migrate files
-
+        
         python ./manage.py makemigrations guardian
         python ./manage.py migrate
+        
+13. Registering External modules. You must run this command everytime you add or remove a  External
+Module
 
-13. Execute redis_worker.sh file (in background or another console). 
+         python ./manage.py check_external_modules
+
+14. Execute redis_worker.sh file (in background or another console). 
  
         ./redis_worker.sh
         
@@ -151,43 +157,63 @@ jobs running or enqueued go to
 [http://localhost:8000/manati_project/django-rq/](http://localhost:8000/manati_project/django-rq/)
 
 ## Settings: Updating version from master
-1. Open project directory
+<ol>
+<li>Open project directory</li>
 
-        cd path/to/project_directory
+    cd path/to/project_directory
         
-2. Pull the last changes from master
+<li>Pull the last changes from master</li>
 
-        git pull origin master
+    git pull origin master
 
-3. Install las libraries installed
+<li>Install las libraries installed</li>
 
-        pip install -r requirements.txt
+    pip install -r requirements.txt
         
-4. Install redis-server and execute redis_worker.sh file (in background or another console)
+<li>Install redis-server and execute redis_worker.sh 
+file (in background or another console)</li>
 
-        ./redis_worker.sh
+    ./redis_worker.sh
         
-5. Prepare migrations files for guardian library (if it already has, nothings happens)
+<li>Prepare migrations files for guardian library 
+(if it already has, nothings happens)</li>
         
-        python ./manage.py makemigrations guardian --noinput
+    python ./manage.py makemigrations guardian --noinput
         
-6. Execute migrations files
+<li>Execute migrations files</li>
  
-        python ./manage.py migrate --noinput
+    python ./manage.py migrate --noinput
 
-7. Execute server
+<li>Registering External modules. You must run this command everytime you add or remove an External
+Module</li>
+        
+    python ./manage.py check_external_modules
+        
+<li>Execute server</li>
  
-        python ./manage.py runserver
+    python ./manage.py runserver
+</ol>
 
 ## Run in production.
  Using **surpevisor**, **gunicorn** as server with **RQ worker** (with redis server)
    to deal with the background tasks. In the future we are planning to 
    prepare settings for **nginx**
-    
-    cd path/to/project_directory 
-    python ./manage.py collectstatic --noinput
-    sudo supervisord -c supervisor-manati.conf -n
+```bash
+cd path/to/project_directory 
+python ./manage.py collectstatic --noinput
+sudo supervisord -c supervisor-manati.conf -n
+```
 
+## Docker Compose
+If you don't want to waste time installing ManaTI and you have docker installed,  you can just
+ execute docker-compose. 
+```bash
+cd path/manati/project
+docker-compose build
+docker-compose run web bash -c "python manage.py makemigrations --noinput && python manage.py migrate"
+docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser"
+docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
+```
 ## Backup DB
     pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text
 

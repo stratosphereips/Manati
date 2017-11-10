@@ -290,7 +290,7 @@ def refreshing_domains_whois_related(request):
             wri_ids = [wri.id for wri in wris]
 
             wris = WHOISRelatedIOC.objects.filter((Q(from_ioc=domain_ioc) & Q(to_ioc__in=wri_ids)) |
-                                                  (Q(to_ioc=domain_ioc) & Q(from_ioc__in=wri_ids) )).distinct()
+                                                  (Q(to_ioc=domain_ioc) & Q(from_ioc__in=wri_ids))).distinct()
             for wri in wris:
                 if wri.from_ioc.id == domain_ioc.id:
                     value = wri.to_ioc.value
@@ -304,8 +304,6 @@ def refreshing_domains_whois_related(request):
 
             root_whois_features = WhoisConsult.get_whois_distance_features_by_domain(current_user, domain_ioc.value)
 
-        print(whois_related_domains)
-        print(root_whois_features)
         return JsonResponse(dict(whois_related_domains=whois_related_domains,
                                  root_whois_features=root_whois_features,
                                  msg=msg,
