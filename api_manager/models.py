@@ -84,7 +84,7 @@ class ExternalModule(TimeStampedModel):
 
 
 class IOC_WHOIS_RelatedExecuted(TimeStampedModel):
-    ioc = models.ForeignKey(IOC)
+    ioc = models.ForeignKey(IOC, related_name='whois_relation_executions')
     analysis_session = models.ForeignKey(AnalysisSession)
     MODULES_STATUS = Choices('finished', 'running', 'removed', 'error')
     status = models.CharField(max_length=20, choices=MODULES_STATUS, default=MODULES_STATUS.running)
@@ -101,32 +101,40 @@ class IOC_WHOIS_RelatedExecuted(TimeStampedModel):
                                                         status= IOC_WHOIS_RelatedExecuted.MODULES_STATUS.finished,
                                                         ioc__value=domain,
                                                         ioc__ioc_type=IOC.IOC_TYPES.domain).exists()
+
+    @staticmethod
+    def started(analysis_session_id, domain):
+        return IOC_WHOIS_RelatedExecuted.objects.filter(analysis_session_id=analysis_session_id,
+                                                        status=IOC_WHOIS_RelatedExecuted.MODULES_STATUS.running,
+                                                        ioc__value=domain,
+                                                        ioc__ioc_type=IOC.IOC_TYPES.domain).exists()
     @staticmethod
     def start(analysis_session_id, domain):
         ioc = IOC.objects.get(value=domain,ioc_type=IOC.IOC_TYPES.domain)
-        IOC_WHOIS_RelatedExecuted.objects.create(analysis_session_id=analysis_session_id,
-                                                 ioc=ioc, status= IOC_WHOIS_RelatedExecuted.MODULES_STATUS.running)
+        if IOC_WHOIS_RelatedExecuted.started(analysis_session_id, domain):
+            raise Exception("You cannot start again this module for "+analysis_session_id+" while is running")
+        elif IOC_WHOIS_RelatedExecuted.finished(analysis_session_id, domain):
+            iwre = IOC_WHOIS_RelatedExecuted.objects.get(analysis_session_id=analysis_session_id, ioc_id=ioc.id)
+            iwre.status = IOC_WHOIS_RelatedExecuted.MODULES_STATUS.running
+            iwre.save()
+        else:
+            IOC_WHOIS_RelatedExecuted.objects.create(analysis_session_id=analysis_session_id,
+                                                 ioc=ioc, status=IOC_WHOIS_RelatedExecuted.MODULES_STATUS.running)
 
     @staticmethod
     def finish(analysis_session_id, domain):
         ioc = IOC.objects.get(value=domain,ioc_type=IOC.IOC_TYPES.domain)
         iwr = IOC_WHOIS_RelatedExecuted.objects.get(analysis_session_id=analysis_session_id, ioc=ioc)
-        iwr.status=IOC_WHOIS_RelatedExecuted.MODULES_STATUS.finished
+        iwr.status = IOC_WHOIS_RelatedExecuted.MODULES_STATUS.finished
+        iwr.save()
+
+    @staticmethod
+    def mark_error(analysis_session_id, domain):
+        ioc = IOC.objects.get(value=domain, ioc_type=IOC.IOC_TYPES.domain)
+        iwr = IOC_WHOIS_RelatedExecuted.objects.get(analysis_session_id=analysis_session_id, ioc=ioc)
+        iwr.status = IOC_WHOIS_RelatedExecuted.MODULES_STATUS.error
         iwr.save()
 
 
     class Meta:
         db_table = 'manati_ioc_whois_related_executed'
-#
-#
-# class QueueExternalModule(TimeStampedModel):
-#
-#     class Meta:
-#         db_table = 'manati_queue_externals_modules'
-#
-#     external_module = models.ForeignKey(ExternalModule, on_delete=models.CASCADE, null=False)
-#     start_running = AutoCreatedField(_('start_running'))
-#     stop_running = AutoLastModifiedField(_('stop_running'))
-#
-#     class Meta:
-#         db_table = 'manati_history_externals_modules'

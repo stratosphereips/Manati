@@ -138,21 +138,21 @@ else:
             'HOST': '127.0.0.1',
             'PORT': 6379,
             'DB': 0,
-            'PASSWORD': config('REDIS_PASSWORD'),
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
             'DEFAULT_TIMEOUT': 360,
         },
         'high': {
             'HOST': '127.0.0.1',
             'PORT': 6379,
             'DB': 0,
-            'PASSWORD': config('REDIS_PASSWORD'),
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
             'DEFAULT_TIMEOUT': 360,
         },
         'low': {
             'HOST': '127.0.0.1',
             'PORT': 6379,
             'DB': 0,
-            'PASSWORD': config('REDIS_PASSWORD'),
+            'PASSWORD': config('REDIS_PASSWORD', default=None),
             'DEFAULT_TIMEOUT': 360,
         }
     }

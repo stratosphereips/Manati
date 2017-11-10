@@ -17,7 +17,7 @@ services:
       - "8000"
     ports:
       - '127.0.0.1:8000:8000'
-    command: 'bash -c "python manage.py migrate && python manage.py collectstatic --no-input && gunicorn manati.wsgi:application -w 2 -b :8000 --capture-output --enable-stdio-inheritance --log-level=debug --access-logfile=- --log-file=-"'
+    command: 'bash -c "python manage.py migrate && python manage.py check_external_modules && python manage.py collectstatic --noinput && gunicorn manati.wsgi:application -w 2 -b :8000 --capture-output --enable-stdio-inheritance --log-level=debug --access-logfile=- --log-file=-"'
     volumes:
       - '.:/code'
       - 'manati_cachedata:/cache'

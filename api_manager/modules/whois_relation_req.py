@@ -26,10 +26,10 @@ class WhoisRelationReq(Module):
                                                                                 domain_primary,
                                                                                 domain_b)
             if not domain_b in domains_added:
-                ModulesManager.set_whois_related_domains(self.module_name,
-                                                         analysis_session_id,
-                                                        domain_primary,domain_b,
-                                                         distance_feature_detail,distance_numeric)
+                ModulesManager.add_whois_related_domain(self.module_name,
+                                                        analysis_session_id,
+                                                        domain_primary, domain_b,
+                                                        distance_feature_detail, distance_numeric)
                 domains_added.append(domain_b)
         ModulesManager.whois_similarity_distance_module_done(self.module_name,
                                                              analysis_session_id,
