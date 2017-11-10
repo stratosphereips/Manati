@@ -94,37 +94,68 @@ WSGI_APPLICATION = 'manati.wsgi.application'
 STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
-DATABASES = {
-    'default': dj_database_url.config(default=config('DATABASE_URL'))
-}
-
-RQ_QUEUES = {
-    'default': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
-        # 'URL': os.getenv('REDISTOGO_URL', 'redis://localhost:6379/0'),  # If you're on Heroku
-    },
-    'high': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
-    },
-    'low': {
-        'HOST': 'localhost',
-        'PORT': 6379,
-        'DB': 0,
-        'PASSWORD': config('REDIS_PASSWORD'),
-        'DEFAULT_TIMEOUT': 360,
+DOCKER_COMPOSE = os.environ.get('DOCKER_COMPOSE', False)
+if not DOCKER_COMPOSE:
+    DATABASE_URL = dj_database_url.config(default=config('DATABASE_URL', default='', cast=str))
+    DATABASES = {
+        'default': DATABASE_URL
     }
-}
+else:
+    DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'NAME': os.environ.get('DB_NAME', config('DB_NAME', default='postgres', cast=str)),
+                'USER': os.environ.get('DB_USER', config('DB_USER', default='postgres', cast=str)),
+                'PASSWORD': os.environ.get('DB_PASS', config('DB_PASS', default='postgres', cast=str)),
+                'HOST': os.environ.get('DB_SERVICE', config('DB_HOST', default='localhost', cast=str)),
+                'PORT': os.environ.get('DB_PORT', config('DB_PORT', default='5432', cast=str))
+            }
+        }
+
+# Redis Settings
+
+REDIS_URL = os.getenv('HEROKU_REDIS_MAROON_URL', os.getenv('REDISTOGO_URL_DOCKER', None))
+if REDIS_URL:
+    RQ_QUEUES = {
+        'default': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL,
+        },
+        'high': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL
+        },
+        'low': {
+            'DEFAULT_TIMEOUT': 360,
+            'URL': REDIS_URL
+        }
+    }
+else:
+    RQ_QUEUES = {
+        'default': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD'),
+            'DEFAULT_TIMEOUT': 360,
+        },
+        'high': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD'),
+            'DEFAULT_TIMEOUT': 360,
+        },
+        'low': {
+            'HOST': '127.0.0.1',
+            'PORT': 6379,
+            'DB': 0,
+            'PASSWORD': config('REDIS_PASSWORD'),
+            'DEFAULT_TIMEOUT': 360,
+        }
+    }
 
 RQ_SHOW_ADMIN_LINK = True
 

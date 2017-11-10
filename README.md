@@ -188,6 +188,19 @@ jobs running or enqueued go to
     python ./manage.py collectstatic --noinput
     sudo supervisord -c supervisor-manati.conf -n
 
+## Docker Compose
+If you don't want to waste time installing ManaTI and you have docker installed,  you can just
+ execute docker-compose. 
+ 
+
+        cd path/manati/project
+        
+        docker-compose build
+        
+        docker-compose run web bash -c "python manage.py makemigrations && python manage.py migrate && python manage.py createsuperuser"
+        
+        docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
+
 ## Backup DB
     pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text
 
