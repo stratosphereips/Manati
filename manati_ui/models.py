@@ -359,6 +359,8 @@ class Weblog(TimeStampedModel):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
             url = self.attributes_obj[key_url]
+            ioc_domain = None
+            ioc_ip = None
             try:
                 d_type, domain = get_data_from_url(url)
                 if not domain:
