@@ -1,3 +1,9 @@
+0.8.1.551a
+----------
+* fixing bug deleting an analysis session. The response page was wrong redirected
+* fixing bug reported in the moment to run WSD module
+* minor others changes
+
 0.8.0.537a
 ----------
 * Adding threshold slider bar in the WHOIS DISTANCE modal 😃

@@ -5,7 +5,7 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 
 This project is partially supported by Cisco Systems.
 
-## Versions
+## Stable Versions
 - Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
 - Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
 - Sun Mar  5 00:04:41 CEST 2017: Version 0.7
@@ -203,17 +203,21 @@ cd path/to/project_directory
 python ./manage.py collectstatic --noinput
 sudo supervisord -c supervisor-manati.conf -n
 ```
-
-## Docker Compose
+## ManaTI support
+We guarantee the correct functioning of ManaTI over Chrome browser 60+.
+We have reports that people are using it in Firefox 55+
+## Docker Composer
 If you don't want to waste time installing ManaTI and you have docker installed,  you can just
- execute docker-compose. 
+ execute docker-compose. First clone the repository and go to the directory project.  
 ```bash
-cd path/manati/project
+cd Manati
 docker-compose build
 docker-compose run web bash -c "python manage.py makemigrations --noinput && python manage.py migrate"
 docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser"
 docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
 ```
+
+After this, just open your browser in [http://localhost:8000/manati_project/manati_ui/new](http://localhost:8000/manati_project/manati_ui/new)
 ## Backup DB
     pg_dump -U manati_db_user -W -F p manati_db > backup.sql # plain text
 

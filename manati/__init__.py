@@ -23,7 +23,7 @@ ManaTI Project
 """
 
 __title__ = 'ManaTI Project'
-__version__ = '0.8.0.537a'
+__version__ = '0.8.1.551a'
 __author__ = 'Raul Carmelo Benitez Netto'
 __copyright__ = 'Copyright 2016-2017 CISCO - CTU - FEL'
 
