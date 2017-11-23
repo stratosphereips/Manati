@@ -18,7 +18,7 @@
 # along with this program. See the file 'docs/LICENSE' or see <http://www.gnu.org/licenses/> 
 # for copying permission.
 #
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseServerError
 from django.core.urlresolvers import reverse
@@ -376,8 +376,9 @@ def sync_db(request):
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def delete_analysis_session(request, id):
-    AnalysisSession.objects.filter(id=id).delete()
-    return HttpResponseRedirect("/manati_ui/analysis_sessions")
+    analysis_session = get_object_or_404(AnalysisSession, pk=id)
+    analysis_session.delete()
+    return redirect("/manati_project/manati_ui/analysis_sessions")
 
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
