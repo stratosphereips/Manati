@@ -19,7 +19,7 @@ This project is partially supported by Cisco Systems.
 ## Authors
 
 - **Raúl B. Netto** 
-    ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <rbenitez@uni.edu.py>, <benitrau@fit.cvut.cz>)
+    ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <benitrau@fit.cvut.cz>)
 - **Sebastian García** ([@eldracote](https://www.twitter.com/eldracote), <sebastian.garcia@agents.fel.cvut.cz>, <eldraco@gmail.com>)
 
 ## Installation
