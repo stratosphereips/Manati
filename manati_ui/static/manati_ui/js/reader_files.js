@@ -49,18 +49,18 @@ function ReaderFile(analysis_session_logic_obj){
     function handleFileSelect(evt) {
         reader = new FileReader();
         reader.onloadend = function(evt) {
-          if (evt.target.readyState == FileReader.DONE) {
+          if (evt.target.readyState === FileReader.DONE) {
               var rows = evt.target.result.split('\n');
-              if(rows[0][0]=='#'){
+              if(rows[0][0]==='#'){
                   var i=0;
                   var possible_headers = [];
                   for(; i<rows.length; i++){
                       var row = rows[i];
-                      if(row[0] == '#') possible_headers.push(row);
+                      if(row[0] === '#') possible_headers.push(row);
                       else break;
                   }
                   var header = choiceHeaders(possible_headers);
-                  rows = rows.slice(i,rows.length-2); // removing the headers and the las #close comment.
+                  rows = rows.slice(i,rows.length-2); // removing the headers and the last #close comment.
                   // in the end of the BRO files
                   _aslo.setAnalysisSessionTypeFile('bro_http_log');
                   rows.unshift(header);

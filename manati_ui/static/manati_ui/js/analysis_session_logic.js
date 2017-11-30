@@ -36,7 +36,7 @@ var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','false
                         'undefined_malicious','suspicious_malicious','falsepositive_malicious', 'falsepositive_suspicious',
                         'undefined_suspicious','undefined_falsepositive'];
 var NAMES_HTTP_URL = ["http.url", "http_url", "host"];
-var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h"];
+var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h"];
 var _flows_grouped;
 var _helper;
 var _filterDataTable;
@@ -164,10 +164,11 @@ function AnalysisSessionLogic(){
             columns.push({title: v, name: v, class: v});
         }
         //verifying if already exist a table, in that case, destroy it
-        if(_dt != null || _dt != undefined) {
-            _dt.clear().draw();
+        if(_dt !== null && _dt !== undefined) {
+            _dt.clear();
             _dt.destroy();
             _dt = null;
+            $('#weblogs-datatable').empty();
             $('#weblogs-datatable').html('');
         }
         // create or init datatable
@@ -323,10 +324,15 @@ function AnalysisSessionLogic(){
              }
          });
          _dt.on('search.dt',function (){
-             $('.page-select').html('');
-             var list = document.getElementsByClassName('page-select')[1];
-             for(var index=0; index<_dt.page.info().pages; index++) {
-                 list.add(new Option((index+1).toString(), index));
+             try{
+                 $('.page-select').html('');
+                 var list = document.getElementsByClassName('page-select')[1];
+                 for(var index=0; index<_dt.page.info().pages; index++) {
+                     list.add(new Option((index+1).toString(), index));
+                 }
+             }catch (e){
+                 // pass. When you upload another file, in the same section that the previous one, there is an error
+                 // TO-DO
              }
 
          });
@@ -375,21 +381,19 @@ function AnalysisSessionLogic(){
 
         for(var index = 0; index < NAMES_HTTP_URL.length; index++){
             var key = NAMES_HTTP_URL[index];
-            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+            if(_data_headers_keys[key]!== undefined && _data_headers_keys[key] !== null){
                 COL_HTTP_URL_STR = key;
                 break;
             }
         }
         for(var index = 0; index < NAMES_END_POINTS_SERVER.length; index++){
             var key = NAMES_END_POINTS_SERVER[index];
-            if(_data_headers_keys[key]!= undefined && _data_headers_keys[key] != null){
+            if(_data_headers_keys[key]!== undefined && _data_headers_keys[key] !== null){
                 COL_END_POINTS_SERVER_STR = key;
                 break;
             }
         }
         processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
-        // COL_HTTP_URL_STR = "http.url";
-        // COL_END_POINTS_SERVER_STR = "endpoints.server";
         COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
         COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
         CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
@@ -1874,7 +1878,7 @@ function AnalysisSessionLogic(){
                     //INIT DATA
                     rowCount = results.data.length;
                     var data = results.data;
-                    var headers = results.meta.fields;
+                    var headers = Object.keys(data[0]);
                     $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
                         headers.push(value);
                     });
@@ -1943,7 +1947,7 @@ function AnalysisSessionLogic(){
                 attributes[COL_VERDICT_STR] = elem.verdict.toString();
                 attributes[COL_REG_STATUS_STR] = elem.register_status.toString();
                 attributes[COL_DT_ID_STR] = id.toString();
-                if (attributes.uuid == undefined || attributes.uuid == null){
+                if (attributes.uuid === undefined || attributes.uuid === null){
                     var w_uuid = uuid.v4();
                     attributes[COL_UUID_STR] = w_uuid;
                     weblogs_id_uuid[id]=w_uuid;
@@ -2020,7 +2024,7 @@ function AnalysisSessionLogic(){
                     var file_name = json['name'];
                     var headers = JSON.parse(json['headers']);
                     setFileName(file_name);
-                    if (analysis_session_uuid!=null && analysis_session_uuid !== '' ){
+                    if (analysis_session_uuid !== null && analysis_session_uuid !== '' ){
                         thiz.setAnalysisSessionUUID(analysis_session_uuid);
                     }
 
