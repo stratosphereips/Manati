@@ -1,3 +1,11 @@
+0.8.2a
+----------
+* fixing bug reported by @garanews. When the user is using BRO splitted files ManaTI was not detecting correctly the
+  headers.
+* Fixing a bug when the user is creating a new analysis session, it upload a weblog file and after that, upload
+  another one, the table was not created properly and a popup was displayed showing some errors with the columns.
+* minor changes
+
 0.8.1.551a
 ----------
 * fixing bug deleting an analysis session. The response page was wrong redirected
