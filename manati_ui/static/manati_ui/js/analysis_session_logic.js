@@ -37,6 +37,9 @@ var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','false
                         'undefined_suspicious','undefined_falsepositive'];
 var NAMES_HTTP_URL = ["http.url", "http_url", "host"];
 var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h"];
+const DEFAULT_COLUMNS_NAMES = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h","http.url",
+    "http_url", "host", 'url','Referer', 'time', 'User-agent', 'ioc', 'dest_ip', 'dest_port', 'local_ip', 'local_port',
+    'partial_url'];
 var _flows_grouped;
 var _helper;
 var _filterDataTable;
@@ -1086,10 +1089,13 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function initModal(title, after_hidden_function){
+    function initModal(title, after_hidden_function=null, before_hidden_function=null){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            if(before_hidden_function !== null){
+                before_hidden_function();
+            }
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
@@ -1104,8 +1110,12 @@ function AnalysisSessionLogic(){
         $('#vt_consult_screen #vt_modal_title').html(title);
 
     }
+    this.updateBodyModal = function (table){
+        updateBodyModal(table);
+    }
+
     function updateBodyModal(table) {
-        var modal_body = $('#vt_consult_screen .modal-body');
+        let modal_body = $('#vt_consult_screen .modal-body');
         if (table !== null) {
             modal_body.find('.table-section').html(table).show();
             modal_body.find(".loading").hide();
@@ -1863,7 +1873,100 @@ function AnalysisSessionLogic(){
         console.log("Parsing file...", file);
         $.notify("Parsing file...", "info");
     };
-    thiz.parseData = function(file_rows){
+
+    function build_FilePreviewer(headers=[], data=[]){
+        let $html = $('<div class="content"></div>');
+        let $ul = $('<ol id="list-column">');
+        for (let i = 0; i < headers.length; i++){
+            let header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
+            let select_tag = $('<select>');
+            select_tag.attr('id', 'column_'+i);
+            for (let x = 0; x < header_options.length; x++) {
+                let value = header_options[x];
+                select_tag.append($('<option>').html(value.substring(0,30)).attr("value", value));
+            }
+            $ul.append($('<li>').html(select_tag));
+
+        }
+        $html.html("<h4>ManaTI does not know you uploaded file,  please, select the column name of your data</h4>");
+        $html.append($ul);
+        let script = '<script type="application/javascript">';
+        script += "$(document).ready(function(){";
+            script += "$('#button-ok-modal').on('click', function (ev){" +
+                            "console.log(" +
+                                        ")"+
+                        "});";
+        script += "});";
+        script += '</script>';
+        $html.append(script);
+
+        // let $html = $('<div class="content4"></div>');
+        // let $table = $('<table class="table table-striped table-hover responsive" id="table-previewer"></table>');
+        // let header_options=[];
+        // let selects = [];
+        // let thead = $('<thead>');
+        // let $tr_thead = $('<tr>');
+        // for (let i = 0; i < headers.length; i++) {
+        //     let header = headers[i];
+        //     let select_tag = $('<select>');
+        //     header_options[i]= ['column_'+i].concat(DEFAULT_COLUMNS_NAMES);
+        //     select_tag.attr('id', 'column_'+i);
+        //     for (let x = 0; x < header_options[i].length; x++) {
+        //         let value = header_options[i][x];
+        //         select_tag.append($('<option>').html(value).attr("value", value));
+        //     }
+        //     selects[i]=select_tag;
+        //     $tr_thead.append($('<th>').html(select_tag));
+        //
+        // }
+        // thead.html($tr_thead);
+        // let $tbody = $("<tbody>");
+        // console.log("Headers => " + headers.length);
+        // for (let i = 0; i < data_sample.length; i++){
+        //     console.log("data headers => " + data_sample[0].length);
+        //     let data = data_sample[i];
+        //     let $tr = $("<tr>");
+        //     for (let x = 0; x < data.length; x++){
+        //         $tr.append($("<td>").html(data[x]));
+        //     }
+        //     $tbody.append($tr);
+        // }
+        // let script = '<script type="application/javascript">';
+        // script += "$(document).ready(function(){";
+        //     script += "$('#table-previewer').DataTable();";
+        // script += "});";
+        // script += '</script>';
+        //
+        // $table.append(thead);
+        // $table.append($tbody);
+        // $html.append($table);
+        // $html.append(script);
+        return $html;
+    }
+
+    let showModalCheckingTypeFile = function (filename, header=[], data=[]){
+        let before_hidden_func = function (){
+            let  headers = $('#list-column select').map(function (){return this.value;}).toArray();
+            thiz.settingsForInitData(headers, data);
+        };
+        initModal("Pre-visualize: <span>"+filename+"</span>", null, before_hidden_func);
+        updateBodyModal(build_FilePreviewer(header, data));
+
+    };
+
+    this.settingsForInitData = function (headers, data){
+
+        $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
+            headers.push(value);
+        });
+        initData(data,headers);
+        thiz.generateAnalysisSessionUUID();
+        hideLoading();
+        _m.EventFileUploadingFinished(_filename, rowCount);
+
+    }
+
+    thiz.parseData = function(file_rows, with_header=true, type_file='', delimiter=""){
         var completeFn = function (results,file){
             if (results && results.errors)
             {
@@ -1877,23 +1980,32 @@ function AnalysisSessionLogic(){
                     console.log("Done with all files");
                     //INIT DATA
                     rowCount = results.data.length;
-                    var data = results.data;
-                    var headers = Object.keys(data[0]);
-                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
-                        headers.push(value);
-                    });
-                    initData(data,headers);
-                    thiz.generateAnalysisSessionUUID();
-                    hideLoading();
-                    _m.EventFileUploadingFinished(_filename, rowCount);
+                    let data = results.data;
+                    try{
+                        if (thiz.getAnalysisSessionTypeFile() === 'apache_http_log'){
+                            showModalCheckingTypeFile(getFileName(), data[0],data);
+                        }
+                        else{
+                            let headers = Object.keys(data[0]);
+                            thiz.settingsForInitData(headers, data);
+                        }
+                    }catch (e){
+                        console.error(e);
+
+                    }
+
+
                 }
 
             }
         };
+        thiz.setAnalysisSessionTypeFile(type_file);
+
         Papa.parse(file_rows,
             {
-                delimiter: "",
-                header: true,
+                delimiter: delimiter,
+                header: with_header,
+                quoteChar: '"',
                 complete: completeFn,
                 worker: true,
                 skipEmptyLines: true,

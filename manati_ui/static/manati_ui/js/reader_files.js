@@ -1,6 +1,8 @@
 /**
 * Created by raulbeniteznetto on 2/8/17.
 */
+const FILES_TYPES_AVAILABLE = ['log', 'csv'];
+
 function ReaderFile(analysis_session_logic_obj){
     var reader;
     var _progress;
@@ -46,11 +48,14 @@ function ReaderFile(analysis_session_logic_obj){
             }
         }
     }
+    let _type_file = '';
     function handleFileSelect(evt) {
         reader = new FileReader();
         reader.onloadend = function(evt) {
           if (evt.target.readyState === FileReader.DONE) {
               var rows = evt.target.result.split('\n');
+              let header = true;
+              let delimiter = "";
               if(rows[0][0]==='#'){
                   var i=0;
                   var possible_headers = [];
@@ -59,25 +64,35 @@ function ReaderFile(analysis_session_logic_obj){
                       if(row[0] === '#') possible_headers.push(row);
                       else break;
                   }
-                  var header = choiceHeaders(possible_headers);
+                  var header_text = choiceHeaders(possible_headers);
                   rows = rows.slice(i,rows.length-2); // removing the headers and the last #close comment.
                   // in the end of the BRO files
-                  _aslo.setAnalysisSessionTypeFile('bro_http_log');
-                  rows.unshift(header);
-
-              }else{
-                  _aslo.setAnalysisSessionTypeFile('cisco_file');
+                  _type_file = 'bro_http_log';
+                  rows.unshift(header_text);
+              }else if((_type_file === null || _type_file === '')){
+                  _type_file = 'apache_http_log';
+                  header = false;
+                  delimiter = " ";
               }
               var file_rows = rows.join('\n');
-              _aslo.parseData(file_rows);
+              _aslo.parseData(file_rows, header,_type_file,delimiter);
 
           }
         };
 
         // Read in the image file as a binary string.
-        var file = evt.target.files[0];
-        thiz.eventBeforeParing(file);
-        reader.readAsBinaryString(file);
+        let file = evt.target.files[0];
+        let extension = file.name.split('.').pop().toLowerCase();
+        if(FILES_TYPES_AVAILABLE.indexOf(extension) > -1){
+            if (extension === 'csv'){
+                _type_file = 'cisco_file';
+            }
+            thiz.eventBeforeParing(file);
+            reader.readAsBinaryString(file);
+        }else{
+            $.notify('Incorrect Extension file');
+        }
+
 
     }
     var funcOnReady = function (){
