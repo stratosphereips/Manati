@@ -52,32 +52,39 @@ function ReaderFile(analysis_session_logic_obj){
     function handleFileSelect(evt) {
         reader = new FileReader();
         reader.onloadend = function(evt) {
-          if (evt.target.readyState === FileReader.DONE) {
-              var rows = evt.target.result.split('\n');
-              let header = true;
-              let delimiter = "";
-              if(rows[0][0]==='#'){
-                  var i=0;
-                  var possible_headers = [];
-                  for(; i<rows.length; i++){
-                      var row = rows[i];
-                      if(row[0] === '#') possible_headers.push(row);
-                      else break;
-                  }
-                  var header_text = choiceHeaders(possible_headers);
-                  rows = rows.slice(i,rows.length-2); // removing the headers and the last #close comment.
-                  // in the end of the BRO files
-                  _type_file = 'bro_http_log';
-                  rows.unshift(header_text);
-              }else if((_type_file === null || _type_file === '')){
-                  _type_file = 'apache_http_log';
-                  header = false;
-                  delimiter = " ";
-              }
-              var file_rows = rows.join('\n');
-              _aslo.parseData(file_rows, header,_type_file,delimiter);
+            let file_rows;
+            if (evt.target.readyState === FileReader.DONE) {
+                var rows = evt.target.result.split('\n');
+                let header = true;
+                let delimiter = "";
+                if(rows[0][0]==='#'){
+                    var i=0;
+                    var possible_headers = [];
+                    for(; i<rows.length; i++){
+                        var row = rows[i];
+                        if(row[0] === '#') possible_headers.push(row);
+                        else break;
+                      }
+                    var header_text = choiceHeaders(possible_headers);
+                    rows = rows.slice(i,rows.length-2); // removing the headers and the last #close comment.
+                    // in the end of the BRO files
+                    _type_file = 'bro_http_log';
+                    rows.unshift(header_text);
+                    file_rows = rows.join('\n');
+                }else if((_type_file === null || _type_file === '')){
+                    _type_file = 'apache_http_log';
+                    header = false;
+                    delimiter = " ";
+                    file_rows = rows.join('\n');
+                    var find = /\[|\]/;
+                    var re = new RegExp(find, 'g');
+                    file_rows = file_rows.replace(re, '\"');
+                }else{
+                    file_rows = rows.join('\n');
+                }
+                _aslo.parseData(file_rows, header,_type_file,delimiter);
 
-          }
+            }
         };
 
         // Read in the image file as a binary string.

@@ -1890,57 +1890,6 @@ function AnalysisSessionLogic(){
         }
         $html.html("<h4>ManaTI does not know you uploaded file,  please, select the column name of your data</h4>");
         $html.append($ul);
-        let script = '<script type="application/javascript">';
-        script += "$(document).ready(function(){";
-            script += "$('#button-ok-modal').on('click', function (ev){" +
-                            "console.log(" +
-                                        ")"+
-                        "});";
-        script += "});";
-        script += '</script>';
-        $html.append(script);
-
-        // let $html = $('<div class="content4"></div>');
-        // let $table = $('<table class="table table-striped table-hover responsive" id="table-previewer"></table>');
-        // let header_options=[];
-        // let selects = [];
-        // let thead = $('<thead>');
-        // let $tr_thead = $('<tr>');
-        // for (let i = 0; i < headers.length; i++) {
-        //     let header = headers[i];
-        //     let select_tag = $('<select>');
-        //     header_options[i]= ['column_'+i].concat(DEFAULT_COLUMNS_NAMES);
-        //     select_tag.attr('id', 'column_'+i);
-        //     for (let x = 0; x < header_options[i].length; x++) {
-        //         let value = header_options[i][x];
-        //         select_tag.append($('<option>').html(value).attr("value", value));
-        //     }
-        //     selects[i]=select_tag;
-        //     $tr_thead.append($('<th>').html(select_tag));
-        //
-        // }
-        // thead.html($tr_thead);
-        // let $tbody = $("<tbody>");
-        // console.log("Headers => " + headers.length);
-        // for (let i = 0; i < data_sample.length; i++){
-        //     console.log("data headers => " + data_sample[0].length);
-        //     let data = data_sample[i];
-        //     let $tr = $("<tr>");
-        //     for (let x = 0; x < data.length; x++){
-        //         $tr.append($("<td>").html(data[x]));
-        //     }
-        //     $tbody.append($tr);
-        // }
-        // let script = '<script type="application/javascript">';
-        // script += "$(document).ready(function(){";
-        //     script += "$('#table-previewer').DataTable();";
-        // script += "});";
-        // script += '</script>';
-        //
-        // $table.append(thead);
-        // $table.append($tbody);
-        // $html.append($table);
-        // $html.append(script);
         return $html;
     }
 
