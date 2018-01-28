@@ -213,7 +213,7 @@ If you don't want to waste time installing ManaTI and you have docker installed,
 cd Manati
 docker-compose build
 docker-compose run web bash -c "python manage.py makemigrations --noinput && python manage.py migrate"
-docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser"
+docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser2 --username admin --password Password123 --noinput --email 'admin@manatiproject.com'"
 docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
 ```
 

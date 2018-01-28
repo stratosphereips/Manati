@@ -1,0 +1,21 @@
+# Local development dependencies go here
+-r base.txt
+
+coverage==4.4.2
+django-coverage-plugin==1.5.0
+
+Sphinx==1.6.6
+django-extensions==1.9.9
+Werkzeug==0.14.1
+django-test-plus==1.0.22
+factory-boy==2.9.2
+
+django-debug-toolbar==1.9.1
+django-debug-toolbar-request-history==0.0.4
+django-debug-toolbar-template-profiler==1.0.2
+
+# improved REPL
+ipdb==0.10.3
+
+pytest-django==3.1.2
+pytest-sugar==0.9.0
