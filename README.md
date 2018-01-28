@@ -6,6 +6,7 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 This project is partially supported by Cisco Systems.
 
 ## Stable Versions
+- Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
 - Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
 - Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
 - Sun Mar  5 00:04:41 CEST 2017: Version 0.7
@@ -19,7 +20,7 @@ This project is partially supported by Cisco Systems.
 ## Authors
 
 - **Raúl B. Netto** 
-    ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <rbenitez@uni.edu.py>, <benitrau@fit.cvut.cz>)
+    ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <benitrau@fit.cvut.cz>)
 - **Sebastian García** ([@eldracote](https://www.twitter.com/eldracote), <sebastian.garcia@agents.fel.cvut.cz>, <eldraco@gmail.com>)
 
 ## Installation
@@ -53,7 +54,7 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
         
 6. Install required python libraries
     
-        pip install -r requirements.txt
+        pip install -r requirements/local.txt
         
    Maybe you will have some issues with permission in the folder ~/.cache, just perform the next command and problem solved:
         
@@ -100,8 +101,8 @@ To change the password by default of the postgres user (you can put the same pas
         (and put the password)
 
 After putting the password you should be logged in in the postgres.
-
-You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
+Copy the file <b>.env.example</b> and rename it to <b>.env</b> and modify (optional) the password and name of database 
+if it is necessary. Remember, reflect the changes in the postgres Database too.
 11. Install redis-server
 
     apt-get install redis-server
@@ -133,9 +134,9 @@ Module
 
          python ./manage.py check_external_modules
 
-14. Execute redis_worker.sh file (in background or another console). 
+14. Execute redis_worker.sh file (in background '&' or in another console). 
  
-        ./redis_worker.sh
+        ./utility/redis_worker.sh
         
 15. Create super user for login in the web system if you need 
 
@@ -168,12 +169,12 @@ jobs running or enqueued go to
 
 <li>Install las libraries installed</li>
 
-    pip install -r requirements.txt
+    pip install -r requirements/local.txt
         
 <li>Install redis-server and execute redis_worker.sh 
-file (in background or another console)</li>
+file (in background '&' or in another console)</li>
 
-    ./redis_worker.sh
+    ./utility/redis_worker.sh
         
 <li>Prepare migrations files for guardian library 
 (if it already has, nothings happens)</li>
@@ -213,7 +214,7 @@ If you don't want to waste time installing ManaTI and you have docker installed,
 cd Manati
 docker-compose build
 docker-compose run web bash -c "python manage.py makemigrations --noinput && python manage.py migrate"
-docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser"
+docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser2 --username admin --password Password123 --noinput --email 'admin@manatiproject.com'"
 docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
 ```
 
