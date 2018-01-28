@@ -1,31 +1,29 @@
 #!/usr/bin/env python
-#
-# Copyright (c) 2017 Stratosphere Laboratory.
-#
-# This file is part of ManaTI Project
-# (see <https://stratosphereips.org>). It was created by 'Raul B. Netto <raulbeni@gmail.com>'
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program. See the file 'docs/LICENSE' or see <http://www.gnu.org/licenses/>
-# for copying permission.
-#
-
 import os
 import sys
 
-if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "manati.settings")
+if __name__ == '__main__':
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
 
-    from django.core.management import execute_from_command_line
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError:
+        # The above import may fail for some other reason. Ensure that the
+        # issue is really that Django is missing to avoid masking other
+        # exceptions on Python 2.
+        try:
+            import django  # noqa
+        except ImportError:
+            raise ImportError(
+                "Couldn't import Django. Are you sure it's installed and "
+                "available on your PYTHONPATH environment variable? Did you "
+                "forget to activate a virtual environment?"
+            )
+        raise
+
+    # This allows easy placement of apps within the interior
+    # manati directory.
+    current_path = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(os.path.join(current_path, 'manati'))
 
     execute_from_command_line(sys.argv)
