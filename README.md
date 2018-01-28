@@ -53,7 +53,7 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
         
 6. Install required python libraries
     
-        pip install -r requirements.txt
+        pip install -r requirements/local.txt
         
    Maybe you will have some issues with permission in the folder ~/.cache, just perform the next command and problem solved:
         
@@ -133,9 +133,9 @@ Module
 
          python ./manage.py check_external_modules
 
-14. Execute redis_worker.sh file (in background or another console). 
+14. Execute redis_worker.sh file (in background '&' or in another console). 
  
-        ./redis_worker.sh
+        ./utility/redis_worker.sh
         
 15. Create super user for login in the web system if you need 
 
@@ -168,12 +168,12 @@ jobs running or enqueued go to
 
 <li>Install las libraries installed</li>
 
-    pip install -r requirements.txt
+    pip install -r requirements/local.txt
         
 <li>Install redis-server and execute redis_worker.sh 
-file (in background or another console)</li>
+file (in background '&' or in another console)</li>
 
-    ./redis_worker.sh
+    ./utility/redis_worker.sh
         
 <li>Prepare migrations files for guardian library 
 (if it already has, nothings happens)</li>
