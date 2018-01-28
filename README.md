@@ -6,6 +6,7 @@ The goal of the ManaTI project is to develop machine learning techniques to assi
 This project is partially supported by Cisco Systems.
 
 ## Stable Versions
+- Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
 - Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
 - Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
 - Sun Mar  5 00:04:41 CEST 2017: Version 0.7
