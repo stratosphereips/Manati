@@ -100,8 +100,8 @@ To change the password by default of the postgres user (you can put the same pas
         (and put the password)
 
 After putting the password you should be logged in in the postgres.
-
-You can change the password of the manati_db_user in the database and the in the code in the file manati/settings.py
+Copy the file <b>.env.example</b> and rename it to <b>.env</b> and modify (optional) the password and name of database 
+if it is necessary. Remember, reflect the changes in the postgres Database too.
 11. Install redis-server
 
     apt-get install redis-server
