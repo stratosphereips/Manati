@@ -39,7 +39,7 @@ from colorama import init, Fore, Back, Style
 
 URLS = {'ip': r'https://www.virustotal.com/vtapi/v2/ip-address/report',
         'domain': r'https://www.virustotal.com/vtapi/v2/domain/report'}
-API_KEY = AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value
+API_KEY = None
 WAIT_TIME = 15 # Public API allows 4 request per minute, so we wait 15 secs by default
 WHITE_LIST = ['1.0.0.127']
 OWNER_WHITE_LIST = ['Google Inc.', 'Facebook, Inc.', 'CloudFlare, Inc.', 'Microsoft Corporation',
@@ -401,15 +401,20 @@ class Command(BaseCommand):
         parser.add_argument('--debug', action='store_true', default=False, help='Debug output')
 
     def handle(self, *args, **options):
+        global API_KEY
         # signal.signal(signal.SIGINT, signal_handler)
         init(autoreset=False)
         query_node = options["ff"]
         lines = [query_node]
         user = options["user"]
+
+        API_KEY = user.profile.virustotal_key_api
+        if not API_KEY:
+            API_KEY = AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value
         result_file = None
 
         lines = process_lines(lines, result_file, int(options["m"]),
                               options["nocsv"], options["dups"],
                               options["noresolve"], options["ping"], options["debug"])
         VTConsult.objects.create_one_consult(query_node,  user, lines[0])
-        print Style.RESET_ALL
+        print(Style.RESET_ALL)

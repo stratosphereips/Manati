@@ -819,8 +819,12 @@ class VTConsult(TimeStampedModel):
                 vt_consul = VTConsult.objects.filter(query_node=query_node,
                                                      created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
             elif query_type == 'domain':
-                vt.setkey(AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value)
+                api_key = user.profile.virustotal_key_api
+                if not api_key:
+                    api_key = AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value
+                vt.setkey(api_key)
                 result = vt.getdomain(query_node)
+                vt.setkey(None)
                 vt_consul = VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(result))
             else:
                 raise ValueError("query_type invalid")
