@@ -225,6 +225,8 @@ If you don't want to waste time installing ManaTI and you have docker installed,
  execute docker-compose. First clone the repository and go to the directory project.  
 ```bash
 cd Manati
+cp .env.example .env
+cp .env-docker.example .env-docker
 docker-compose build
 docker-compose run web bash -c "python manage.py makemigrations --noinput; python manage.py migrate; python manage.py check_external_modules"
 docker-compose run web bash -c "python manage.py createsuperuser2 --username admin --password Password123 --noinput --email 'admin@manatiproject.com'"
