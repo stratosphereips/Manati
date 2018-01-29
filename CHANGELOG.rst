@@ -1,3 +1,8 @@
+0.9.1a
+----------
+* When the user does a request to VirusTotal (by domain or IP), first the system try to use the VirusTotal API KEY completed in
+user's profile, if it is null, they system uses the VirusTotal API KEY of ManaTI provided in the Parameters table (check migrations)
+
 0.9.0a
 ----------
 * NEW FILES STRUCTURE - it is based in the book **Cookiecutter Django**(https://github.com/pydanny/cookiecutter-django)
