@@ -1,7 +1,7 @@
 0.9.0a
 ----------
-* NEW FILES STRUCTURE - it is based in the book ([Cookiecutter Django](https://github.com/pydanny/cookiecutter-django)
-  and the book ([Two Scoops of Django 1.11](https://www.twoscoopspress.com/products/two-scoops-of-django-1-11) 😍
+* NEW FILES STRUCTURE - it is based in the book **Cookiecutter Django**(https://github.com/pydanny/cookiecutter-django)
+  and the book **Two Scoops of Django 1.11**(https://www.twoscoopspress.com/products/two-scoops-of-django-1-11) 😍
 * Production settings with the new structure were not tested yet. Maybe running ManaTI in production mode can fail 😐😐
 * Fixing bug the labelled weblogs in the table were updated but sync was not working properly and the bulk labelling
   were not reflecting and the server was still receiving request to label the same weblog
