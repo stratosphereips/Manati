@@ -239,3 +239,9 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
+
+## License
+
+The GPLv3 License (GPLv3). See docs/LICENSE file for more details.
+
+Copyright (c) 2016-2018 Stratosphere Laboratory
