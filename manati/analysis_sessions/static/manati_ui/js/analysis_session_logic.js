@@ -396,11 +396,20 @@ function AnalysisSessionLogic(){
                 break;
             }
         }
-        processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
-        COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
-        COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
-        CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
-        CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        if(COL_HTTP_URL_STR == null){
+            alert("None of these key column were found: " + NAMES_HTTP_URL.join(', ') + " several features will be disabled");
+        }
+        if(NAMES_END_POINTS_SERVER == null){
+            alert("None of these key column were found: " + NAMES_END_POINTS_SERVER.join(', ') + " several features will be disabled");
+        }
+
+        if(COL_HTTP_URL_STR != null && NAMES_END_POINTS_SERVER != null){
+            processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
+            COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
+            COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
+            CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
+            CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        }
         _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
@@ -417,9 +426,9 @@ function AnalysisSessionLogic(){
 
     }
     this.markVerdict= function (verdict, class_selector) {
-        if(class_selector === null || class_selector === undefined) class_selector = "selected";
-        // console.log(verdict);
         var rows_affected = [];
+        if(COLUMN_END_POINTS_SERVER == null && COLUMN_HTTP_URL == null) return rows_affected;
+        if(class_selector === null || class_selector === undefined) class_selector = "selected";
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
 
@@ -1416,26 +1425,27 @@ function AnalysisSessionLogic(){
     }
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
+        if((COLUMN_END_POINTS_SERVER !== undefined || COLUMN_END_POINTS_SERVER !== null) && (COLUMN_HTTP_URL !== undefined && COLUMN_HTTP_URL !== null)) {
             $.contextMenu({
                 selector: '.weblogs-datatable tr',
                 events: {
-                   show : function(options){
+                    show: function (options) {
                         // // Add class to the menu
-                        if(!this.hasClass('selected')){
+                        if (!this.hasClass('selected')) {
                             this.addClass('selected');
                         }
                         this.addClass('menucontext-open');
-                   },
-                   hide : function(options) {
-                       this.removeClass('menucontext-open');
-                       this.removeClass('selected');
-                       _bulk_marks_wbs = {};
-                       _bulk_verdict = null;
-                   }
+                    },
+                    hide: function (options) {
+                        this.removeClass('menucontext-open');
+                        this.removeClass('selected');
+                        _bulk_marks_wbs = {};
+                        _bulk_verdict = null;
+                    }
                 },
-                build: function ($trigger, e){
+                build: function ($trigger, e) {
                     return {
-                        callback: function(key, options) {
+                        callback: function (key, options) {
                             var verdict = key;
                             labelingRows(verdict);
                             return true;
@@ -1447,6 +1457,7 @@ function AnalysisSessionLogic(){
 
 
             });
+        }
     }
     var labelingRows = function (verdict){
         var rows_affected = thiz.markVerdict(verdict);
@@ -1876,28 +1887,34 @@ function AnalysisSessionLogic(){
         $.notify("Parsing file...", "info");
     };
 
-    function build_FilePreviewer(headers=[], data=[]){
-        let $html = $('<div class="content"></div>');
-        let $ul = $('<ol id="list-column">');
-        for (let i = 0; i < headers.length; i++){
-            let header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
-            let select_tag = $('<select>');
+    function build_FilePreviewer(headers, data){
+        var $html = $('<div class="content"></div>');
+        var $ul = $('<ol id="list-column">');
+        for (var i = 0; i < headers.length; i++){
+            var header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
+            var select_tag = $('<select>');
             select_tag.attr('id', 'column_'+i);
-            for (let x = 0; x < header_options.length; x++) {
-                let value = header_options[x];
+            for (var x = 0; x < header_options.length; x++) {
+                var value = header_options[x];
                 select_tag.append($('<option>').html(value.substring(0,30)).attr("value", value));
             }
             $ul.append($('<li>').html(select_tag));
 
         }
+        var $ul_list_key = $('<ol id="list-key">');
+        $ul_list_key.append($('<li id="key-http-url">').html("http.url or host"));
+        $ul_list_key.append($('<li id="key-endpoints-server">').html("endpoints.server or id.resp_h"));
         $html.html("<h4>ManaTI does not know you uploaded file,  please, select the column name of your data</h4>");
-        $html.append($ul);
+        var $wrap = $('<div class="row"></div>');
+        $wrap.html($('<div class="col-md-6 list-select"></div>').html($ul));
+        $wrap.append($('<div class="col-md-6 list-key"><h5>Mandatories columns </h5></div>').append($ul_list_key));
+        $html.append($wrap);
         return $html;
     }
 
-    let showModalCheckingTypeFile = function (filename, header=[], data=[]){
-        let before_hidden_func = function (){
-            let  headers = $('#list-column select').map(function (){return this.value;}).toArray();
+    var showModalCheckingTypeFile = function (filename, header, data){
+        var before_hidden_func = function (){
+            var  headers = $('#list-column select').map(function (){return this.value;}).toArray();
             thiz.settingsForInitData(headers, data);
         };
         initModal("Pre-visualize: <span>"+filename+"</span>", null, before_hidden_func);
@@ -1915,7 +1932,7 @@ function AnalysisSessionLogic(){
         hideLoading();
         _m.EventFileUploadingFinished(_filename, rowCount);
 
-    }
+    };
 
     thiz.parseData = function(file_rows, with_header=true, type_file='', delimiter=""){
         var completeFn = function (results,file){
@@ -1937,7 +1954,7 @@ function AnalysisSessionLogic(){
                             showModalCheckingTypeFile(getFileName(), data[0],data);
                         }
                         else{
-                            let headers = Object.keys(data[0]);
+                            var headers = Object.keys(data[0]);
                             thiz.settingsForInitData(headers, data);
                         }
                     }catch (e){
