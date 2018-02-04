@@ -1,23 +1,26 @@
+# also called local.ymml
 version: '3'
 
 services:
   nginx:
-      build: './docker-files/nginx/.'
+      build: './compose/local/nginx/.'
       ports:
         - '8080:80'
       depends_on:
         - web
   web:
-    build: '.'
+    build:
+      context: '.'
+      dockerfile: './compose/local/django/Dockerfile'
     image: 'manati'
     env_file:
       - '.env'
-      - '.env-docker'
+      - '.env-docker.example'
     expose:
       - "8000"
     ports:
       - '127.0.0.1:8000:8000'
-    command: 'bash -c "python manage.py migrate && python manage.py check_external_modules && python manage.py collectstatic --noinput && gunicorn manati.wsgi:application -w 2 -b :8000 --capture-output --enable-stdio-inheritance --log-level=debug --access-logfile=- --log-file=-"'
+    command: 'bash -c "python manage.py migrate && python manage.py check_external_modules && python manage.py collectstatic --noinput && gunicorn config.wsgi:application -w 2 -b :8000 --capture-output --enable-stdio-inheritance --log-level=debug --access-logfile=- --log-file=-"'
     volumes:
       - '.:/code'
       - 'manati_cachedata:/cache'
@@ -34,7 +37,7 @@ services:
     container_name: 'postgres'
     image: 'postgres:9.6.5'
     env_file:
-      - '.env-docker'
+      - '.env-docker.example'
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
@@ -53,7 +56,7 @@ services:
   rq:
     build: .
     env_file:
-      - '.env-docker'
+      - '.env-docker.example'
     command: "bash -c 'python manage.py rqworker high default low'"
     volumes:
       - .:/code

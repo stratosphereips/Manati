@@ -1,3 +1,29 @@
+----------
+* Adding function when the users wants to remove an analysis session, the action will be enqueued, sometimes the
+analysis session is huge and it takes time to be removed.
+* Adding permission to user when it creates an analysis session
+* Check permission to remove a analysis session
+
+0.9.1a
+----------
+* When the user does a request to VirusTotal (by domain or IP), first the system try to use the VirusTotal API KEY completed in
+user's profile, if it is null, they system uses the VirusTotal API KEY of ManaTI provided in the Parameters table (check migrations)
+
+0.9.0a
+----------
+* NEW FILES STRUCTURE - it is based in the book **Cookiecutter Django**(https://github.com/pydanny/cookiecutter-django)
+  and the book **Two Scoops of Django 1.11**(https://www.twoscoopspress.com/products/two-scoops-of-django-1-11) 😍
+* Production settings with the new structure were not tested yet. Maybe running ManaTI in production mode can fail 😐😐
+* Fixing bug the labelled weblogs in the table were updated but sync was not working properly and the bulk labelling
+  were not reflecting and the server was still receiving request to label the same weblog
+* Fixing when a new user is created, it has not access to editing profile.
+* README file was updated
+* Minor change in docker-compose settings
+* The directory **/example_weblogs**, which contains several weblog files examples, it was move into **/docs**
+* Adding .env.example and .env-docker.example files
+* Adding management command **createsuperuser2**. It is equal to **createsuperuser** but now you can add parameters
+  instead of using console inputs
+
 0.8.2a
 ----------
 * fixing bug reported by @garanews. When the user is using BRO splitted files ManaTI was not detecting correctly the
