@@ -20,7 +20,7 @@
 #
 from django.db.models.signals import post_save,pre_save,pre_delete
 from django.dispatch import receiver
-from manati.analysis_sessions.models import *
+from manati.analysis_sessions.models import Weblog
 
 
 @receiver(pre_save, sender=Weblog)

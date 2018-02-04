@@ -1,3 +1,9 @@
+----------
+* Adding function when the users wants to remove an analysis session, the action will be enqueued, sometimes the
+analysis session is huge and it takes time to be removed.
+* Adding permission to user when it creates an analysis session
+* Check permission to remove a analysis session
+
 0.9.1a
 ----------
 * When the user does a request to VirusTotal (by domain or IP), first the system try to use the VirusTotal API KEY completed in
