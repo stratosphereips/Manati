@@ -426,10 +426,13 @@ function ContextMenuSettings(datatable_setting){
         return table;
 
     }
-    function initModal(title, after_hidden_function){
+    function initModal(title, after_hidden_function, before_hidden_func){
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            if(before_hidden_func !== undefined && before_hidden_func !== null){
+                before_hidden_func();
+            }
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
@@ -612,9 +615,44 @@ function ContextMenuSettings(datatable_setting){
         return table;
 
     }
+     function build_FilePreviewer(headers, data){
+        var $html = $('<div class="content"></div>');
+        var $ul = $('<ol id="list-column">');
+        for (var i = 0; i < headers.length; i++){
+            var header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
+            var select_tag = $('<select>');
+            select_tag.attr('id', 'column_'+i);
+            for (var x = 0; x < header_options.length; x++) {
+                var value = header_options[x];
+                select_tag.append($('<option>').html(value.substring(0,30)).attr("value", value));
+            }
+            $ul.append($('<li>').html(select_tag));
+
+        }
+        var $ul_list_key = $('<ol id="list-key">');
+        $ul_list_key.append($('<li id="key-http-url">').html("http.url or host"));
+        $ul_list_key.append($('<li id="key-endpoints-server">').html("endpoints.server or id.resp_h"));
+        $html.html("<h4>ManaTI does not recognize uploaded file,  please, select the columns name of your data</h4>");
+        var $wrap = $('<div class="row"></div>');
+        $wrap.html($('<div class="col-md-6 list-select"></div>').html($ul));
+        $wrap.append($('<div class="col-md-6 list-key"><h5>Mandatories columns </h5></div>').append($ul_list_key));
+        $html.append($wrap);
+        return $html;
+    }
+
+    this.showModalCheckingTypeFile = function (filename, header, data){
+        var before_hidden_func = function (){
+            var  headers = $('#list-column select').map(function (){return this.value;}).toArray();
+            _datatable_setting.settingsForInitData(headers, data);
+        };
+        initModal("Pre-visualize: <span>"+filename+"</span>", null, before_hidden_func);
+        updateBodyModal(build_FilePreviewer(header, data));
+
+    };
+
     function getIOCs(weblog_id){
         initModal("IOCs Selected:" + weblog_id);
-        var data = {weblog_id:weblog_id}
+        var data = {weblog_id:weblog_id};
         $.ajax({
             type:"GET",
             dataType: "json",

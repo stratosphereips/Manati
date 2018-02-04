@@ -48,15 +48,15 @@ function ReaderFile(analysis_session_logic_obj){
             }
         }
     }
-    let _type_file = '';
+    var _type_file = '';
     function handleFileSelect(evt) {
         reader = new FileReader();
         reader.onloadend = function(evt) {
-            let file_rows;
+            var file_rows;
             if (evt.target.readyState === FileReader.DONE) {
                 var rows = evt.target.result.split('\n');
-                let header = true;
-                let delimiter = "";
+                var header = true;
+                var delimiter = "";
                 if(rows[0][0]==='#'){
                     var i=0;
                     var possible_headers = [];
@@ -83,13 +83,14 @@ function ReaderFile(analysis_session_logic_obj){
                     file_rows = rows.join('\n');
                 }
                 _aslo.parseData(file_rows, header,_type_file,delimiter);
+                _type_file = null;
 
             }
         };
 
         // Read in the image file as a binary string.
-        let file = evt.target.files[0];
-        let extension = file.name.split('.').pop().toLowerCase();
+        var file = evt.target.files[0];
+        var extension = file.name.split('.').pop().toLowerCase();
         if(FILES_TYPES_AVAILABLE.indexOf(extension) > -1){
             if (extension === 'csv'){
                 _type_file = 'cisco_file';

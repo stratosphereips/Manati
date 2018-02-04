@@ -13,8 +13,10 @@ var hasOwnProperty = Object.prototype.hasOwnProperty;
 
 function isEmpty(obj) {
 
+    if (typeof obj === "boolean") return false;
+
     // null and undefined are "empty"
-    if (obj == null) return true;
+    if (obj === null || obj === undefined) return true;
 
     // Assume if it has a length property with a non-zero value
     // that that property is correct.
@@ -34,4 +36,14 @@ function isEmpty(obj) {
     }
 
     return true;
+}
+
+function setdefault(obj, default_value){
+    if (isEmpty(obj)){
+        return default_value;
+    }else{
+        return obj;
+    }
+
+
 }

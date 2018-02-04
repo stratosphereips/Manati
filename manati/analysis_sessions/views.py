@@ -39,7 +39,7 @@ from api_manager.models import *
 from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
-from manati_ui.serializers import WeblogSerializer
+from manati.analysis_sessions.serializers import WeblogSerializer
 from django_datatables_view.base_datatable_view import BaseDatatableView
 import share_modules
 import django_rq

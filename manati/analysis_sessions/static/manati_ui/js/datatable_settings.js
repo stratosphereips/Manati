@@ -50,16 +50,28 @@ function DataTableSettings(analysis_session_logic){
             buttons: ['copy','csv','excel', 'colvis'],
             "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
                 //when you change the verdict, the color is updated
+                var dt_id_key;
+                var verdict_key;
+                var reg_status_key;
+                if(data_type_is_array()){
+                    dt_id_key = AUX_COLUMNS.DT_ID.index;
+                    verdict_key = AUX_COLUMNS.VERDICT.index;
+                    reg_status_key= AUX_COLUMNS.REG_STATUS.index;
+                }else{
+                    dt_id_key = AUX_COLUMNS.DT_ID.str;
+                    verdict_key = AUX_COLUMNS.VERDICT.str;
+                    reg_status_key= AUX_COLUMNS.REG_STATUS.str;
+                }
                 var row = $(nRow);
-                var dt_id = aData[AUX_COLUMNS.DT_ID.str];
-                row.addClass(checkVerdict(_verdicts_merged, aData[AUX_COLUMNS.VERDICT.str]));
+                var dt_id = aData[dt_id_key];
+                row.addClass(checkVerdict(_verdicts_merged, aData[verdict_key]));
                 if(_rows_labeled.hasOwnProperty(dt_id)){
                     row.addClass(checkVerdict(_verdicts_merged, _rows_labeled[dt_id].verdict));
                 }
 
-                var str = aData[AUX_COLUMNS.DT_ID.str].split(":");
+                var str = aData[dt_id_key].split(":");
 
-                if(aData[AUX_COLUMNS.REG_STATUS.str] === REG_STATUS.modified){
+                if(aData[reg_status_key] === REG_STATUS.modified){
                     if(!row.hasClass('modified')) row.addClass('modified');
                 }
                 if(str.length > 1){
@@ -127,10 +139,19 @@ function DataTableSettings(analysis_session_logic){
     function checkNullDataTable(){
         //verifying if already exist a table, in that case, destroy it
         if(_dt !== null && _dt !== undefined) {
-            _dt.clear().draw();
-            _dt.destroy();
-            _dt = null;
-            $('#weblogs-datatable').html('');
+              _dt.clear();
+              _dt.destroy();
+              _dt = null;
+              $('#weblogs-datatable').empty();
+              $('#weblogs-datatable').html('');
+              AUX_COLUMNS = {
+                    VERDICT:{index:null, str: "verdict", class: "verdict"},
+                    REG_STATUS:{index:null, str: "register_status", class: "register_status"},
+                    UUID:{index:null, str: "uuid", class: "uuid"},
+                    DT_ID:{index:null, str: "dt_id", class: "dt_id"},
+                    DIST_IP:{index:null, str: "", class: ""},
+                    URL:{index:null, str: "", class: ""}
+              };
         }
     }
     function DataTableEvents(headers_info){
@@ -177,11 +198,16 @@ function DataTableSettings(analysis_session_logic){
         //      // }
         //  });
         //  _dt.on('search.dt',function (){
-        //      $('.page-select').html('');
-        //      var list = document.getElementsByClassName('page-select')[1];
-        //      // for(var index=0; index<_dt.page.info().pages; index++) {
-        //      //     list.add(new Option((index+1).toString(), index));
-        //      // }
+        //      try{
+        //          $('.page-select').html('');
+        //          var list = document.getElementsByClassName('page-select')[1];
+        //          for(var index=0; index<_dt.page.info().pages; index++) {
+        //              list.add(new Option((index+1).toString(), index));
+        //          }
+        //      }catch (e){
+        //          // pass. When you upload another file, in the same section that the previous one, there is an error
+        //          // TO-DO
+        //      }
         //
         //  });
 
@@ -233,12 +259,21 @@ function DataTableSettings(analysis_session_logic){
                 break;
             }
         }
+        if(AUX_COLUMNS.URL.str === ""){
+            alert("None of these key column were found: " + NAMES_HTTP_URL.join(', ') + " several features will be disabled");
+        }
+        if(AUX_COLUMNS.DIST_IP.str === ""){
+            alert("None of these key column were found: " + NAMES_END_POINTS_SERVER.join(', ') + " several features will be disabled");
+        }
 
-        // updating indexes and names from the table
-        AUX_COLUMNS.URL.index = data_headers_keys[AUX_COLUMNS.URL.str];
-        AUX_COLUMNS.URL.class  = AUX_COLUMNS.URL.str.replace(".","_");
-        AUX_COLUMNS.DIST_IP.index = data_headers_keys[AUX_COLUMNS.DIST_IP.str];
-        AUX_COLUMNS.DIST_IP.class =  AUX_COLUMNS.DIST_IP.str.replace(".", "_");
+        if(AUX_COLUMNS.URL.str !== "" && AUX_COLUMNS.DIST_IP.str !== ""){
+            // updating indexes and names from the table
+            AUX_COLUMNS.URL.index = data_headers_keys[AUX_COLUMNS.URL.str];
+            AUX_COLUMNS.URL.class  = AUX_COLUMNS.URL.str.replace(".","_");
+            AUX_COLUMNS.DIST_IP.index = data_headers_keys[AUX_COLUMNS.DIST_IP.str];
+            AUX_COLUMNS.DIST_IP.class =  AUX_COLUMNS.DIST_IP.str.replace(".", "_");
+        }
+
 
     }
 
@@ -248,9 +283,9 @@ function DataTableSettings(analysis_session_logic){
         setConstants(_data_headers_keys);
         datatable_setting['columns'] = headers;
         datatable_setting['columnDefs']= [
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.str},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.str},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.str,
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.index},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.index},
+            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.index,
                 "defaultContent": null, render: function ( data, type, full, meta ) {
                                                         if (data === null|| data === undefined) {
                                                             return getRowShortId(getAnalysisSessionId());
@@ -259,22 +294,25 @@ function DataTableSettings(analysis_session_logic){
             }
         ];
         activeFilterTable();
-        checkNullDataTable();
+        // checkNullDataTable();
         _dt = $('#weblogs-datatable').DataTable(datatable_setting);
         DataTableEvents(_data_headers_keys);
 
     }
     function checkHeaderDataTable(headers){
+        var is_array = data_type_is_array();
         var headers_key = {};
         for(var i = 0; i < headers.length; i++){
-            var cn = headers[i]['column_name'];
-            headers[i]['title'] = cn;
-            headers_key[cn] = headers[i]['order'];
-            var key_splitted = cn.split('.');
-            if(key_splitted.length > 1){
-                cn = key_splitted.join('\\.');
+            var cn;
+            if(!is_array){
+                cn = headers[i]['column_name'];
+                headers[i]['title'] = cn;
+                headers[i]['data'] = cn.replace(/\./g,"\\.");
+            }else{
+                cn = headers[i]['title'].replace(/\./g,"_");
             }
-            headers[i]['data'] = cn;
+            headers_key[cn] = headers[i]['order'];
+
         }
         return headers_key
     }
@@ -320,21 +358,46 @@ function DataTableSettings(analysis_session_logic){
         return rows_affected;
 
     };
+    var _type_data = "";
+    function set_type_data(type_data){
+        _type_data = type_data;
+    }
+    function get_type_data(){
+        return _type_data;
+    }
+    function data_type_is_array(){
+        return get_type_data() === "array";
+    }
+
     this.newDataTable = function(headers, data){
+        checkNullDataTable();
         var header_length = headers.length;
-        $.each([AUX_COLUMNS.VERDICT.str, AUX_COLUMNS.REG_STATUS.str,
-            AUX_COLUMNS.DT_ID.str, AUX_COLUMNS.UUID.str],
+        $.each([AUX_COLUMNS.VERDICT.str, AUX_COLUMNS.REG_STATUS.str,  AUX_COLUMNS.DT_ID.str, AUX_COLUMNS.UUID.str],
             function (i, value){
-               headers.push({column_name: value, title: value, order: header_length + i, defaultContent: 'undefined'});
+                headers.push({column_name: value, title: value, order: header_length + i, defaultContent: 'undefined'});
             }
         );
 
-        $.each(data, function (i, v){
-            v[AUX_COLUMNS.VERDICT.str] = 'undefined';
-            v[AUX_COLUMNS.DT_ID.str] = (i+1).toString();
-            v[AUX_COLUMNS.REG_STATUS.str] = (-1).toString();
-            v[AUX_COLUMNS.UUID.str] = getRowShortId(getAnalysisSessionId());
-        });
+        if(!data_type_is_array()){
+            $.each(data, function (i, v){
+                v[AUX_COLUMNS.VERDICT.str] = 'undefined';
+                v[AUX_COLUMNS.DT_ID.str] = (i+1).toString();
+                v[AUX_COLUMNS.REG_STATUS.str] = (-1).toString();
+                v[AUX_COLUMNS.UUID.str] = getRowShortId(getAnalysisSessionId());
+            });
+        }else if(data_type_is_array()){
+            $.each(data, function (i, v){
+                v.push('undefined'); //AUX_COLUMNS.VERDICT.index
+                v.push((i+1).toString()); // AUX_COLUMNS.DT_ID.index
+                v.push((-1).toString()); // AUX_COLUMNS.REG_STATUS.index
+                v.push(getRowShortId(getAnalysisSessionId())); // AUX_COLUMNS.UUID.index
+            });
+
+        }else{
+            throw 'Parsed data is undefined';
+        }
+        console.log(data[0]);
+        console.log(headers);
         var new_table_options = $.extend({}, table_options);
         new_table_options['data'] = data;
         initDatatable(headers, new_table_options);
@@ -403,5 +466,36 @@ function DataTableSettings(analysis_session_logic){
         // settings['serverSide'] = true;
         // settings['ajax'] = "/manati_project/manati_ui/datatable/data?json=true&analysis_session_id" + analysis_session_id
 
-    }
+    };
+
+    this.settingsForInitData = function (headers, data){
+        // $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
+        //     headers.push(value);
+        // });
+        set_type_data(null);
+        var headers_objs = [];
+        if(typeof data === "object" && !Array.isArray(data[0])){
+            set_type_data("object");
+        }else if(Array.isArray(data)){
+            set_type_data("array");
+        }else{
+            throw 'Parsed data is undefined';
+        }
+
+        for(var i =0; i < headers.length; i++){
+            var cn = headers[i];
+            var col_setting = {title: cn , order: i};
+            if(!data_type_is_array()){
+                col_setting['column_name'] = cn;
+            }
+            headers_objs.push(col_setting);
+        }
+
+        thiz.newDataTable(headers_objs,data);
+        analysis_session_logic.generateAnalysisSessionUUID();
+        hideLoading();
+        _m.EventFileUploadingFinished(_filename, data.length+1);
+
+
+    };
 }

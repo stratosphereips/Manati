@@ -698,7 +698,6 @@ function AnalysisSessionLogic(){
                 $('.searching-buttons .btn').removeClass('active')
             });
 
-            contextMenuSettings();
             $('#save-table').on('click',function(){
                saveDB();
             });
@@ -807,54 +806,10 @@ function AnalysisSessionLogic(){
         $.notify("Parsing file...", "info");
     };
 
-    function build_FilePreviewer(headers, data){
-        var $html = $('<div class="content"></div>');
-        var $ul = $('<ol id="list-column">');
-        for (var i = 0; i < headers.length; i++){
-            var header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
-            var select_tag = $('<select>');
-            select_tag.attr('id', 'column_'+i);
-            for (var x = 0; x < header_options.length; x++) {
-                var value = header_options[x];
-                select_tag.append($('<option>').html(value.substring(0,30)).attr("value", value));
-            }
-            $ul.append($('<li>').html(select_tag));
-
-        }
-        var $ul_list_key = $('<ol id="list-key">');
-        $ul_list_key.append($('<li id="key-http-url">').html("http.url or host"));
-        $ul_list_key.append($('<li id="key-endpoints-server">').html("endpoints.server or id.resp_h"));
-        $html.html("<h4>ManaTI does not recognize uploaded file,  please, select the columns name of your data</h4>");
-        var $wrap = $('<div class="row"></div>');
-        $wrap.html($('<div class="col-md-6 list-select"></div>').html($ul));
-        $wrap.append($('<div class="col-md-6 list-key"><h5>Mandatories columns </h5></div>').append($ul_list_key));
-        $html.append($wrap);
-        return $html;
-    }
-
-    var showModalCheckingTypeFile = function (filename, header, data){
-        var before_hidden_func = function (){
-            var  headers = $('#list-column select').map(function (){return this.value;}).toArray();
-            thiz.settingsForInitData(headers, data);
-        };
-        initModal("Pre-visualize: <span>"+filename+"</span>", null, before_hidden_func);
-        updateBodyModal(build_FilePreviewer(header, data));
-
-    };
-
-    this.settingsForInitData = function (headers, data){
-
-        $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
-            headers.push(value);
-        });
-        initData(data,headers);
-        thiz.generateAnalysisSessionUUID();
-        hideLoading();
-        _m.EventFileUploadingFinished(_filename, rowCount);
-
-    };
-
-    thiz.parseData = function(file_rows, with_header=true, type_file='', delimiter=""){
+    thiz.parseData = function(file_rows, with_header, type_file, delimiter){
+        with_header = setdefault(with_header, true);
+        type_file = setdefault(type_file, '');
+        delimiter = setdefault(delimiter, "");
         var completeFn = function (results,file){
             if (results && results.errors)
             {
@@ -871,28 +826,17 @@ function AnalysisSessionLogic(){
                     var data = results.data;
                     try{
                         if (thiz.getAnalysisSessionTypeFile() === 'apache_http_log'){
-                            showModalCheckingTypeFile(getFileName(), data[0],data);
+                            contextmenu_setting.showModalCheckingTypeFile(getFileName(), data[0],data);
                         }
                         else{
                             var headers = Object.keys(data[0]);
-                            thiz.settingsForInitData(headers, data);
+                            datatable_setting.settingsForInitData(headers, data);
                         }
                     }catch (e){
                         console.error(e);
 
                     }
-                    // var headers = results.meta.fields;
-                    // var headers_objs = [];
-                    // for(var i =0; i < headers.length; i++){
-                    //     var cn = headers[i];
-                    //     headers_objs.push({column_name:cn, title: cn , order: i});
-                    // }
-                    //
-                    // datatable_setting.newDataTable(headers_objs,data);
-                    // // initData(data,headers);
-                    // thiz.generateAnalysisSessionUUID();
-                    // hideLoading();
-                    // _m.EventFileUploadingFinished(_filename, rowCount);
+
                 }
 
             }
