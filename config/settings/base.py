@@ -355,5 +355,6 @@ USERENA_REGISTER_PROFILE = False
 USERENA_DEFAULT_PRIVACY = 'closed'
 USERENA_MUGSHOT_GRAVATAR = False
 GUARDIAN_GET_INIT_ANONYMOUS_USER = 'manati.analysis_session.models.get_anonymous_user_instance'
+GUARDIAN_RENDER_403 = True
 
 ENCRYPTED_FIELDS_KEYDIR = os.path.join(BASE_DIR, 'fieldkeys')
