@@ -48,6 +48,10 @@ import re
 import pythonwhois
 from pythonwhois.shared import WhoisException
 from bulk_update.helper import bulk_update
+from guardian.shortcuts import assign_perm
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django_rq import job
 vt = vt()
 
 
@@ -101,6 +105,12 @@ class AnalysisSessionManager(models.Manager):
                 analysis_sessions_users = AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
                                                                               user_id=current_user.id,
                                                                               columns_order=json.dumps(key_list))
+                content_type = ContentType.objects.get_for_model(AnalysisSession)
+                permissions = Permission.objects.filter(content_type=content_type)
+                for user in analysis_session.users.all():
+                    for permission in permissions:
+                        assign_perm(permission.codename, user, analysis_session)
+
                 for elem in weblogs:
                     i = 0
                     hash_attr = {}
@@ -239,7 +249,7 @@ class RegisterStatus(enum.Enum):
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
                          ('cisco_file', 'CISCO weblogs Specific File'))
-    STATUS = Choices(('open', 'Open'),('closed', 'Closed'))
+    STATUS = Choices(('open', 'Open'),('closed', 'Closed'),('removed', 'Removed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
                        TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
 
