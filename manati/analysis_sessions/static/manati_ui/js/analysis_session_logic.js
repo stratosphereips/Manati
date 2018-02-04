@@ -1904,7 +1904,7 @@ function AnalysisSessionLogic(){
         var $ul_list_key = $('<ol id="list-key">');
         $ul_list_key.append($('<li id="key-http-url">').html("http.url or host"));
         $ul_list_key.append($('<li id="key-endpoints-server">').html("endpoints.server or id.resp_h"));
-        $html.html("<h4>ManaTI does not know you uploaded file,  please, select the column name of your data</h4>");
+        $html.html("<h4>ManaTI does not recognize uploaded file,  please, select the columns name of your data</h4>");
         var $wrap = $('<div class="row"></div>');
         $wrap.html($('<div class="col-md-6 list-select"></div>').html($ul));
         $wrap.append($('<div class="col-md-6 list-key"><h5>Mandatories columns </h5></div>').append($ul_list_key));
