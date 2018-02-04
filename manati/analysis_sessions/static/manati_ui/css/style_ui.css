@@ -1,0 +1,259 @@
+.dataTables_wrapper table tbody tr:not(.selected).malicious td {
+  background-color: #FF6961;
+}
+#analysis-session-page .btn-danger{
+    background-color: #FF6961;
+}
+.dataTables_wrapper table tbody tr:not(.selected).legitimate td {
+  background-color: #69c269;
+}
+.dataTables_wrapper table tbody tr:not(.selected).suspicious td {
+  background-color: darkorange;
+}
+.dataTables_wrapper table tbody tr:not(.selected).falsepositive td {
+  background-color: lightskyblue;
+}
+.dataTables_wrapper table tbody tr:not(.selected).undefined td. {
+  background-color: whitesmoke;
+}
+
+.dataTables_wrapper table tbody tr:not(.selected).malicious_legitimate td {
+    background-color: #863C00;
+    /*color: white;*/
+    /*background: -webkit-repeating-linear-gradient(145deg, red, red 10px, green 10px, green 20px);*/
+    /*background: repeating-linear-gradient(-55deg, #222, #222 10px, #333 10px, #333 20px);*/
+}
+.dataTables_wrapper table tbody tr:not(.selected).suspicious_legitimate td {
+  background-color: #928300;
+}
+.dataTables_wrapper table tbody tr:not(.selected).undefined_legitimate td {
+  background-color: #81B67A;
+}
+.dataTables_wrapper table tbody tr:not(.selected).falsepositive_legitimate td {
+  background-color: #50A78A;
+}
+.dataTables_wrapper table tbody tr:not(.selected).undefined_malicious  td{
+  background-color: #FA8787;
+}
+.dataTables_wrapper table tbody tr:not(.selected).suspicious_malicious td{
+  background-color: #BD718A;
+}
+.dataTables_wrapper table tbody tr:not(.selected).falsepositive_malicious td {
+  background-color: #BD718A;
+}
+.dataTables_wrapper table tbody tr:not(.selected).falsepositive_suspicious td {
+  background-color: #BDB08A;
+}
+.dataTables_wrapper table tbody tr:not(.selected).undefined_suspicious td {
+  background-color: #FAC687;
+}
+.dataTables_wrapper table tbody tr:not(.selected).undefined_falsepositive  td{
+  background-color: #C4E3F7;
+}
+.dataTables_wrapper table tbody tr.selected td {
+    background-color: #447e9b;
+    color: white;
+}
+.dataTables_wrapper table tbody tr.action td {
+    border-bottom: 2px goldenrod solid;
+    border-top: 2px goldenrod solid;
+}
+
+
+
+.jCProgress {
+     position: absolute;
+     z-index: 9999999;
+     /*  margin-top:-15px; /* offset from the center */
+}
+
+.jCProgress > div.percent {
+     font: 18px/27px 'BebasRegular', Arial, sans-serif;
+     color:#ebebeb;
+     text-shadow: 1px 1px 1px #1f1f1f;
+
+     position:absolute;
+     margin-top:40px;
+     margin-left:22px;
+     text-align: center;
+     width:60px;
+}
+
+.sidebar {
+    width: 180px;
+}
+.navbar{
+    margin-bottom: 0;
+    background-color: white;
+}
+.page-header{
+    margin-top: 20px;
+}
+#page-wrapper{
+    margin-left: 0;
+}
+.dataTables_wrapper th, .dataTables_wrapper td {
+    white-space: nowrap;
+}
+
+#statical-section table td{
+    vertical-align: middle
+}
+.modal .modal-content{
+    width: 800px;
+}
+.modal .modal-body table{
+    table-layout: fixed;
+    width: 100%;
+
+}
+.modal .modal-body table td{
+    word-wrap: break-word;
+}
+
+
+.modal-dialog{
+  overflow-y: initial !important;
+}
+.modal-body{
+    max-height: 800px;
+    overflow-y: auto;
+}
+.report-modal-body {
+    max-height:800px;
+    overflow-y:auto;
+    overflow-x:auto;
+    word-wrap: break-word;
+}
+
+
+
+#progress_bar {
+    margin: 10px 0;
+    padding: 3px;
+    border: 1px solid #000;
+    font-size: 14px;
+    clear: both;
+    opacity: 0;
+    -moz-transition: opacity 1s linear;
+    -o-transition: opacity 1s linear;
+    -webkit-transition: opacity 1s linear;
+}
+#progress_bar.loading {
+opacity: 1.0;
+}
+#progress_bar .percent {
+background-color: #99ccff;
+height: auto;
+width: 0;
+}
+
+
+
+.btn-6{
+    -webkit-transition: none;
+    -moz-transition: none;
+    transition: none;
+    border-radius: 60px;
+    background: transparent;
+}
+.i6-danger{
+    border: 2px dotted #c9302c;
+    color: #c9302c;
+
+}
+.i6-danger:hover{
+    background: #c9302c;
+    color: #fff
+
+}
+.i6-warning{
+    border: 2px dotted #f0ad4e;
+    color: #f0ad4e;
+}
+.i6-warning:hover{
+    background: #f0ad4e;
+    color: #fff
+}
+.i6-info{
+    border: 2px dotted #5bc0de;
+    color: #5bc0de;
+
+}
+.i6-info:hover{
+    background: #5bc0de;
+    color: #fff
+}
+.i6-undefined{
+    border: 2px dotted #ADADAD;
+    color: #ADADAD;
+}
+.i6-undefined:hover{
+    background: #ADADAD;
+    color: #fff;
+}
+.i6-success{
+    border: 2px dotted #69c269;
+    color: #69c269;
+}
+.i6-success:hover{
+    background: #69c269;
+    color: #fff;
+}
+
+
+.i6-danger.active{
+    background: #c9302c;
+    color: #fff;
+}
+
+.i6-warning.active{
+    background: #f0ad4e;
+    color: #fff;
+
+}
+
+.i6-info.active{
+    background: #5bc0de;
+    color: #fff;
+}
+
+.i6-undefined.active{
+    background: #ADADAD;
+    color: #fff;
+}
+
+.i6-success.active{
+    background: #69c269;
+    color: #fff;
+}
+
+
+#searching-buttons label{
+    display: inline;
+}
+.dataTables_wrapper .bottom{
+    margin-top: 10px;
+}
+
+#change-status.btn-special-closed{
+    color: #fff;
+    background-color: #f0ad4e;
+    border-color: #eea236;
+}
+#change-status.btn-special-open{
+    color: #fff;
+    background-color: #337ab7;
+    border-color: #2e6da4;
+}
+.example-val {
+    font: 400 12px Arial;
+    color: #888;
+    display: block;
+    margin: 15px 0;
+}
+.example-val:before{
+    content: "WSD Threshold: ";
+    font: 700 12px Arial;
+}
+
