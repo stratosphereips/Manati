@@ -11,7 +11,7 @@ var AUX_COLUMNS = {
     URL:{index:null, str: "", class: ""}
 };
 var NAMES_HTTP_URL = ["http.url", "http_url", "host"];
-var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h"];
+var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h"];
 var _data_headers_keys = {};
 var _filterDataTable = null;
 var _verdicts = ["malicious","legitimate","suspicious","falsepositive", "undefined"];
@@ -19,6 +19,10 @@ var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','false
                         'suspicious_legitimate','undefined_legitimate','falsepositive_legitimate',
                         'undefined_malicious','suspicious_malicious','falsepositive_malicious',
                         'falsepositive_suspicious', 'undefined_suspicious','undefined_falsepositive'];
+
+const DEFAULT_COLUMNS_NAMES = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h","http.url",
+    "http_url", "host", 'url','Referer', 'time', 'User-agent', 'ioc', 'dest_ip', 'dest_port', 'local_ip', 'local_port',
+    'partial_url'];
 
 var REG_STATUS = {modified: 1};
 
@@ -291,25 +295,27 @@ function DataTableSettings(analysis_session_logic){
     var _rows_labeled = {};
     // ################ PUBLIC EVENTS ################################
     this.markVerdict= function (verdict, class_selector) {
-        if(class_selector === null || class_selector === undefined) class_selector = "selected";
         var rows_affected = [];
+        if(COLUMN_END_POINTS_SERVER == null && COLUMN_HTTP_URL == null) return rows_affected;
+        if(class_selector === null || class_selector === undefined) class_selector = "selected";
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
+
             var temp_data = {};
-            temp_data[AUX_COLUMNS.UUID.str] = d[AUX_COLUMNS.UUID.str];
-            temp_data[AUX_COLUMNS.DIST_IP.str] = d[AUX_COLUMNS.DIST_IP.str];
-            temp_data[AUX_COLUMNS.URL.str] = d[AUX_COLUMNS.URL.str];
-            temp_data[AUX_COLUMNS.DT_ID.str] = d[AUX_COLUMNS.DT_ID.str];
+            temp_data[COL_UUID_STR] = d[COLUMN_UUID];
+            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
+            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
+            temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
+
             rows_affected.push(temp_data);
-            var old_verdict = d[AUX_COLUMNS.VERDICT.str];
-            d[AUX_COLUMNS.VERDICT.str]= verdict; // update data source for the row
-            d[AUX_COLUMNS.REG_STATUS.str] = REG_STATUS.modified;
-            _rows_labeled[d.dt_id] = {register_status: REG_STATUS.modified, verdict: verdict};
+            var old_verdict = d[COLUMN_VERDICT];
+            d[COLUMN_VERDICT]= verdict; // update data source for the row
+            d[COLUMN_REG_STATUS] = REG_STATUS.modified;
             this.invalidate(); // invalidate the data DataTables has cached for this row
 
         } );
         // Draw once all updates are done
-        // _dt.draw(false);
+        _dt.draw(false);
         addClassVerdict(class_selector, verdict);
         return rows_affected;
 
