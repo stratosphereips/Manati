@@ -619,7 +619,7 @@ function ContextMenuSettings(datatable_setting){
         var $html = $('<div class="content"></div>');
         var $ul = $('<ol id="list-column">');
         for (var i = 0; i < headers.length; i++){
-            var header_options = [headers[i]].concat(['column_'+i].concat(DEFAULT_COLUMNS_NAMES));
+            var header_options = ['column_'+i].concat([headers[i]].concat(DEFAULT_COLUMNS_NAMES));
             var select_tag = $('<select>');
             select_tag.attr('id', 'column_'+i);
             for (var x = 0; x < header_options.length; x++) {

@@ -281,11 +281,23 @@ function DataTableSettings(analysis_session_logic){
     function initDatatable(headers, datatable_setting){
         _data_headers_keys = checkHeaderDataTable(headers);
         setConstants(_data_headers_keys);
+        var dt_id_key;
+        var uuid_key;
+        var reg_status_key;
+        if(!data_type_is_array() || is_editing() ){
+            dt_id_key = AUX_COLUMNS.DT_ID.str;
+            uuid_key = AUX_COLUMNS.UUID.str;
+            reg_status_key= AUX_COLUMNS.REG_STATUS.str;
+        }else{
+            dt_id_key = AUX_COLUMNS.DT_ID.index;
+            uuid_key = AUX_COLUMNS.UUID.index;
+            reg_status_key= AUX_COLUMNS.REG_STATUS.index;
+        }
         datatable_setting['columns'] = headers;
         datatable_setting['columnDefs']= [
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.REG_STATUS.index},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.DT_ID.index},
-            {   "searchable": false, visible: false, "targets": AUX_COLUMNS.UUID.index,
+            {   "searchable": false, visible: false, "targets": reg_status_key},
+            {   "searchable": false, visible: false, "targets": dt_id_key},
+            {   "searchable": false, visible: false, "targets": uuid_key,
                 "defaultContent": null, render: function ( data, type, full, meta ) {
                                                         if (data === null|| data === undefined) {
                                                             return getRowShortId(getAnalysisSessionId());
@@ -330,11 +342,13 @@ function DataTableSettings(analysis_session_logic){
 
     }
 
+
+
     var _rows_labeled = {};
     // ################ PUBLIC EVENTS ################################
     this.markVerdict= function (verdict, class_selector) {
         var rows_affected = [];
-        if(COLUMN_END_POINTS_SERVER == null && COLUMN_HTTP_URL == null) return rows_affected;
+        // if(COLUMN_END_POINTS_SERVER == null && COLUMN_HTTP_URL == null) return rows_affected;
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
@@ -381,15 +395,15 @@ function DataTableSettings(analysis_session_logic){
         if(!data_type_is_array()){
             $.each(data, function (i, v){
                 v[AUX_COLUMNS.VERDICT.str] = 'undefined';
-                v[AUX_COLUMNS.DT_ID.str] = (i+1).toString();
                 v[AUX_COLUMNS.REG_STATUS.str] = (-1).toString();
+                v[AUX_COLUMNS.DT_ID.str] = (i+1).toString();
                 v[AUX_COLUMNS.UUID.str] = getRowShortId(getAnalysisSessionId());
             });
         }else if(data_type_is_array()){
             $.each(data, function (i, v){
                 v.push('undefined'); //AUX_COLUMNS.VERDICT.index
-                v.push((i+1).toString()); // AUX_COLUMNS.DT_ID.index
                 v.push((-1).toString()); // AUX_COLUMNS.REG_STATUS.index
+                v.push((i+1).toString()); // AUX_COLUMNS.DT_ID.index
                 v.push(getRowShortId(getAnalysisSessionId())); // AUX_COLUMNS.UUID.index
             });
 
@@ -404,7 +418,15 @@ function DataTableSettings(analysis_session_logic){
         $('#save-table').show();
 
     };
+    var _editing = false;
+    function set_editing(edit){
+        _editing = edit;
+    }
+    function is_editing(){
+        return _editing;
+    }
     this.editDataTable = function(analysis_session_id){
+        set_editing(true);
         _analysis_session_id = analysis_session_id;
         $.ajax({
             type: "GET",

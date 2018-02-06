@@ -219,15 +219,8 @@ function AnalysisSessionLogic(){
         });
     };
 
-    function saveDB(){
-        try{
-
-            showLoading();
-            $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
-            $('#save-table').attr('disabled',true).addClass('disabled');
-            var rows = datatable_setting.getRows();
-            _m.EventAnalysisSessionSavingStart(rows.length, _filename);
-            var data = {
+    function saveDB_aux(rows){
+        var data = {
                 filename: _filename,
                 "headers[]": JSON.stringify(datatable_setting.get_headers_info()),
                 'data[]': JSON.stringify(rows),
@@ -235,63 +228,111 @@ function AnalysisSessionLogic(){
                 uuid: thiz.getAnalysisSessionUUID()
             };
             //send the name of the file, and the first 10 registers
-            $.ajax({
-                type:"POST",
-                data: data,
-                dataType: "json",
-                url: "/manati_project/manati_ui/analysis_session/create",
-                // handle a successful response
-                success : function(json) {
-                    // $('#post-text').val(''); // remove the value from the input
-                    // console.log(json); // log the returned json to the console
-                    // console.log("success"); // another sanity check
-                    _analysis_session_id = json['data']['analysis_session_id'];
-                    setFileName(json['data']['filename']);
-                    datatable_setting.cleanModified();
-                    datatable_setting.activeAjaxData(_analysis_session_id);
-                    _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
-                    $.notify("All Weblogs ("+json['data']['data_length']+ ") were created successfully ", 'success');
-                    $('#save-table').hide();
-                    $('#public-btn').show();
-                    $('#wrap-form-upload-file').hide();
-                    history.pushState({},
-                        "Edit AnalysisSession "  + _analysis_session_id,
-                        "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
-                    _sync_db_interval = setInterval(syncDB, TIME_SYNC_DB );
-                    hideLoading();
-                    columns_order_changed = false;
-                    $("#weblogfile-name").off('click');
-                    $("#weblogfile-name").css('cursor','auto');
-                    $("#sync-db-btn").show();
-                    //show comment and update form
-                    $("#coments-as-nav").show();
-                    $('#comment-form').attr('action', '/manati_project/manati_ui/analysis_session/'+
-                        _analysis_session_id+'/comment/create')
-                },
+        $.ajax({
+            type:"POST",
+            data: data,
+            dataType: "json",
+            url: "/manati_project/manati_ui/analysis_session/create",
+            // handle a successful response
+            success : function(json) {
+                // $('#post-text').val(''); // remove the value from the input
+                // console.log(json); // log the returned json to the console
+                // console.log("success"); // another sanity check
+                _analysis_session_id = json['data']['analysis_session_id'];
+                setFileName(json['data']['filename']);
+                datatable_setting.cleanModified();
+                datatable_setting.activeAjaxData(_analysis_session_id);
+                _m.EventAnalysisSessionSavingFinished(_filename,_analysis_session_id);
+                $.notify("All Weblogs ("+json['data']['data_length']+ ") were created successfully ", 'success');
+                $('#save-table').hide();
+                $('#public-btn').show();
+                $('#wrap-form-upload-file').hide();
+                history.pushState({},
+                    "Edit AnalysisSession "  + _analysis_session_id,
+                    "/manati_project/manati_ui/analysis_session/"+_analysis_session_id+"/edit");
+                _sync_db_interval = setInterval(syncDB, TIME_SYNC_DB );
+                hideLoading();
+                columns_order_changed = false;
+                $("#weblogfile-name").off('click');
+                $("#weblogfile-name").css('cursor','auto');
+                $("#sync-db-btn").show();
+                //show comment and update form
+                $("#coments-as-nav").show();
+                $('#comment-form').attr('action', '/manati_project/manati_ui/analysis_session/'+
+                    _analysis_session_id+'/comment/create')
+            },
 
-                // handle a non-successful response
-                error : function(xhr,errmsg,err) {
-                    $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
-                        " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
-                    console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
-                    $('#save-table').attr('disabled',false).removeClass('disabled');
-                    $('#public-btn').hide();
-                    $.notify(xhr.status + ": " + xhr.responseText, "error");
-                    //NOTIFY A ERROR
-                    _m.EventAnalysisSessionSavingError(_filename);
-                    hideLoading();
-                }
-            });
+            // handle a non-successful response
+            error : function(xhr,errmsg,err) {
+                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: "+errmsg+
+                    " <a href='#' class='close'>&times;</a></div>"); // add the error to the dom
+                console.log(xhr.status + ": " + xhr.responseText); // provide a bit more info about the error to the console
+                $('#save-table').attr('disabled',false).removeClass('disabled');
+                $('#public-btn').hide();
+                $.notify(xhr.status + ": " + xhr.responseText, "error");
+                //NOTIFY A ERROR
+                _m.EventAnalysisSessionSavingError(_filename);
+                hideLoading();
+            }
+        });
+    }
+    function saveDB_WORDER(rows, headers) {
+        var blob = new Blob([ "onmessage = function(e) { " +
+            "var rows = e.data[0];"+
+            "var header_list = e.data[1];"+
+            "var origin = e.data[2];"+
+            "var new_rows = [];"+
+            "self.importScripts(origin+'/static/manati_ui/js/libs/underscore-min.js');"+
+            "for(var i=0; i < rows.length; i++){" +
+                "new_rows.push(_.object(header_list, rows[i]));" +
+            "};"+
+            "self.postMessage(new_rows);" +
+        "}"]);
+
+        // Obtain a blob URL reference to our worker 'file'.
+        var blobURL = window.URL.createObjectURL(blob);
+
+        var worker = new Worker(blobURL);
+        worker.addEventListener('message', function(e) {
+            worker.terminate();
+             saveDB_aux(e.data)
+	    });
+        function compare(a,b) {
+            if (a.order < b.order)
+                return -1;
+              if (a.order > b.order)
+                return 1;
+              return 0;
+            }
+
+        headers.sort(compare);
+        var header_list = $.map(headers, function (v,i){
+            return v.column_name;
+        });
+
+        worker.postMessage([rows,header_list,document.location.origin]);
+
+    }
+
+    function saveDB(){
+        try{
+            showLoading();
+            $.notify("Starting process to save the Analysis Session, it takes time", "info", {autoHideDelay: 6000 });
+            $('#save-table').attr('disabled',true).addClass('disabled');
+            var rows = datatable_setting.getRows();
+            _m.EventAnalysisSessionSavingStart(rows.length, _filename);
+            if (Array.isArray(rows[0])){
+                var headers = datatable_setting.get_headers_info();
+                saveDB_WORDER(rows, headers);
+            } else {
+                saveDB_aux(rows)
+            }
         }catch(e){
-            // thiz.destroyLoading();
+            hideLoading();
             $.notify(e, "error");
             $('#public-btn').hide();
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
-
-
-
-
     }
     function showLoading(){
          $("#loading-img").show();
