@@ -146,7 +146,7 @@ def get_diff_ttl(creation_date_a, creation_date_b,expiration_date_a, expiration_
         ed_b = get_date_aux(expiration_date_b)
         ttl_days_b = float(abs(cd_b - ed_b).days)  # time to live
         ttl_days_a = float(abs(cd_a - ed_a).days)
-        if ttl_days_b == ttl_days_b:
+        if ttl_days_b == ttl_days_a:
             return float(0)
         else:
             return float(1) - ((ttl_days_b / ttl_days_a) if ttl_days_b <= ttl_days_a else (ttl_days_a / ttl_days_b))

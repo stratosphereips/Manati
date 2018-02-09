@@ -37,6 +37,9 @@ var _verdicts_merged = ['malicious','legitimate','suspicious','undefined','false
                         'undefined_suspicious','undefined_falsepositive'];
 var NAMES_HTTP_URL = ["http.url", "http_url", "host"];
 var NAMES_END_POINTS_SERVER = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h"];
+const DEFAULT_COLUMNS_NAMES = ["endpoints.server", "endpoints_server", "id.resp_h", "id_resp_h","http.url",
+    "http_url", "host", 'url','Referer', 'time', 'User-agent', 'ioc', 'dest_ip', 'dest_port', 'local_ip', 'local_port',
+    'partial_url'];
 var _flows_grouped;
 var _helper;
 var _filterDataTable;
@@ -393,11 +396,20 @@ function AnalysisSessionLogic(){
                 break;
             }
         }
-        processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
-        COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
-        COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
-        CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
-        CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        if(isEmpty(COL_HTTP_URL_STR)){
+            alert("None of these key column were found: " + NAMES_HTTP_URL.join(', ') + " several features will be disabled");
+        }
+        if(isEmpty(COL_END_POINTS_SERVER_STR)){
+            alert("None of these key column were found: " + NAMES_END_POINTS_SERVER.join(', ') + " several features will be disabled");
+        }
+
+        if(!isEmpty(COL_HTTP_URL_STR) && !isEmpty(NAMES_END_POINTS_SERVER)){
+            processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
+            COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
+            COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
+            CLASS_MC_END_POINTS_SERVER_STR =  COL_END_POINTS_SERVER_STR.replace(".", "_");
+            CLASS_MC_HTTP_URL_STR = COL_HTTP_URL_STR.replace(".","_");
+        }
         _filterDataTable = new FilterDataTable(COLUMN_VERDICT,_verdicts_merged);
         initDatatable(_data_headers, data_processed);
         $('#save-table').show();
@@ -414,16 +426,16 @@ function AnalysisSessionLogic(){
 
     }
     this.markVerdict= function (verdict, class_selector) {
-        if(class_selector === null || class_selector === undefined) class_selector = "selected";
-        // console.log(verdict);
         var rows_affected = [];
+        if(class_selector === null || class_selector === undefined) class_selector = "selected";
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
-
             var temp_data = {};
+            if(!isEmpty(COLUMN_END_POINTS_SERVER) && !isEmpty(COLUMN_HTTP_URL)){
+                temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
+                temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
+            }
             temp_data[COL_UUID_STR] = d[COLUMN_UUID];
-            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
-            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
             temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
 
             rows_affected.push(temp_data);
@@ -593,10 +605,6 @@ function AnalysisSessionLogic(){
             $('#public-btn').hide();
             $('#save-table').attr('disabled',false).removeClass('disabled');
         }
-
-
-
-
     }
     function showLoading(){
          $("#loading-img").show();
@@ -714,17 +722,20 @@ function AnalysisSessionLogic(){
 
     var generateContextMenuItems = function(tr_dom){
         // var tr_active = $("tr.menucontext-open.context-menu-active");
+        var items_menu = {};
+        _verdicts.forEach(function(v){
+            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
+        });
+        if(isEmpty(COLUMN_HTTP_URL) || isEmpty(COLUMN_END_POINTS_SERVER)) return items_menu;
         var bigData = _dt.rows(tr_dom).data()[0];
         var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
         var url = bigData[COLUMN_HTTP_URL];
         var domain = findDomainOfURL(url); // getting domain
-        var items_menu = {};
+
         _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value);
         _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain);
         _bulk_verdict = bigData[COLUMN_VERDICT];
-        _verdicts.forEach(function(v){
-            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
-        });
+
         items_menu['unselect'] = {
             name: "Unselect",
             icon: "fa-paint-brush " + "unselect",
@@ -1088,10 +1099,15 @@ function AnalysisSessionLogic(){
         return table;
 
     }
-    function initModal(title, after_hidden_function){
+    function initModal(title, after_hidden_function, before_hidden_function){
+        after_hidden_function = set_default(after_hidden_function, null);
+        before_hidden_function = set_default(before_hidden_function, null);
         $('#vt_consult_screen #vt_modal_title').html(title);
         $('#vt_consult_screen').modal('show');
         $('#vt_consult_screen').on('hidden.bs.modal', function (e) {
+            if(before_hidden_function !== null){
+                before_hidden_function();
+            }
             $(this).find(".table-section").html('').hide();
             $(this).find(".loading").show();
             $(this).find("#vt_modal_title").html('');
@@ -1106,6 +1122,10 @@ function AnalysisSessionLogic(){
         $('#vt_consult_screen #vt_modal_title').html(title);
 
     }
+    this.updateBodyModal = function (table){
+        updateBodyModal(table);
+    }
+
     function updateBodyModal(table) {
         var modal_body = $('#vt_consult_screen .modal-body');
         if (table !== null) {
@@ -1118,8 +1138,8 @@ function AnalysisSessionLogic(){
         modal_footer.html(html_append)
     }
     function consultVirusTotal(query_node, query_type){
-        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
-        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
+        if(query_type === "domain") _m.EventVirusTotalConsultationByDomian(query_type);
+        else if(query_type === "ip") _m.EventVirusTotalConsultationByIp(query_type);
         else{
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }
@@ -1406,37 +1426,37 @@ function AnalysisSessionLogic(){
     }
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
-            $.contextMenu({
-                selector: '.weblogs-datatable tr',
-                events: {
-                   show : function(options){
-                        // // Add class to the menu
-                        if(!this.hasClass('selected')){
-                            this.addClass('selected');
-                        }
-                        this.addClass('menucontext-open');
-                   },
-                   hide : function(options) {
-                       this.removeClass('menucontext-open');
-                       this.removeClass('selected');
-                       _bulk_marks_wbs = {};
-                       _bulk_verdict = null;
-                   }
-                },
-                build: function ($trigger, e){
-                    return {
-                        callback: function(key, options) {
-                            var verdict = key;
-                            labelingRows(verdict);
-                            return true;
-                        },
-                        items: generateContextMenuItems($trigger)
-
+        $.contextMenu({
+            selector: '.weblogs-datatable tr',
+            events: {
+                show: function (options) {
+                    // // Add class to the menu
+                    if (!this.hasClass('selected')) {
+                        this.addClass('selected');
                     }
+                    this.addClass('menucontext-open');
+                },
+                hide: function (options) {
+                    this.removeClass('menucontext-open');
+                    this.removeClass('selected');
+                    _bulk_marks_wbs = {};
+                    _bulk_verdict = null;
                 }
+            },
+            build: function ($trigger, e) {
+                return {
+                    callback: function (key, options) {
+                        var verdict = key;
+                        labelingRows(verdict);
+                        return true;
+                    },
+                    items: generateContextMenuItems($trigger)
+
+                }
+            }
 
 
-            });
+        });
     }
     var labelingRows = function (verdict){
         var rows_affected = thiz.markVerdict(verdict);
@@ -1865,7 +1885,58 @@ function AnalysisSessionLogic(){
         console.log("Parsing file...", file);
         $.notify("Parsing file...", "info");
     };
-    thiz.parseData = function(file_rows){
+
+    function build_FilePreviewer(headers, data){
+        var $html = $('<div class="content"></div>');
+        var $ul = $('<ol id="list-column">');
+        for (var i = 0; i < headers.length; i++){
+            var header_options = ['column_'+i].concat([headers[i]].concat(DEFAULT_COLUMNS_NAMES));
+            var select_tag = $('<select>');
+            select_tag.attr('id', 'column_'+i);
+            for (var x = 0; x < header_options.length; x++) {
+                var value = header_options[x];
+                select_tag.append($('<option>').html(value.substring(0,30)).attr("value", value));
+            }
+            $ul.append($('<li>').html(select_tag));
+
+        }
+        var $ul_list_key = $('<ol id="list-key">');
+        $ul_list_key.append($('<li id="key-http-url">').html("http.url or host"));
+        $ul_list_key.append($('<li id="key-endpoints-server">').html("endpoints.server or id.resp_h"));
+        $html.html("<h4>ManaTI does not recognize uploaded file,  please, select the columns name of your data</h4>");
+        var $wrap = $('<div class="row"></div>');
+        $wrap.html($('<div class="col-md-6 list-select"></div>').html($ul));
+        $wrap.append($('<div class="col-md-6 list-key"><h5>Mandatories columns </h5></div>').append($ul_list_key));
+        $html.append($wrap);
+        return $html;
+    }
+
+    var showModalCheckingTypeFile = function (filename, header, data){
+        var before_hidden_func = function (){
+            var  headers = $('#list-column select').map(function (){return this.value;}).toArray();
+            thiz.settingsForInitData(headers, data);
+        };
+        initModal("Pre-visualize: <span>"+filename+"</span>", null, before_hidden_func);
+        updateBodyModal(build_FilePreviewer(header, data));
+
+    };
+
+    this.settingsForInitData = function (headers, data){
+
+        $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
+            headers.push(value);
+        });
+        initData(data,headers);
+        thiz.generateAnalysisSessionUUID();
+        hideLoading();
+        _m.EventFileUploadingFinished(_filename, rowCount);
+
+    };
+
+    thiz.parseData = function(file_rows, with_header, type_file, delimiter){
+        with_header = set_default(with_header, true);
+        type_file = set_default(type_file, '');
+        delimiter = set_default(delimiter, "");
         var completeFn = function (results,file){
             if (results && results.errors)
             {
@@ -1880,22 +1951,31 @@ function AnalysisSessionLogic(){
                     //INIT DATA
                     rowCount = results.data.length;
                     var data = results.data;
-                    var headers = Object.keys(data[0]);
-                    $.each([COL_VERDICT_STR, COL_REG_STATUS_STR, COL_DT_ID_STR, COL_UUID_STR],function (i, value){
-                        headers.push(value);
-                    });
-                    initData(data,headers);
-                    thiz.generateAnalysisSessionUUID();
-                    hideLoading();
-                    _m.EventFileUploadingFinished(_filename, rowCount);
+                    try{
+                        if (thiz.getAnalysisSessionTypeFile() === 'apache_http_log'){
+                            showModalCheckingTypeFile(getFileName(), data[0],data);
+                        }
+                        else{
+                            var headers = Object.keys(data[0]);
+                            thiz.settingsForInitData(headers, data);
+                        }
+                    }catch (e){
+                        console.error(e);
+
+                    }
+
+
                 }
 
             }
         };
+        thiz.setAnalysisSessionTypeFile(type_file);
+
         Papa.parse(file_rows,
             {
-                delimiter: "",
-                header: true,
+                delimiter: delimiter,
+                header: with_header,
+                quoteChar: '"',
                 complete: completeFn,
                 worker: true,
                 skipEmptyLines: true,
