@@ -722,17 +722,20 @@ function AnalysisSessionLogic(){
 
     var generateContextMenuItems = function(tr_dom){
         // var tr_active = $("tr.menucontext-open.context-menu-active");
+        var items_menu = {};
+        _verdicts.forEach(function(v){
+            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
+        });
+        if(isEmpty(COLUMN_HTTP_URL) || isEmpty(COLUMN_END_POINTS_SERVER)) return items_menu;
         var bigData = _dt.rows(tr_dom).data()[0];
         var ip_value = bigData[COLUMN_END_POINTS_SERVER]; // gettin end points server ip
         var url = bigData[COLUMN_HTTP_URL];
         var domain = findDomainOfURL(url); // getting domain
-        var items_menu = {};
+
         _bulk_marks_wbs[CLASS_MC_END_POINTS_SERVER_STR] = _helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR,ip_value);
         _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR] = _helper.getFlowsGroupedBy(COL_HTTP_URL_STR,domain);
         _bulk_verdict = bigData[COLUMN_VERDICT];
-        _verdicts.forEach(function(v){
-            items_menu[v] = {name: v, icon: "fa-paint-brush " + v }
-        });
+
         items_menu['unselect'] = {
             name: "Unselect",
             icon: "fa-paint-brush " + "unselect",
@@ -1423,39 +1426,37 @@ function AnalysisSessionLogic(){
     }
     function contextMenuSettings (){
         //events for verdicts buttons on context popup menu
-        if((COLUMN_END_POINTS_SERVER !== undefined || COLUMN_END_POINTS_SERVER !== null) && (COLUMN_HTTP_URL !== undefined && COLUMN_HTTP_URL !== null)) {
-            $.contextMenu({
-                selector: '.weblogs-datatable tr',
-                events: {
-                    show: function (options) {
-                        // // Add class to the menu
-                        if (!this.hasClass('selected')) {
-                            this.addClass('selected');
-                        }
-                        this.addClass('menucontext-open');
-                    },
-                    hide: function (options) {
-                        this.removeClass('menucontext-open');
-                        this.removeClass('selected');
-                        _bulk_marks_wbs = {};
-                        _bulk_verdict = null;
+        $.contextMenu({
+            selector: '.weblogs-datatable tr',
+            events: {
+                show: function (options) {
+                    // // Add class to the menu
+                    if (!this.hasClass('selected')) {
+                        this.addClass('selected');
                     }
+                    this.addClass('menucontext-open');
                 },
-                build: function ($trigger, e) {
-                    return {
-                        callback: function (key, options) {
-                            var verdict = key;
-                            labelingRows(verdict);
-                            return true;
-                        },
-                        items: generateContextMenuItems($trigger)
-
-                    }
+                hide: function (options) {
+                    this.removeClass('menucontext-open');
+                    this.removeClass('selected');
+                    _bulk_marks_wbs = {};
+                    _bulk_verdict = null;
                 }
+            },
+            build: function ($trigger, e) {
+                return {
+                    callback: function (key, options) {
+                        var verdict = key;
+                        labelingRows(verdict);
+                        return true;
+                    },
+                    items: generateContextMenuItems($trigger)
+
+                }
+            }
 
 
-            });
-        }
+        });
     }
     var labelingRows = function (verdict){
         var rows_affected = thiz.markVerdict(verdict);
