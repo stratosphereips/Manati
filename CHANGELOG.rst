@@ -1,7 +1,20 @@
+0.9.2a
+----------
+* Adding function when the users wants to remove an analysis session, the action will be enqueued, sometimes the
+analysis session is huge and it takes time to be removed.
+* Adding permission to user when it creates an analysis session
+* Check permission to remove a analysis session
+* adding support for Apache weblogs files. In essence ManaTI can support any kind of structured file
+
+0.9.1a
+----------
+* When the user does a request to VirusTotal (by domain or IP), first the system try to use the VirusTotal API KEY completed in
+user's profile, if it is null, they system uses the VirusTotal API KEY of ManaTI provided in the Parameters table (check migrations)
+
 0.9.0a
 ----------
-* NEW FILES STRUCTURE - it is based in the book ([Cookiecutter Django](https://github.com/pydanny/cookiecutter-django)
-  and the book ([Two Scoops of Django 1.11](https://www.twoscoopspress.com/products/two-scoops-of-django-1-11) 😍
+* NEW FILES STRUCTURE - it is based in the book **Cookiecutter Django**(https://github.com/pydanny/cookiecutter-django)
+  and the book **Two Scoops of Django 1.11**(https://www.twoscoopspress.com/products/two-scoops-of-django-1-11) 😍
 * Production settings with the new structure were not tested yet. Maybe running ManaTI in production mode can fail 😐😐
 * Fixing bug the labelled weblogs in the table were updated but sync was not working properly and the bulk labelling
   were not reflecting and the server was still receiving request to label the same weblog

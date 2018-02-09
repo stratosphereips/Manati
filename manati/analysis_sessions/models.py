@@ -48,6 +48,10 @@ import re
 import pythonwhois
 from pythonwhois.shared import WhoisException
 from bulk_update.helper import bulk_update
+from guardian.shortcuts import assign_perm
+from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
+from django_rq import job
 vt = vt()
 
 
@@ -101,6 +105,12 @@ class AnalysisSessionManager(models.Manager):
                 analysis_sessions_users = AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
                                                                               user_id=current_user.id,
                                                                               columns_order=json.dumps(key_list))
+                content_type = ContentType.objects.get_for_model(AnalysisSession)
+                permissions = Permission.objects.filter(content_type=content_type)
+                for user in analysis_session.users.all():
+                    for permission in permissions:
+                        assign_perm(permission.codename, user, analysis_session)
+
                 for elem in weblogs:
                     i = 0
                     hash_attr = {}
@@ -238,10 +248,13 @@ class RegisterStatus(enum.Enum):
 
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
-                         ('cisco_file', 'CISCO weblogs Specific File'))
-    STATUS = Choices(('open', 'Open'),('closed', 'Closed'))
+                         ('cisco_file', 'CISCO weblogs Specific File'),
+                         ('apache_http_log', 'Apache logs'))
+    STATUS = Choices(('open', 'Open'),('closed', 'Closed'),('removed', 'Removed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
-                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
+                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'},
+                       TYPE_FILES.apache_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}
+                       }
 
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
@@ -358,7 +371,10 @@ class Weblog(TimeStampedModel):
     def create_IOCs(self, save=True):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
-            url = self.attributes_obj[key_url]
+            if key_url in self.attributes_obj:
+                url = self.attributes_obj[key_url]
+            else:
+                return None, None
             ioc_domain = None
             ioc_ip = None
             try:
@@ -819,8 +835,12 @@ class VTConsult(TimeStampedModel):
                 vt_consul = VTConsult.objects.filter(query_node=query_node,
                                                      created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
             elif query_type == 'domain':
-                vt.setkey(AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value)
+                api_key = user.profile.virustotal_key_api
+                if not api_key:
+                    api_key = AppParameter.objects.get(key=AppParameter.KEY_OPTIONS.virus_total_key_api).value
+                vt.setkey(api_key)
                 result = vt.getdomain(query_node)
+                vt.setkey(None)
                 vt_consul = VTConsult.objects.create(query_node=query_node, user=user, info_report=json.dumps(result))
             else:
                 raise ValueError("query_type invalid")
