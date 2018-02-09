@@ -248,10 +248,13 @@ class RegisterStatus(enum.Enum):
 
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
-                         ('cisco_file', 'CISCO weblogs Specific File'))
+                         ('cisco_file', 'CISCO weblogs Specific File'),
+                         ('apache_http_log', 'Apache logs'))
     STATUS = Choices(('open', 'Open'),('closed', 'Closed'),('removed', 'Removed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
-                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
+                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'},
+                       TYPE_FILES.apache_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}
+                       }
 
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
