@@ -427,15 +427,15 @@ function AnalysisSessionLogic(){
     }
     this.markVerdict= function (verdict, class_selector) {
         var rows_affected = [];
-        if(COLUMN_END_POINTS_SERVER == null && COLUMN_HTTP_URL == null) return rows_affected;
         if(class_selector === null || class_selector === undefined) class_selector = "selected";
         _dt.rows('.'+class_selector).every( function () {
             var d = this.data();
-
             var temp_data = {};
+            if(!isEmpty(COLUMN_END_POINTS_SERVER) && !isEmpty(COLUMN_HTTP_URL)){
+                temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
+                temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
+            }
             temp_data[COL_UUID_STR] = d[COLUMN_UUID];
-            temp_data[COL_END_POINTS_SERVER_STR] = d[COLUMN_END_POINTS_SERVER];
-            temp_data[COL_HTTP_URL_STR] = d[COLUMN_HTTP_URL];
             temp_data[COL_DT_ID_STR] = d[COLUMN_DT_ID];
 
             rows_affected.push(temp_data);
@@ -1135,8 +1135,8 @@ function AnalysisSessionLogic(){
         modal_footer.html(html_append)
     }
     function consultVirusTotal(query_node, query_type){
-        if(query_type == "domain") _m.EventVirusTotalConsultationByDomian(query_type);
-        else if(query_type == "ip") _m.EventVirusTotalConsultationByIp(query_type);
+        if(query_type === "domain") _m.EventVirusTotalConsultationByDomian(query_type);
+        else if(query_type === "ip") _m.EventVirusTotalConsultationByIp(query_type);
         else{
             console.error("Error query_type for ConsultVirusTotal is incorrect")
         }

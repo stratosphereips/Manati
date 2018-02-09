@@ -371,7 +371,10 @@ class Weblog(TimeStampedModel):
     def create_IOCs(self, save=True):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
-            url = self.attributes_obj[key_url]
+            if key_url in self.attributes_obj:
+                url = self.attributes_obj[key_url]
+            else:
+                return None, None
             ioc_domain = None
             ioc_ip = None
             try:
