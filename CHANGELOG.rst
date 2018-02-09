@@ -3,6 +3,7 @@
 analysis session is huge and it takes time to be removed.
 * Adding permission to user when it creates an analysis session
 * Check permission to remove a analysis session
+* adding support for Apache weblogs files. In essence ManaTI can support any kind of structured file
 
 0.9.1a
 ----------

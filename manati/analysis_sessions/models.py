@@ -248,10 +248,13 @@ class RegisterStatus(enum.Enum):
 
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
-                         ('cisco_file', 'CISCO weblogs Specific File'))
+                         ('cisco_file', 'CISCO weblogs Specific File'),
+                         ('apache_http_log', 'Apache logs'))
     STATUS = Choices(('open', 'Open'),('closed', 'Closed'),('removed', 'Removed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
-                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}}
+                       TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'},
+                       TYPE_FILES.apache_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}
+                       }
 
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
     name = models.CharField(max_length=200, blank=False, null=False, default='Name by Default')
@@ -368,7 +371,10 @@ class Weblog(TimeStampedModel):
     def create_IOCs(self, save=True):
         if not self.ioc_set.all():
             key_url = AnalysisSession.INFO_ATTRIBUTES[self.analysis_session.type_file]['url']
-            url = self.attributes_obj[key_url]
+            if key_url in self.attributes_obj:
+                url = self.attributes_obj[key_url]
+            else:
+                return None, None
             ioc_domain = None
             ioc_ip = None
             try:
