@@ -403,7 +403,7 @@ function AnalysisSessionLogic(){
             alert("None of these key column were found: " + NAMES_END_POINTS_SERVER.join(', ') + " several features will be disabled");
         }
 
-        if(isEmpty(COL_HTTP_URL_STR) && isEmpty(NAMES_END_POINTS_SERVER)){
+        if(!isEmpty(COL_HTTP_URL_STR) && !isEmpty(NAMES_END_POINTS_SERVER)){
             processingFlows_WORKER(_data_uploaded,COL_HTTP_URL_STR,COL_END_POINTS_SERVER_STR);
             COLUMN_HTTP_URL = _data_headers_keys[COL_HTTP_URL_STR];
             COLUMN_END_POINTS_SERVER = _data_headers_keys[COL_END_POINTS_SERVER_STR];
