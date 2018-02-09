@@ -27,32 +27,45 @@ This project is partially supported by Cisco Systems.
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
         sudo apt-get update ; sudo apt-get upgrade -y
+<ol>
+<li>Clone the repository</li> 
 
-1. Clone the repository 
-
-        git clone git@github.com:stratosphereips/Manati.git
+        git clone git@github.com:stratosphereips/Manati.git; cd Manati
       
    or if you don't want to use SSH, use HTTPS
    
-        git clone https://github.com/stratosphereips/Manati.git
+        git clone https://github.com/stratosphereips/Manati.git; cd Manati
 
-2. Install Virtualenv to isolate the required python libraries for ManaTI,also will be installed python libraries for development
+<li> Install Virtualenv to isolate the required python libraries for ManaTI, 
+also will be installed python libraries for development </li>
 
         sudo apt-get install virtualenv python-pip python-dev libpq-dev build-essential libssl-dev libffi-dev
         
-3. Create virtualenv folder 
+<li> Create virtualenv folder </li>
         
         virtualenv .vmanati
         
-4. Active Virtualenv
+<li> Active Virtualenv </li>
 
         source .vmanati/bin/activate
         
-5. Install PostgreSQL DB engine
+<li> Install PostgreSQL DB engine </li>
 
         sudo apt-get install postgresql-server-dev-all postgresql-9.5 postgresql-client-9.5
         
-6. Install required python libraries
+<li> Create environment variables files. Copy and rename the files <b>.env.example</b> to <b>.env</b>, 
+and <b>.env-docker.example</b> to <b>.env-docker</b></li> 
+        
+        cp .env.example .env
+        cp .env-docker.example .env-docker
+
+
+**OPTIONAL**
+
+You can modify the password and name of database, if you want. 
+Remember, reflect the changes in the Postgres database settings below. 
+        
+<li> Install required python libraries </li>
     
         pip install -r requirements/local.txt
         
@@ -60,16 +73,16 @@ ManaTI is a Django project with a Postgres database and it works in Linux and Ma
         
         sudo chmod 777 ~/.cache
         
-7. Start postgresql
+<li> Start postgresql </li>
 
         sudo /etc/init.d/postgresql start
 
 ## Configure the database
-8. As root: (There should be a user postgres after installing the database)
+<li> As root: (There should be a user postgres after installing the database) </li>
 
         su - postgres
          
-9. Create the database: 
+<li> Create the database: </li> 
 
         psql
 
@@ -94,18 +107,16 @@ To change the password by default of the postgres user (you can put the same pas
         CTRL-D (to output the postgres db shell)
 
 ## Verify that the db was created successfully
-10. As the postgres user
+<li> As the postgres user </li>
 
         psql -h localhost -d manati_db -U manati_db_user
 
         (and put the password)
 
 After putting the password you should be logged in in the postgres.
-Copy the file <b>.env.example</b> and rename it to <b>.env</b> and modify (optional) the password and name of database 
-if it is necessary. Remember, reflect the changes in the postgres Database too.
-11. Install redis-server
+<li> Install redis-server </li>
 
-    apt-get install redis-server
+        sudo apt-get install redis-server
         
    **OPTIONAL**
    
@@ -124,21 +135,22 @@ if it is necessary. Remember, reflect the changes in the postgres Database too.
    file *.env* in the root of the project.
 
         
-12. Run migrate files
+<li> Run migrate files </li>
         
         python ./manage.py makemigrations guardian
         python ./manage.py migrate
         
-13. Registering External modules. You must run this command everytime you add or remove a  External
-Module
+<li> Registering External modules. 
+You must run this command everytime you add or remove 
+an External Module</li>
 
          python ./manage.py check_external_modules
 
-14. Execute redis_worker.sh file (in background '&' or in another console). 
+<li> Execute redis_worker.sh file (in background '&' or in another console). </li>
  
         ./utility/redis_worker.sh
         
-15. Create super user for login in the web system if you need 
+<li> Create super user for login in the web system if you need </li> 
 
         python manage.py createsuperuser
 
@@ -152,6 +164,7 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 If you want to open the server in the network, you can do it with:
 
     python ./manage.py runserver <ip-address>:8000
+</ol>
 
 If you want to see the 
 jobs running or enqueued go to 
@@ -212,9 +225,11 @@ If you don't want to waste time installing ManaTI and you have docker installed,
  execute docker-compose. First clone the repository and go to the directory project.  
 ```bash
 cd Manati
+cp .env.example .env
+cp .env-docker.example .env-docker
 docker-compose build
-docker-compose run web bash -c "python manage.py makemigrations --noinput && python manage.py migrate"
-docker-compose run web bash -c "python manage.py check_external_modules && python manage.py createsuperuser2 --username admin --password Password123 --noinput --email 'admin@manatiproject.com'"
+docker-compose run web bash -c "python manage.py makemigrations --noinput; python manage.py migrate; python manage.py check_external_modules"
+docker-compose run web bash -c "python manage.py createsuperuser2 --username admin --password Password123 --noinput --email 'admin@manatiproject.com'"
 docker-compose up # or 'docker-compose up -d' if you don't want to see the logs in the console.
 ```
 
@@ -224,3 +239,9 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
+
+## License
+
+The GPLv3 License (GPLv3). See docs/LICENSE file for more details.
+
+Copyright (c) 2016-2018 Stratosphere Laboratory

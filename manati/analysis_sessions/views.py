@@ -20,6 +20,7 @@
 #
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
+from guardian.decorators import permission_required_or_403
 from django.http import HttpResponseServerError
 from django.core.urlresolvers import reverse
 from django.views import generic
@@ -40,7 +41,7 @@ from django.db.models import Q
 import logging
 from manati.analysis_sessions.serializers import WeblogSerializer
 import share_modules
-
+import django_rq
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -374,12 +375,20 @@ def sync_db(request):
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
+@permission_required_or_403('delete_analysissession', (AnalysisSession, 'pk','id'),template_name="403.html")
 @csrf_exempt
 def delete_analysis_session(request, id):
     analysis_session = get_object_or_404(AnalysisSession, pk=id)
-    analysis_session.delete()
+    analysis_session.status = analysis_session.STATUS.removed
+    analysis_session.save()
+    delete_analysis_session_aux.delay(id)
+    messages.info(request, 'Deleting analysis session: ' + id)
     return redirect("/manati_project/manati_ui/analysis_sessions")
 
+
+@job('low')
+def delete_analysis_session_aux(id):
+    AnalysisSession.objects.get(id=id).delete()
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt

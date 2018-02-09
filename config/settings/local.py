@@ -88,3 +88,19 @@ if DOCKER_COMPOSE:
             'PORT': os.environ.get('POSTGRES_PORT', config('POSTGRES_PORT', default='5432', cast=str))
         }
     }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+        },
+    },
+}

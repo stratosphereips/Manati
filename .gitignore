@@ -369,6 +369,7 @@ pip-selfcheck.json
 .env-docker
 *.pid
 .activate
+.vmanati/
 
 
 manati/media/

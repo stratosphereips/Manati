@@ -60,7 +60,7 @@
     <script type="text/javascript">
         function loadDomain() {
             var display = document.getElementById("display-domain");
-            display.innerHTML = document.domain;
+            display.innerHTML = document.URL.replace(/(^\w+:|^)\/\//, '');
         }
     </script>
 

@@ -27,7 +27,14 @@
                                             {% for analysis_session in analysis_sessions %}
                                                 <tr>
                                                     <td>{{ forloop.counter }}</td>
-                                                    <td><a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a></td>
+
+                                                    <td>
+                                                        {% if analysis_session.status == 'removed' %}
+                                                            <a href="#" style="text-decoration: line-through;">{{ analysis_session.name }}</a>
+                                                        {% else %}
+                                                            <a href="{% url 'manati_ui:edit_analysis_session' analysis_session.id %}">{{ analysis_session.name }}</a>
+                                                        {% endif %}
+                                                    </td>
                                                     <td>{{ analysis_session.status }}</td>
                                                     <td>{{ analysis_session.created_at }}</td>
                                                     <td>{{ analysis_session.weblog_set.count  }}</td>
