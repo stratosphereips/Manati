@@ -3,3 +3,10 @@ heroku git:remote -a manati-sys
 git add .
 git commit -am "make it better"
 git push heroku heroku:master
+heroku run python manage.py makemigrations guardian
+heroku run python manage.py migrate
+heroku run python manage.py check_external_modules
+
+* optional
+heroku stack:set cedar-14 -a manati-sys
+heroku buildpacks:add --index 1 https://github.com/kuwabarahiroshi/heroku-buildpack-nginx.git
