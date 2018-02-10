@@ -24,7 +24,7 @@ import config.settings.base as settings
 import whois
 from manati.analysis_sessions.models import Weblog, ModuleAuxWeblog, AnalysisSession, IOC
 from django.utils import timezone
-from api_manager.models import ExternalModule, IOC_WHOIS_RelatedExecuted
+from manati.api_manager.models import ExternalModule, IOC_WHOIS_RelatedExecuted
 from background_task import background
 from django.core import serializers
 from django.db import transaction
@@ -32,11 +32,11 @@ from manati.analysis_sessions.utils import *
 import re
 from django.db.models import Q
 from model_utils import Choices
-import share_modules
-from share_modules.constants import Constant
+import manati.share_modules as share_modules
+from manati.share_modules.constants import Constant
 from tryagain import retries
 from manati.analysis_sessions.serializers import WeblogSerializer
-import share_modules.whois_distance
+import manati.share_modules.whois_distance as whois_distance
 import threading
 import os
 from django.db import connection
@@ -176,7 +176,7 @@ class ModulesManager:
     def get_whois_features_of(module_name, domains):
         try:
             external_module = ExternalModule.objects.get(module_name=module_name)
-            return share_modules.whois_distance.get_whois_information_features_of(external_module, domains)
+            return whois_distance.get_whois_information_features_of(external_module, domains)
         except Exception as e:
             print(e)
             print_exception()
@@ -185,12 +185,12 @@ class ModulesManager:
     @staticmethod
     def distance_domains(module_name, domain_a, domain_b):
         external_module = ExternalModule.objects.get(module_name=module_name)
-        return share_modules.whois_distance.distance_domains(external_module,domain_a, domain_b)
+        return whois_distance.distance_domains(external_module,domain_a, domain_b)
 
     @staticmethod
     def distance_related_domains(module_name, domain_a, domain_b):
         external_module = ExternalModule.objects.get(module_name=module_name)
-        return share_modules.whois_distance.distance_related_by_whois_obj(external_module, domain_a, domain_b)
+        return whois_distance.distance_related_by_whois_obj(external_module, domain_a, domain_b)
 
     @staticmethod
     @transaction.atomic

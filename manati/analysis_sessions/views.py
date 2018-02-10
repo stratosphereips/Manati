@@ -33,14 +33,14 @@ import json, collections
 from django.core import serializers
 from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
-from share_modules.util import *
-from api_manager.core.modules_manager import ModulesManager
-from api_manager.models import *
+from manati.share_modules.util import *
+from manati.api_manager.core.modules_manager import ModulesManager
+from manati.api_manager.models import *
 from preserialize.serialize import serialize
 from django.db.models import Q
 import logging
 from manati.analysis_sessions.serializers import WeblogSerializer
-import share_modules
+import manati.share_modules as share_modules
 import django_rq
 
 # Get an instance of a logger

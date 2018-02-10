@@ -348,6 +348,7 @@ AUTH_PROFILE_MODULE = 'user_profiles.UserProfile'
 USERENA_SIGNIN_REDIRECT_URL = '/user_profiles/%(username)s/'
 LOGIN_URL = '/user_profiles/signin/'
 LOGOUT_URL = '/user_profiles/signout/'
+USERENA_REDIRECT_ON_SIGNOUT = '/manati_project/login/'
 USERENA_DISABLE_PROFILE_LIST = True
 USERENA_DISABLE_SIGNUP = True
 USERENA_REGISTER_USER = False
