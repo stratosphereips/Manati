@@ -7,12 +7,14 @@ before_install:
   - sudo apt-get install -qq firefox automake libtool libreadline6 libreadline6-dev libreadline-dev
   - sudo apt-get install -qq libsqlite3-dev libxml2 libxml2-dev libssl-dev libbz2-dev wget curl llvm
 before_script:
-  - psql -c 'create user manati_db_user with password 'password' -U postgres
-  - psql -c 'create database manati_db' -U postgres
-  - psql -c 'grant all privileges on database manati_db to manati_db_user' -U postgres
-  - psql -c 'alter role manati_db_user createrole createdb' -U postgres
+  - psql -c "create user manati_db_user with password 'password';" -U postgres
+  - psql -c 'create database manati_db_test;' -U postgres
+  - psql -c 'grant all privileges on database manati_db_test to manati_db_user;' -U postgres
+  - psql -c 'alter role manati_db_user createrole createdb;' -U postgres
+  - sudo redis-server /etc/redis/redis.conf --port 6379
 services:
   - postgresql
+  - redis-server
 language: python
 python:
   - "2.7"
