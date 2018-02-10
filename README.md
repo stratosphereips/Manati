@@ -25,6 +25,10 @@ This project is partially supported by Cisco Systems.
     ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <benitrau@fit.cvut.cz>)
 - **Sebastian García** ([@eldracote](https://www.twitter.com/eldracote), <sebastian.garcia@agents.fel.cvut.cz>, <eldraco@gmail.com>)
 
+## App Screenshot
+
+![manati_screenshot](https://user-images.githubusercontent.com/1384962/36067482-75a78ca4-0ebe-11e8-886a-341adb06508b.png)
+
 ## Installation
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
 
