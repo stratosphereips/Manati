@@ -1,0 +1,5 @@
+heroku login
+heroku git:remote -a manati-sys
+git add .
+git commit -am "make it better"
+git push heroku heroku:master
