@@ -1,3 +1,7 @@
+----------
+* Adding settings for heroku deployment
+* minor change in config/urls.py. Removing urls that we are not using and adding a routing http://localhost:8000/ or https://<YOUR-DOMAIN>/
+
 0.9.2a
 ----------
 * Adding function when the users wants to remove an analysis session, the action will be enqueued, sometimes the
