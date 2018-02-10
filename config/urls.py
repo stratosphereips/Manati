@@ -2,7 +2,7 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 from django.views import defaults as default_views
 from django.contrib.auth import views
 import manati.login.views
@@ -10,8 +10,8 @@ import manati.login.forms
 
 path_name = 'manati_project'
 urlpatterns = [
-    url(r'^$', TemplateView.as_view(template_name='pages/home.html'), name='home'),
-    url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
+    # url(r'^$', TemplateView.as_view(template_name='pages/home.html'), name='home'),
+    # url(r'^about/$', TemplateView.as_view(template_name='pages/about.html'), name='about'),
 
     # Django Admin, use {% url 'admin:index' %}
     url(settings.ADMIN_URL, admin.site.urls),
@@ -29,7 +29,7 @@ urlpatterns = [
     url(r'^'+path_name+'/index.html$', manati.login.views.home, name="home"),
     url(r'^'+path_name+'/login/$', views.login, {'template_name': 'login.html', 'authentication_form': manati.login.forms.LoginForm}),
     url(r'^'+path_name+'/logout/$', views.logout, {'next_page':'/manati_project/login'}),
-    url(r'^', manati.login.views.home, name="home"),
+    url(r'^$','manati.analysis_sessions.views.new_analysis_session_view', name="redirect-default"),
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
