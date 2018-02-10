@@ -1,11 +1,18 @@
-#sudo: true
-#before_install:
-#  - sudo apt-get update -qq
-#  - sudo apt-get install -qq build-essential gettext python-dev zlib1g-dev libpq-dev xvfb
-#  - sudo apt-get install -qq libtiff4-dev libjpeg8-dev libfreetype6-dev liblcms1-dev libwebp-dev
-#  - sudo apt-get install -qq graphviz-dev python-setuptools python3-dev python-virtualenv python-pip
-#  - sudo apt-get install -qq firefox automake libtool libreadline6 libreadline6-dev libreadline-dev
-#  - sudo apt-get install -qq libsqlite3-dev libxml2 libxml2-dev libssl-dev libbz2-dev wget curl llvm
+sudo: true
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq build-essential gettext python-dev zlib1g-dev libpq-dev xvfb
+  - sudo apt-get install -qq libtiff4-dev libjpeg8-dev libfreetype6-dev liblcms1-dev libwebp-dev
+  - sudo apt-get install -qq graphviz-dev python-setuptools python3-dev python-virtualenv python-pip
+  - sudo apt-get install -qq firefox automake libtool libreadline6 libreadline6-dev libreadline-dev
+  - sudo apt-get install -qq libsqlite3-dev libxml2 libxml2-dev libssl-dev libbz2-dev wget curl llvm
+before_script:
+  - psql -c 'create user manati_db_user with password 'password' -U postgres
+  - psql -c 'create database manati_db' -U postgres
+  - psql -c 'grant all privileges on database manati_db to manati_db_user' -U postgres
+  - psql -c 'alter role manati_db_user createrole createdb' -U postgres
+services:
+  - postgresql
 language: python
 python:
   - "2.7"
