@@ -1,5 +1,8 @@
 # Project ManaTI
 [![Build Status](https://travis-ci.org/Piuliss/Manati.svg?branch=master)](https://travis-ci.org/Piuliss/Manati)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/issues)
+[![Open Source Love](https://badges.frapsoft.com/os/gpl/gpl.svg?v=102)](https://github.com/stratosphereips/Manati/)
+[![release](https://img.shields.io/badge/release-v0.9.2a-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/releases/latest)
 
 *Machine Learning for Threat Intuitive Analysis* 
 
@@ -223,9 +226,7 @@ cd path/to/project_directory
 python ./manage.py collectstatic --noinput
 sudo supervisord -c supervisor-manati.conf -n
 ```
-## ManaTI support
-We guarantee the correct functioning of ManaTI over Chrome browser 60+.
-We have reports that people are using it in Firefox 55+
+
 ## Docker Composer
 If you don't want to waste time installing ManaTI and you have docker installed,  you can just
  execute docker-compose. First clone the repository and go to the directory project.  
@@ -245,6 +246,11 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
+    
+## Browser supported
+| [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/edge.png" alt="IE / Edge" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>IE / Edge | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/firefox.png" alt="Firefox" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Firefox | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/chrome.png" alt="Chrome" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Chrome | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/safari.png" alt="Safari" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Safari | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/opera.png" alt="Opera" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Opera |[<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/vivaldi.png" alt="Vivaldi" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Vivaldi |
+| --------- | --------- | --------- | --------- | --------- | --------- |
+| N/A| 55+ | 60+ | N/A | N/A| N/A
 
 ## License
 
