@@ -23,3 +23,8 @@ install:
 script:  # command to run tests
   - pytest
 cache: pip
+notifications:
+  slack:
+    secure: EBGiTRO7dPrTJMeNTT8GWx0RTtwmeHPqRS2fYA5Cpz2jgxdE2vNAcO4Mi4Vkc8FvlWvqHzgNrcVmq2/5XaGokiy95bxsQLWXooixFhcHxu8gFKiAqc3jDSSExFQObVBnPiT9MFnR0YiAFvHEqnp0RZPfmGjqwlOp5z07//mYnW6QvvwlYVO7Jh4jHaBRUj8e9d5tUu0H/bd77g98ewjt9i62bcrMN+WrBov/ifAVmzwgmntwn7LhHWSioelja0cGV8n+LWLqz1gF23cmvsNHpf4r9pNKpeQqth3u3L2qfuZWprgJ/GMDDQ8k8UQKHaUrk7ZkhgXcTXtrUgZIGuxAx0jNwmjn/3uRDOTbbP26djEh0xUDa/Eicbv+apbun7VZmAeEmAAfBUgNRFIBeFbdPc2xWQK8i0P3JtCO3YwxD31Shzm7anHte7ftQqyhkrCPSbLXuCBRk2ZyG9h2lTtK4SDjhWwayZXIrYVdQ6aE5kDxTBfKfzXAxECkGuoO/uNmgbU+SPyCxhnluWgJE2Se/s800STpNUuQKIc20eDEiRfavJbDEE6Lfbh8xER6vo+G88FU+8T8gR2UjyUhpWY+8wWnCXFAssecWL5ODdlNCA5PgaHINfqBh9kx0QMd7+hQWdOk+1nwt3RenXQ+WJiuH/KkY4u4ZES1W5igmqcNDk4=
+    on_success: change # default: always
+    on_failure: always # default: always
