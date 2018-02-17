@@ -1,4 +1,9 @@
 # Project ManaTI
+[![Build Status](https://travis-ci.org/Piuliss/Manati.svg?branch=master)](https://travis-ci.org/Piuliss/Manati)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/issues)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
+[![release](https://img.shields.io/badge/release-v0.9.2a-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/releases/latest)
+
 *Machine Learning for Threat Intuitive Analysis* 
 
 The goal of the ManaTI project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
@@ -22,6 +27,10 @@ This project is partially supported by Cisco Systems.
 - **Raúl B. Netto** 
     ([@Piuliss](https://www.twitter.com/Piuliss), <raulbeni@gmail.com>, <benitrau@fit.cvut.cz>)
 - **Sebastian García** ([@eldracote](https://www.twitter.com/eldracote), <sebastian.garcia@agents.fel.cvut.cz>, <eldraco@gmail.com>)
+
+## App Screenshot
+
+![manati_screenshot](https://user-images.githubusercontent.com/1384962/36067482-75a78ca4-0ebe-11e8-886a-341adb06508b.png)
 
 ## Installation
 ManaTI is a Django project with a Postgres database and it works in Linux and MacOS. We recommend using a virtualenv environment to setup it. The installation steps for linux are:
@@ -217,9 +226,7 @@ cd path/to/project_directory
 python ./manage.py collectstatic --noinput
 sudo supervisord -c supervisor-manati.conf -n
 ```
-## ManaTI support
-We guarantee the correct functioning of ManaTI over Chrome browser 60+.
-We have reports that people are using it in Firefox 55+
+
 ## Docker Composer
 If you don't want to waste time installing ManaTI and you have docker installed,  you can just
  execute docker-compose. First clone the repository and go to the directory project.  
@@ -239,6 +246,11 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 ## Restore DB
     psql manati_db -f backup.sql -U manati_db_user
+    
+## Browser supported
+| [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/edge.png" alt="IE / Edge" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>IE / Edge | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/firefox.png" alt="Firefox" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Firefox | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/chrome.png" alt="Chrome" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Chrome | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/safari.png" alt="Safari" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Safari | [<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/opera.png" alt="Opera" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Opera |[<img src="https://raw.githubusercontent.com/godban/browsers-support-badges/master/src/images/vivaldi.png" alt="Vivaldi" width="16px" height="16px" />](http://godban.github.io/browsers-support-badges/)</br>Vivaldi |
+| --------- | --------- | --------- | --------- | --------- | --------- |
+| N/A| 55+ | 60+ | N/A | N/A| N/A
 
 ## License
 

@@ -38,6 +38,8 @@ CACHES = {
     }
 }
 
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['manatiproject.com','*','localhost','127.0.0.1'])
+
 # TESTING
 # ------------------------------------------------------------------------------
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'

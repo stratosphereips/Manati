@@ -24,7 +24,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations,connection, transaction
 from manati.analysis_sessions.models import AnalysisSession
-from share_modules.util import get_data_from_url
+from manati.share_modules.util import get_data_from_url
 import json
 import datetime
 import logging

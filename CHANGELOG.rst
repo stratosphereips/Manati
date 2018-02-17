@@ -1,3 +1,17 @@
+0.10.0a
+----------
+* Adding settings for heroku deployment
+* Minor change in config/urls.py. Removing urls that we are not using and adding a routing http://localhost:8000/ or https://<YOUR-DOMAIN>/
+* Fixing bug with the user logout the page, it was wrong redirected. Now it is going to the login page.
+* Fixing bugs related with the new structured files
+* Adding library **bat** for processing BRO files. For now it is in the requirements/test.txt, for testing env. We will see if we will need it
+in another place of the system.
+* Adding testing settings and one unitest for the AnalysisSession model. Now, there are two method,
+one for testing the creation process of one analysis session with cisco type files and another one for  BRO http.log file case.
+For running the test is just necessary to use the console and execute **pytest**. The pytest.ini is already configured
+* Adding example (docs/example_weblogs) of BRO file and Apache file
+* Adding badges in README file
+
 0.9.2a
 ----------
 * Adding function when the users wants to remove an analysis session, the action will be enqueued, sometimes the
