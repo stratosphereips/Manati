@@ -5,7 +5,7 @@
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from api_manager.models import ExternalModule
+from manati.api_manager.models import ExternalModule
 import config.settings.base as settings
 import json
 import imp
