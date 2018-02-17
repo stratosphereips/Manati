@@ -1,3 +1,4 @@
+0.10.0a
 ----------
 * Adding settings for heroku deployment
 * Minor change in config/urls.py. Removing urls that we are not using and adding a routing http://localhost:8000/ or https://<YOUR-DOMAIN>/
