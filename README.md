@@ -1,7 +1,7 @@
 # Project ManaTI
 [![Build Status](https://travis-ci.org/Piuliss/Manati.svg?branch=master)](https://travis-ci.org/Piuliss/Manati)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/issues)
-[![Open Source Love](https://badges.frapsoft.com/os/gpl/gpl.svg?v=102)](https://github.com/stratosphereips/Manati/)
+[![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
 [![release](https://img.shields.io/badge/release-v0.9.2a-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/releases/latest)
 
 *Machine Learning for Threat Intuitive Analysis* 
