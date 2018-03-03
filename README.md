@@ -9,6 +9,7 @@
 The goal of the ManaTI project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
 This project is partially supported by Cisco Systems.
+For more information about the project please go to [Stratosphere Lab](https://www.stratosphereips.org/projects-manati/) page
 
 ## Stable Versions
 - Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
@@ -256,4 +257,4 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 The GPLv3 License (GPLv3). See docs/LICENSE file for more details.
 
-Copyright (c) 2016-2018 Stratosphere Laboratory
+Copyright (c) 2016-2018 [Stratosphere Laboratory](https://www.stratosphereips.org/)
