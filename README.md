@@ -228,6 +228,19 @@ python ./manage.py collectstatic --noinput
 sudo supervisord -c supervisor-manati.conf -n
 ```
 
+## Docker image
+If you have docker installed, maybe can be a good idea install the ManaTI docker image. The Dockerfile and
+server configurations files are [here](https://github.com/Piuliss/manati-docker).
+This ManaTI docker image is executed over a server [NGINX](https://www.nginx.com)  and uWSGI.
+This image is maintained by @Piuliss
+
+```
+docker pull honeyjack/manati:latest
+docker run --name manati -p 8888:8888 -dti honeyjack/manati:latest bash
+```
+
+Then, wait for 5 or 10 seconds and go to [http://localhost:8888](http://localhost:8888)
+
 ## Docker Composer
 If you don't want to waste time installing ManaTI and you have docker installed,  you can just
  execute docker-compose. First clone the repository and go to the directory project.  
