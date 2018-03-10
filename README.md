@@ -81,6 +81,10 @@ Remember, reflect the changes in the Postgres database settings below.
    Maybe you will have some issues with permission in the folder ~/.cache, just perform the next command and problem solved:
         
         sudo chmod 777 ~/.cache
+ 
+   if you deploy to Amazon AWS EC2 and you have a **memory error** try: 
+        
+        pip install -r requirements/local.txt --no-cache-dir
         
 <li> Start postgresql </li>
 
