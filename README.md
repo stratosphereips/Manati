@@ -9,6 +9,7 @@
 The goal of the ManaTI project is to develop machine learning techniques to assist an intuitive threat analyst to speed the discovery of new security problems. The machine learning will contribute to the analysis by finding new relationships and inferences. The project will include the development of a web interface for the analyst to interact with the data and the machine learning output.
 
 This project is partially supported by Cisco Systems.
+For more information about the project please go to [Stratosphere Lab](https://www.stratosphereips.org/projects-manati/) page
 
 ## Stable Versions
 - Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
@@ -231,6 +232,19 @@ python ./manage.py collectstatic --noinput
 sudo supervisord -c supervisor-manati.conf -n
 ```
 
+## Docker image
+If you have docker installed, maybe can be a good idea install the ManaTI docker image. The Dockerfile and
+server configurations files are [here](https://github.com/Piuliss/manati-docker).
+This ManaTI docker image is executed over a server [NGINX](https://www.nginx.com)  and uWSGI.
+This image is maintained by @Piuliss
+
+```
+docker pull honeyjack/manati:latest
+docker run --name manati -p 8888:8888 -dti honeyjack/manati:latest bash
+```
+
+Then, wait for 5 or 10 seconds and go to [http://localhost:8888](http://localhost:8888)
+
 ## Docker Composer
 If you don't want to waste time installing ManaTI and you have docker installed,  you can just
  execute docker-compose. First clone the repository and go to the directory project.  
@@ -260,4 +274,4 @@ After this, just open your browser in [http://localhost:8000/manati_project/mana
 
 The GPLv3 License (GPLv3). See docs/LICENSE file for more details.
 
-Copyright (c) 2016-2018 Stratosphere Laboratory
+Copyright (c) 2016-2018 [Stratosphere Laboratory](https://www.stratosphereips.org/)
