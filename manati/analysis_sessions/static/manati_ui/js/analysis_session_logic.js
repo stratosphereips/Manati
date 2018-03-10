@@ -216,9 +216,9 @@ function AnalysisSessionLogic(){
                     internal_row.nodes().to$().addClass('selected-sync');
                     _dt.cell(index_row, COLUMN_VERDICT).data(verdict);
                     _dt.cell(index_row, COLUMN_REG_STATUS).data(reg_status);
-                    addClassVerdict('selected-sync',verdict);
+                    addClassVerdict('selected-sync',verdict, false);
                     // thiz.markVerdict(verdict,'selected-sync');
-                    internal_row.nodes().to$().removeClass('modified');
+                    // internal_row.nodes().to$().removeClass('modified');
 
                     delete _verdict_sync[id];
                 }
@@ -417,12 +417,14 @@ function AnalysisSessionLogic(){
     }
 
 
-    function addClassVerdict(class_selector,verdict) {
+    function addClassVerdict(class_selector, verdict, add_modified) {
+        add_modified = add_modified === null || add_modified === undefined ? true : add_modified;
         var checked_verdict = checkVerdict(_verdicts_merged, verdict);
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
-        _dt.rows('.'+class_selector).nodes().to$().addClass('modified');
-        _dt.rows('.'+class_selector).nodes().to$().removeClass(class_selector);
-
+        _dt.rows('.' + class_selector).nodes().to$().removeClass(_verdicts_merged.join(" ")).addClass(checked_verdict);
+        if (add_modified) {
+            _dt.rows('.' + class_selector).nodes().to$().addClass('modified');
+        }
+        _dt.rows('.' + class_selector).nodes().to$().removeClass(class_selector);
 
     }
     this.markVerdict= function (verdict, class_selector) {
