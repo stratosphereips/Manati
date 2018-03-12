@@ -15,7 +15,7 @@ services:
     image: 'manati'
     env_file:
       - '.env'
-      - '.env-docker.example'
+      - '.env-docker'
     expose:
       - "8000"
     ports:
@@ -37,7 +37,7 @@ services:
     container_name: 'postgres'
     image: 'postgres:9.6.5'
     env_file:
-      - '.env-docker.example'
+      - '.env-docker'
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
@@ -53,14 +53,16 @@ services:
     volumes:
       - 'manati_redisdata:/data'
 
-  rq:
-    build: .
+  rqworker:
+    build:
+      context: .
+      dockerfile: './compose/local/django/Dockerfile'
     env_file:
-      - '.env-docker.example'
+      - '.env-docker'
     command: "bash -c 'python manage.py rqworker high default low'"
     volumes:
       - .:/code
-    links:
+    depends_on:
       - redis
 
 volumes:
