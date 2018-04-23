@@ -546,7 +546,7 @@ class Modals {
             dataType: "json",
             success: function (json) {
                 let table = thiz.buildTableHotkeys(json['hotkeys']);
-                thiz.updateBodyModal(table);
+                Modals.updateBodyModal(table);
             },
             error: function (xhr, errmsg, err) {
                 $.notify(xhr.status + ": " + xhr.responseText, "error");

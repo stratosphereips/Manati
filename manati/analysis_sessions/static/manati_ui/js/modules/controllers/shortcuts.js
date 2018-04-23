@@ -1,4 +1,5 @@
 import {scrollIntoViewIfNeeded} from '../helpers/utils.js';
+import {syncDB} from '../../analysis_session_logic.js';
 
 class Shortcuts {
     constructor(analysis_session_obj) {
@@ -22,32 +23,32 @@ class Shortcuts {
         // active sync button
         Mousetrap.bind(['ctrl+s', 'command+s'], function (e) {
             preventDefault(e);
-            if (thiz.isSaved()) this.analysis_session_obj.syncDB(true);
+            if (thiz.analysis_session_obj.isSaved()) syncDB(true);
         });
         // mark malicious
         Mousetrap.bind(['ctrl+m', 'command+m'], function (e) {
             preventDefault(e);
-            this.dynamic_table_obj.labelingRows('malicious');
+            thiz.dynamic_table_obj.labelingRows('malicious');
         });
         // mark legitimate
         Mousetrap.bind(['ctrl+l', 'command+l'], function (e) {
             preventDefault(e);
-            this.dynamic_table_obj.labelingRows('legitimate');
+            thiz.dynamic_table_obj.labelingRows('legitimate');
         });
         // mark suspicious
         Mousetrap.bind(['ctrl+i', 'command+i'], function (e) {
             preventDefault(e);
-            this.dynamic_table_obj.labelingRows('suspicious');
+            thiz.dynamic_table_obj.labelingRows('suspicious');
         });
         // mark false positive
         Mousetrap.bind(['ctrl+p', 'command+p'], function (e) {
             preventDefault(e);
-            this.dynamic_table_obj.labelingRows('falsepositive');
+            thiz.dynamic_table_obj.labelingRows('falsepositive');
         });
         // mark undefined
         Mousetrap.bind(['ctrl+u', 'command+u'], function (e) {
             preventDefault(e);
-            this.dynamic_table_obj.labelingRows('undefined');
+            thiz.dynamic_table_obj.labelingRows('undefined');
         });
         // unselect selected rows
         Mousetrap.bind(['shift+ctrl+u', 'shift+command+u'], function (e) {

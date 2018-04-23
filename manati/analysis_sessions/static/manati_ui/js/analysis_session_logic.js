@@ -18,21 +18,19 @@ export function syncDB(show_loading = false) {
         if (show_loading) showLoading();
         let $dt = thiz.dynamic_table.dt;
         let arr_list = $dt.rows('.modified').data();
-        let $rows = $dt.rows('.modified').nodes().to$();
         let COLUMN_REG_STATUS = thiz.dynamic_table.aux_columns.reg_status.index,
             COLUMN_DT_ID = thiz.dynamic_table.aux_columns.dt_id.index,
             COLUMN_VERDICT = thiz.dynamic_table.aux_columns.verdict.index;
-        let _analysis_session_id = thiz.getAnalysisSessionId();
-        $rows.addClass('modified-sync');
-        $rows.removeClass('modified');
+        let analysis_session_id = thiz.getAnalysisSessionId();
+        $dt.rows('.modified').nodes().to$().addClass('modified-sync').removeClass('modified');
         let data_row = {};
         arr_list.each(function (elem) {
             if (elem[COLUMN_REG_STATUS] !== -1) {
-                let key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? _analysis_session_id + ":" + elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID];
+                let key_id = elem[COLUMN_DT_ID].split(':').length <= 1 ? analysis_session_id + ":" + elem[COLUMN_DT_ID] : elem[COLUMN_DT_ID];
                 data_row[key_id] = elem[COLUMN_VERDICT];
             }
         });
-        let data = {'analysis_session_id': _analysis_session_id, 'data': data_row};
+        let data = {'analysis_session_id': analysis_session_id, 'data': data_row};
         if (thiz.getColumnsOrderFlat()) {
             data['headers[]'] = JSON.stringify(thiz.dynamic_table.get_headers_info());
             thiz.setColumnsOrderFlat(false);
@@ -68,8 +66,9 @@ export function syncDB(show_loading = false) {
 
 
                 });
-                $('tr.modified-sync').removeClass('modified-sync');
                 thiz.dynamic_table.dt.draw(false);
+                $('tr.modified-sync').removeClass('modified-sync');
+                $('tr.modified').removeClass('modified');
                 console.log("DB Synchronized");
                 if (show_loading) hideLoading();
             },
