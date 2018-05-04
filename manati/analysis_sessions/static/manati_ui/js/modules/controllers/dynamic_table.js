@@ -472,6 +472,9 @@ class DynamicTable {
     }
 
     // WORKERS
+    getHelperFlowsGroupedBy(ioc){
+        return this.analysis_session_obj._helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR, ioc);
+    }
     setBulkVerdict_WORKER (verdict, flows_labelled) {
         let thiz = this;
         let COLUMN_VERDICT = this.aux_columns.verdict.index,
