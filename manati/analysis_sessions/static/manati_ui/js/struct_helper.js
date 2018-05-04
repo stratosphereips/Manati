@@ -62,7 +62,7 @@ function FlowsProcessed(col_host_str,co_ip_str){
 
     };
     this.addBulkFlows = function (flows){
-        if (thiz.COL_HOST_STR == null && thiz.COL_IP_STR == null) return;
+        if (COL_HOST_STR === null && COL_IP_STR === null) return;
 
         for(let i = 0; i< flows.length; i++) {
             thiz.addFlows(flows[i]);

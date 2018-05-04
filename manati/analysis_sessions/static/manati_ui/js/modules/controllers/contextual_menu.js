@@ -128,8 +128,8 @@ class ContextualMenu {
                 icon: "fa-paint-brush",
                 className: col_url_class,
                 callback: function (key, options) {
-                    // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[col_url_class]);
-                    _m.EventBulkLabelingByDomains(this._bulk_marks_wbs[col_url_class], _bulk_verdict, domain);
+                    thiz.analysis_session_obj.dynamic_table.setBulkVerdict_WORKER(_bulk_verdict,thiz._bulk_marks_wbs[col_url_class]);
+                    // _m.EventBulkLabelingByDomains(this._bulk_marks_wbs[col_url_class], _bulk_verdict, domain);
                 }
             };
             items_submenu_external_query['virus_total_consult']['items']['fold2-key1'] = {
@@ -159,9 +159,8 @@ class ContextualMenu {
                     callback: function (key, options) {
                         let weblog_id = tr_dom_data[col_dt_id_index].toString();
                         weblog_id = weblog_id.split(":").length <= 1 ? _analysis_session_id + ":" + weblog_id : weblog_id;
-                        thiz.labelWeblogsWhoisRelated(weblog_id, _bulk_verdict)
-
-                        // setBulkVerdict_WORKER(_bulk_verdict, _bulk_marks_wbs[CLASS_MC_HTTP_URL_STR]);
+                        thiz.labelWeblogsWhoisRelated(weblog_id, _bulk_verdict);
+                        thiz.analysis_session_obj.dynamic_table.setBulkVerdict_WORKER(_bulk_verdict, thiz._bulk_marks_wbs[col_url_class]);
                         // _m.EventBulkLabelingByDomains(_bulk_marks_wbs[CLASS_MC_HTTP_URL_STR],_bulk_verdict, domain);
                     }
 
