@@ -228,7 +228,7 @@ Module</li>
    prepare settings for **nginx**
 ```bash
 cd path/to/project_directory 
-python ./manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 sudo supervisord -c supervisor-manati.conf -n
 ```
 
