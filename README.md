@@ -2,7 +2,6 @@
 [![Build Status](https://travis-ci.org/Piuliss/Manati.svg?branch=master)](https://travis-ci.org/Piuliss/Manati)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/issues)
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)
-[![release](https://img.shields.io/badge/release-v0.9.2a-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/releases/latest)
 
 *Machine Learning for Threat Intuitive Analysis* 
 
@@ -12,6 +11,7 @@ This project is partially supported by Cisco Systems.
 For more information about the project please go to [Stratosphere Lab](https://www.stratosphereips.org/projects-manati/) page
 
 ## Stable Versions
+- Sun Aug 12 16:21:19 CEST 2018: Version 0.11.0a
 - Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
 - Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
 - Fri Mar 31 12:19:00 CEST 2017: Version 0.7.1
@@ -82,6 +82,10 @@ Remember, reflect the changes in the Postgres database settings below.
    Maybe you will have some issues with permission in the folder ~/.cache, just perform the next command and problem solved:
         
         sudo chmod 777 ~/.cache
+ 
+   if you deploy to Amazon AWS EC2 and you have a **memory error** try: 
+        
+        pip install -r requirements/local.txt --no-cache-dir
         
 <li> Start postgresql </li>
 
@@ -224,7 +228,7 @@ Module</li>
    prepare settings for **nginx**
 ```bash
 cd path/to/project_directory 
-python ./manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 sudo supervisord -c supervisor-manati.conf -n
 ```
 

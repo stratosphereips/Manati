@@ -100,7 +100,7 @@ class AnalysisSessionManager(models.Manager):
 
             with transaction.atomic():
                 analysis_session.name = filename
-                analysis_session.clean()
+                analysis_session.full_clean()
                 analysis_session.save()
                 analysis_sessions_users = AnalysisSessionUsers.objects.create(analysis_session_id=analysis_session.id,
                                                                               user_id=current_user.id,
@@ -136,6 +136,9 @@ class AnalysisSessionManager(models.Manager):
                 Weblog.objects.bulk_create(wb_list) # create weblogs
                 Weblog.create_bulk_IOCs(wb_list) # create IOCs
             return analysis_session
+        except ValidationError as e:
+            print_exception()
+            return None
         except Exception as e:
             print_exception()
             return None
@@ -249,11 +252,15 @@ class RegisterStatus(enum.Enum):
 class AnalysisSession(TimeStampedModel):
     TYPE_FILES = Choices(('bro_http_log','BRO weblogs http.log'),
                          ('cisco_file', 'CISCO weblogs Specific File'),
-                         ('apache_http_log', 'Apache logs'))
+                         ('apache_http_log', 'Apache logs'),
+                         ('binetflow', "Argus bidirectional netflows"),
+                         ('uninetflow', "Argus unidirectional netflows"))
     STATUS = Choices(('open', 'Open'),('closed', 'Closed'),('removed', 'Removed'))
     INFO_ATTRIBUTES = {TYPE_FILES.cisco_file: {'url':'http.url', 'ip_dist':'endpoints.server'},
                        TYPE_FILES.bro_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'},
-                       TYPE_FILES.apache_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'}
+                       TYPE_FILES.apache_http_log: {'url': 'host', 'ip_dist': 'id.resp_h'},
+                       TYPE_FILES.binetflow: {'url': '', 'ip_dist': 'DstAddr'},
+                       TYPE_FILES.uninetflow: {'url': '', 'ip_dist': 'DstAddr'}
                        }
 
     users = models.ManyToManyField(User, through='AnalysisSessionUsers')
