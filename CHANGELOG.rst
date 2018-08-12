@@ -1,3 +1,10 @@
+v0.11.0a
+----------
+* general JS refactoring, now it uses JS-ES6
+* adding netflows viewer
+* minor bugs fixed
+* adding links for IP Profile logic.
+
 0.10.0a
 ----------
 * Adding settings for heroku deployment
