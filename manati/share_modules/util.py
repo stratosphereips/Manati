@@ -55,17 +55,23 @@ def get_domain_by_obj(attributes_obj):
         return None
 
 
-def is_ip(value):
+def is_ip(ip):
     """Determine if a value is an IP address.
 
     :param str value: Value to check
     :return: Boolean status outling if the value is an IP address
     """
     try:
-        socket.inet_aton(value)
+        # test for IPv4
+        socket.inet_pton(socket.AF_INET, ip)
         return True
     except socket.error:
-        return False
+        try:
+            # test for IPv6
+            socket.inet_pton(socket.AF_INET6, ip)
+            return True
+        except socket.error:
+            return False
 
 def get_top_level_domain(self):
     try:
