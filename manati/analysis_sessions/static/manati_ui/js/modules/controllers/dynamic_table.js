@@ -301,7 +301,7 @@ class DynamicTable {
             // alert("None of these key column were found: " + NAMES_END_POINTS_SERVER.join(', ') + " several features will be disabled");
         }
         this.analysis_session_obj.processingFlows_WORKER(_data_uploaded, this.aux_columns.url.str, this.aux_columns.dist_ip.str);
-        this._filterDataTable = new FilterDataTable(this.aux_columns.verdict.index, VERDICTS_MERGED_AVAILABLE);
+        this._filterDataTable = new FilterDataTable(this.aux_columns.verdict.index, VERDICTS_MERGED_AVAILABLE, this);
         this.init_datatable(_data_headers, data_processed);
         $('#save-table').show();
 
