@@ -41,7 +41,7 @@ from django.db.models import Q
 import logging
 from manati.analysis_sessions.serializers import WeblogSerializer
 import manati.share_modules as share_modules
-import django_rq
+from django_rq import job
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)

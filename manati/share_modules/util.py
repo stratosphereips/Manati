@@ -25,6 +25,7 @@ import re
 import socket
 from urlparse import urlparse
 from tld import get_tld
+from model_utils import Choices
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -110,6 +111,22 @@ def get_data_from_url(url):
         return 'domain', get_tld('http://www.'+d)
 
 
+VERDICT_STATUS = Choices(('malicious','Malicious'),
+                             ('legitimate','Legitimate'),
+                             ('suspicious','Suspicious'),
+                             ('undefined', 'Undefined'),
+                             ('falsepositive','False Positive'),
+                             ('malicious_legitimate', 'Malicious/Legitimate'),
+                             ('suspicious_legitimate', 'Suspicious/Legitimate'),
+                             ('undefined_legitimate', 'Undefined/Legitimate'),
+                             ('falsepositive_legitimate', 'False Positive/Legitimate'),
+                             ('undefined_malicious', 'Undefined/Malicious'),
+                             ('suspicious_malicious', 'Suspicious/Malicious'),
+                             ('falsepositive_malicious', 'False Positive/Malicious'),
+                             ('falsepositive_suspicious', 'False Positive/Suspicious'),
+                             ('undefined_suspicious', 'Undefined/Suspicious'),
+                             ('undefined_falsepositive', 'Undefined/False Positive'),
+                             )
 
 def get_domain(url):
     """Return top two domain levels from URI"""
