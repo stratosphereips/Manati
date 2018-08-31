@@ -1,4 +1,4 @@
-# Project ManaTI
+# ManaTI Project
 [![Build Status](https://travis-ci.org/Piuliss/Manati.svg?branch=master)](https://travis-ci.org/Piuliss/Manati)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/stratosphereips/Manati/issues)
 [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://perso.crans.org/besson/LICENSE.html)

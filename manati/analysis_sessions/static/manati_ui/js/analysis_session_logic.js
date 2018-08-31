@@ -312,18 +312,17 @@ class AnalysisSessionLogic {
                 let btn = $(this);
                 let verdict = btn.data('verdict');
                 if (btn.hasClass('active')) {
-                    thiz.dynamic_table._filterDataTable.removeFilter(_dt, verdict);
+                    thiz.dynamic_table._filterDataTable.removeFilter(verdict);
                     btn.removeClass('active');
-                }
-                else {
-                    thiz.dynamic_table._filterDataTable.applyFilter(_dt, verdict);
+                } else {
+                    thiz.dynamic_table._filterDataTable.applyFilter(verdict);
                     btn.addClass('active');
                 }
 
             });
             $('body').on('click', '.unselect', function (ev) {
                 ev.preventDefault();
-                thiz.dynamic_table._filterDataTable.removeFilter(_dt);
+                thiz.dynamic_table._filterDataTable.removeFilter();
                 $('.searching-buttons .btn').removeClass('active')
             });
 
