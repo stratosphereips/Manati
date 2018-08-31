@@ -2,12 +2,13 @@ import {check_verdict} from "./utils.js";
 /**
  * Created by raulbeniteznetto on 10/2/16.
  */
-export default function FilterDataTable(column_verdict, verdicts){
+export default function FilterDataTable(column_verdict, verdicts, dynamic_table){
     var thiz = this;
     var _list_options = {};
     var _verdicts = verdicts;
     var _dt;
     var _column_verdict = column_verdict;
+    var _dynamic_table = dynamic_table;
 
     function init(){
         $.each(_verdicts,function (index, values) {
@@ -76,7 +77,8 @@ export default function FilterDataTable(column_verdict, verdicts){
         generatePopIn(offset_pos);
     };
 
-    this.removeFilter = function(dt, verdict){
+    this.removeFilter = function(verdict){
+        let dt = _dynamic_table.dt;
         if(verdict != null || verdict!= undefined){
             var index = _verdicts_applied.indexOf(verdict);
             if (index > -1) {
@@ -85,15 +87,15 @@ export default function FilterDataTable(column_verdict, verdicts){
         }else{
             _verdicts_applied = []
         }
-        if(_verdicts_applied.length>0){
+        if (_verdicts_applied.length > 0) {
             auxApplyFilter(dt);
         }
-        else{
+        else {
             var verdicts = _.keys(_list_options);
-            _.each(verdicts,function (value,i) {
+            _.each(verdicts, function (value, i) {
                 _list_options[value] = true;
-                var li = $('ul.filtering li[data-verdict="'+value+'"]');
-                if(!li.hasClass('active'))li.addClass('active');
+                var li = $('ul.filtering li[data-verdict="' + value + '"]');
+                if (!li.hasClass('active')) li.addClass('active');
             });
             dt.draw();
 
@@ -106,7 +108,8 @@ export default function FilterDataTable(column_verdict, verdicts){
      // var _verdicts_applyied = {'malicious': false, 'legitimate': false,
      //                        'suspicious':false, 'falsepositive':false,
      //                        'undefined': false};
-    this.applyFilter = function(dt, verdict){
+    this.applyFilter = function(verdict){
+        let dt = _dynamic_table.dt;
         _verdicts_applied.push(verdict);
         auxApplyFilter(dt);
     };
