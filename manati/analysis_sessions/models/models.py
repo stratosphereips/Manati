@@ -28,7 +28,7 @@ from django.db import IntegrityError, transaction
 from django.contrib.messages import constants as message_constants
 from django.core.exceptions import ValidationError
 from django_enumfield import enum
-from manati.analysis_sessions.utils import RegisterStatus, print_exception, postpone
+from manati.analysis_sessions.utils import RegisterStatus, print_exception, postpone, logger
 from jsonfield import JSONField
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from manati.share_modules.virustotal import *
@@ -38,6 +38,7 @@ from guardian.shortcuts import assign_perm
 from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from .base import TimeStampedModel
+from .metric import Metric
 vt = vt()
 
 MESSAGE_TAGS = {
@@ -507,6 +508,7 @@ class Weblog(TimeStampedModel):
 
         self.create_aux_seed()
         self.clean()
+        self.domain_ioc.set_verdict(verdict, user, save)
         if save:
             self.save_with_history(user)
 
@@ -648,8 +650,90 @@ class IOC(TimeStampedModel):
         iocs_id = iocs.values_list('whois_related_iocs__id', flat=True)
         return Weblog.objects.filter(ioc__in=iocs_id, analysis_session_id=analysis_session_id)
 
+    @staticmethod
+    def get_IoCs_with_verdits(grouped_iocs):
+        labelled_iocs = {}
+        with transaction.atomic():
+            for ioc_type in grouped_iocs:
+                iocs = IOC.objects.filter(value__in=grouped_iocs[ioc_type], ioc_type=ioc_type)
+                for ioc in iocs:
+                    labelled_iocs[ioc.value] = ioc.verdict
+
+        return labelled_iocs
+
+
+
+    @transaction.atomic
+    def save_with_history(self, content_object, *args, **kwargs):
+        with transaction.atomic():
+            old_ioc = IOC.objects.get(id=self.id)
+            old_verdict = kwargs['old_verdict'] if 'old_verdict' in kwargs else old_ioc.verdict
+            new_verdict = kwargs['new_verdict'] if 'new_verdict' in kwargs else self.verdict
+            if content_object is None:
+                content_object = User.objects.first()
+            ioc_history = self.ioc_history()
+            if not ioc_history or self.verdict != ioc_history[0].verdict:
+                new_ioc_history = IOCHistory(ioc=self,
+                                             old_verdict=old_verdict,
+                                             verdict=new_verdict,
+                                             content_object=content_object)
+                new_ioc_history.save()
+            # # save summary history
+            kwargs.pop('old_verdict', None)
+            kwargs.pop('new_verdict', None)
+            self.clean()
+            super(IOC, self).save(*args, **kwargs)
+
+    def ioc_history(self):
+        return IOCHistory.objects.filter(ioc=self).order_by('-version')
+
+    def set_verdict(self, verdict, user, save=False):
+        #TODO ADDING LOCK
+        # check if verdict exist
+        if verdict in dict(VERDICT_STATUS):
+            self.verdict = verdict
+        else:
+            raise ValidationError
+
+        self.clean()
+        if save:
+            self.save_with_history(user)
+
     class Meta:
         db_table = 'manati_indicators_of_compromise'
+
+
+class IOCHistory(TimeStampedModel):
+    version = models.IntegerField(editable=False, default=0)
+    ioc = models.ForeignKey(IOC, on_delete=models.CASCADE, null=False, related_name='histories')
+    verdict = models.CharField(choices=VERDICT_STATUS,
+                               default=VERDICT_STATUS.undefined, max_length=50, null=False)
+    old_verdict = models.CharField(choices=VERDICT_STATUS,
+                                   default=VERDICT_STATUS.undefined, max_length=50, null=False)
+    description = models.CharField(max_length=255, null=True, default="")
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  # User or Module
+    object_id = models.CharField(max_length=20)
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    def get_author_name(self):
+        if type(self.content_object).__name__ == "ExternalModule":
+            return self.content_object.module_name
+        elif isinstance(self.content_object, User):
+            return self.content_object.username
+
+    @property
+    def created_at_txt(self):
+        return self.created_at.isoformat()
+
+    class Meta:
+        db_table = 'manati_ioc_history'
+        unique_together = ('version', 'ioc')
+
+    def save(self, *args, **kwargs):
+        # start with version 1 and increment it for each book
+        current_version = IOCHistory.objects.filter(ioc=self.ioc).order_by('-version')[:1]
+        self.version = current_version[0].version + 1 if current_version else 1
+        super(IOCHistory, self).save(*args, **kwargs)
 
 
 class WHOISRelatedIOC(TimeStampedModel):
