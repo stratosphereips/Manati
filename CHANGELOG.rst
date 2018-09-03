@@ -1,3 +1,4 @@
+v0.11.2a
 ----------
 * IoCs DB: now every time that the user uploads/edits a analysis session
  (weblog/netflow/ another logs),
