@@ -11,6 +11,7 @@ This project is partially supported by Cisco Systems.
 For more information about the project please go to [Stratosphere Lab](https://www.stratosphereips.org/projects-manati/) page
 
 ## Stable Versions
+- Mon Sep  3 12:24:26 CEST 2018: Version 0.12.0a
 - Sun Aug 12 16:21:19 CEST 2018: Version 0.11.0a
 - Mon Jan 29 00:07:15 CEST 2018: Version 0.9.0a
 - Fri Nov 10 19:16:52 CEST 2017: Version 0.8.0.537a
