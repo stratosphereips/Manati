@@ -47,7 +47,6 @@ urlpatterns = [
     url(r'^analysis_session/weblog/label_weblogs_whois_related', views.label_weblogs_whois_related, name='label_weblogs_whois_related'),
     url(r'^analysis_session/sync_db', views.sync_db, name='sync_db_analysis_session'),
     url(r'^analysis_session/sync_metrics', views.sync_metrics, name='sync_metrics_analysis_session'),
-    url(r'^analysis_session/sync_iocs', views.sync_iocs, name='sync_iocs_analysis_session'),
     url(r'^analysis_session/get_weblogs', views.get_weblogs, name='get_weblogs_analysis_session'),
     url(r'^analysis_sessions', views.IndexAnalysisSession.as_view(), name='index_analysis_sessions'),
     url(r'^external_modules', views.IndexExternalModules.as_view(), name='index_external_modules'),

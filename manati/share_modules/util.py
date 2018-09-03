@@ -25,7 +25,6 @@ import re
 import socket
 from urlparse import urlparse
 from tld import get_tld
-from model_utils import Choices
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -56,23 +55,17 @@ def get_domain_by_obj(attributes_obj):
         return None
 
 
-def is_ip(ip):
+def is_ip(value):
     """Determine if a value is an IP address.
 
     :param str value: Value to check
     :return: Boolean status outling if the value is an IP address
     """
     try:
-        # test for IPv4
-        socket.inet_pton(socket.AF_INET, ip)
+        socket.inet_aton(value)
         return True
     except socket.error:
-        try:
-            # test for IPv6
-            socket.inet_pton(socket.AF_INET6, ip)
-            return True
-        except socket.error:
-            return False
+        return False
 
 def get_top_level_domain(self):
     try:
@@ -111,22 +104,6 @@ def get_data_from_url(url):
         return 'domain', get_tld('http://www.'+d)
 
 
-VERDICT_STATUS = Choices(('malicious','Malicious'),
-                             ('legitimate','Legitimate'),
-                             ('suspicious','Suspicious'),
-                             ('undefined', 'Undefined'),
-                             ('falsepositive','False Positive'),
-                             ('malicious_legitimate', 'Malicious/Legitimate'),
-                             ('suspicious_legitimate', 'Suspicious/Legitimate'),
-                             ('undefined_legitimate', 'Undefined/Legitimate'),
-                             ('falsepositive_legitimate', 'False Positive/Legitimate'),
-                             ('undefined_malicious', 'Undefined/Malicious'),
-                             ('suspicious_malicious', 'Suspicious/Malicious'),
-                             ('falsepositive_malicious', 'False Positive/Malicious'),
-                             ('falsepositive_suspicious', 'False Positive/Suspicious'),
-                             ('undefined_suspicious', 'Undefined/Suspicious'),
-                             ('undefined_falsepositive', 'Undefined/False Positive'),
-                             )
 
 def get_domain(url):
     """Return top two domain levels from URI"""

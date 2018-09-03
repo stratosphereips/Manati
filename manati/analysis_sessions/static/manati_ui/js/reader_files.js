@@ -1,9 +1,9 @@
 /**
 * Created by raulbeniteznetto on 2/8/17.
 */
-const FILES_TYPES_AVAILABLE = ['log', 'csv', 'binetflow', 'uninetflow'];
+const FILES_TYPES_AVAILABLE = ['log', 'csv'];
 
-export default function ReaderFile(analysis_session_logic_obj){
+function ReaderFile(analysis_session_logic_obj){
     var reader;
     var _progress;
     var _aslo = analysis_session_logic_obj;
@@ -24,7 +24,7 @@ export default function ReaderFile(analysis_session_logic_obj){
             break; // noop
           default:
             alert('An error occurred reading this file.');
-        }
+        };
     }
 
     function updateProgress(evt) {
@@ -88,18 +88,13 @@ export default function ReaderFile(analysis_session_logic_obj){
         };
 
         // Read in the image file as a binary string.
-        var file = evt.target.files[0];
-        var extension = file.name.split('.').pop().toLowerCase();
+        let file = evt.target.files[0];
+        let extension = file.name.split('.').pop().toLowerCase();
         if(FILES_TYPES_AVAILABLE.indexOf(extension) > -1){
-            if (extension !== 'log'){
-                if (extension === 'csv'){
-                    _type_file = 'cisco_file';
-                }else{
-                    _type_file = extension;
-                }
-
+            if (extension === 'csv'){
+                _type_file = 'cisco_file';
             }
-            _aslo.eventBeforeParing(file);
+            thiz.eventBeforeParing(file);
             reader.readAsBinaryString(file);
         }else{
             $.notify('Incorrect Extension file');

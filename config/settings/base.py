@@ -75,7 +75,6 @@ LOCAL_APPS = [
     # 'manati.user_profiles.apps.UserProfilesConfig',
     'manati.api_manager.apps.ApiManagerConfig',
     'manati.login.apps.LoginConfig',
-    'manati.ip_profiles.apps.IpProfilesConfig',
 ]
 
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

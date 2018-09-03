@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'manati_ui/base.html' %}
 {% block title %}
     <div class="row">
         <div class="col-md-10">
@@ -74,15 +74,16 @@
 
     </div>
     {% include 'manati_ui/analysis_session/modal_vt.html' %}
-    <script type="application/javascript">
-        const VERSION_APP = '{% version_app %}';
-        var _analysisSessionLogic = null; // super general variable
-    </script>
-    <script type="module">
-        import AnalysisSessionLogic from '{% static 'manati_ui/js/analysis_session_logic.js' %}';
-        _analysisSessionLogic = new AnalysisSessionLogic();
-        _analysisSessionLogic.callingEditingData({{analysissession.id| safe}})
-    </script>
+    <script type="text/javascript">
+        VERSION_APP = '{% version_app %}';
+        var logic = new AnalysisSessionLogic();
+        logic.init();
+        logic.callingEditingData({{analysissession.id| safe}});
 
 
+    </script>
+    <style>
+
+
+    </style>
 {% endblock %}

@@ -23,7 +23,6 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     url(r'^'+path_name+'/manati_ui/', include('analysis_sessions.urls')),
     url(r'^'+path_name+'/user_profiles/', include('user_profiles.urls')),
-    url(r'^'+path_name+'/ip_profiles/', include('ip_profiles.urls')),
     url(r'^'+path_name+'/admin/', include(admin.site.urls)),
     url(r'^'+path_name+'/django-rq/', include('django_rq.urls')), # adding django-rq urls.
     url(r''+path_name+'/', include('login.urls')),

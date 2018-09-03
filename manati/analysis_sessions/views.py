@@ -41,7 +41,7 @@ from django.db.models import Q
 import logging
 from manati.analysis_sessions.serializers import WeblogSerializer
 import manati.share_modules as share_modules
-from django_rq import job
+import django_rq
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -389,28 +389,6 @@ def delete_analysis_session(request, id):
 @job('low')
 def delete_analysis_session_aux(id):
     AnalysisSession.objects.get(id=id).delete()
-
-@csrf_exempt
-def sync_iocs(request):
-    try:
-        if request.method == 'GET':
-            u_iocs = json.loads(request.GET.get('iocs[]', ''))
-            labelled_iocs = IOC.get_IoCs_with_verdits(u_iocs)
-            ioc_grouped_via_labels = {}
-            for ioc in labelled_iocs:
-                verdict = labelled_iocs[ioc]
-                ioc_grouped_via_labels.setdefault(verdict,[])
-                ioc_grouped_via_labels[verdict].append(ioc)
-            # Metric.objects.create_bulk_by_user(u_measurements, current_user)
-            json_data = json.dumps({'msg': 'Sync Metrics DONE',
-                                    'ioc_grouped_via_labels': ioc_grouped_via_labels})
-            return HttpResponse(json_data, content_type="application/json")
-        else:
-            return HttpResponseServerError("Only POST request")
-    except Exception as e:
-        print_exception()
-        return HttpResponseServerError("There was a error in the Server")
-
 
 # @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt

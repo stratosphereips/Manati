@@ -99,6 +99,8 @@ ipaddress==1.0.18
 ipwhois==0.14.0
 IPy==0.83
 ipykernel==4.5.0
+ipython==5.1.0
+ipython-genutils==0.1.0
 ipywidgets==5.2.2
 Jinja2==2.8
 jsonfield==1.0.3

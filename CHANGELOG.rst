@@ -1,26 +1,3 @@
-v0.11.2a
-----------
-* IoCs DB: now every time that the user uploads/edits a analysis session
- (weblog/netflow/ another logs),
-the system will update automatically the verdicts of the rows (IoC).
-First it gets all the IoC of the session,
-compares with its IoC DB and update the rows' verdict. This functionality also works for non-save
-session.
-* every time that the user places a verdict, the domain IoC (for now) of given row is updated.
-A history register is created too.
-
-v0.11.1a
-----------
-* Fixing 2 bugs
-
-v0.11.0a
-----------
-* general JS refactoring, now it uses JS-ES6
-* adding netflows viewer
-* minor bugs fixed
-* adding links for IP Profile logic.
-
-0.10.0a
 ----------
 * Adding settings for heroku deployment
 * Minor change in config/urls.py. Removing urls that we are not using and adding a routing http://localhost:8000/ or https://<YOUR-DOMAIN>/
