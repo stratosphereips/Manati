@@ -509,6 +509,7 @@ class AnalysisSessionLogic {
 
 
     updateAnalysisSessionUUID (analysis_session_id, weblogs_id_uuid) {
+        let thiz = this;
         thiz.generateAnalysisSessionUUID();
         let ids = _.keys(weblogs_id_uuid);
         let uuids = _.values(weblogs_id_uuid);
@@ -598,7 +599,9 @@ class AnalysisSessionLogic {
             thiz._flows_grouped = e.data;
             thiz._helper = new FlowsProcessed(col_host_str, col_ip_str);
             thiz._helper.setFlowsGrouped(thiz._flows_grouped);
-            thiz._helper.makeStaticalSection();
+            let grouped_iocs = thiz._helper.makeStaticalSection();
+            thiz._helper.sendIoCsToServer(grouped_iocs, thiz.dynamic_table);
+
             console.log("Worker Done");
         });
         worker.postMessage([thiz._flows_grouped, flows, document.location.origin, col_host_str, col_ip_str]);
