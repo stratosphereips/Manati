@@ -416,5 +416,6 @@ class Command(BaseCommand):
         lines = process_lines(lines, result_file, int(options["m"]),
                               options["nocsv"], options["dups"],
                               options["noresolve"], options["ping"], options["debug"])
-        VTConsult.objects.create_one_consult(query_node,  user, lines[0])
+        if lines:
+            VTConsult.objects.create_one_consult(query_node,  user, lines[0])
         print(Style.RESET_ALL)
