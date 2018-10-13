@@ -57,7 +57,7 @@ click==6.7
 colorama==0.3.7
 configparser==3.5.0
 croniter==0.3.17
-cryptography==1.8.1
+cryptography==2.3.1
 dealer==2.0.5
 decorator==4.0.10
 dj-database-url==0.4.2
