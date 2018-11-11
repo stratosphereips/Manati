@@ -1,4 +1,4 @@
-XXXX
+v0.12.2a
 ----------
 * Fix all hotkeys
 
