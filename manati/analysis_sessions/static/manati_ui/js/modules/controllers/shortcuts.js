@@ -119,8 +119,9 @@ class Shortcuts {
         Mousetrap.bind(['ctrl+shift+d', 'command+shift+d'], function (e) {
             preventDefault(e);
             let weblog_id = thiz.analysis_session_obj.dynamic_table.get_dt_id_data_by_class('.action');
-            weblog_id = weblog_id.split(":").length <= 1 ? thiz.getAnalysisSessionId() + ":" + weblog_id : weblog_id;
-            this.modals.getWeblogsWhoisRelated(weblog_id);
+            let analysis_session_id = thiz.analysis_session_obj.getAnalysisSessionId();
+            weblog_id = weblog_id.split(":").length <= 1 ? analysis_session_id + ":" + weblog_id : weblog_id;
+            thiz.modals.getWeblogsWhoisRelated(weblog_id);
         });
 
         // VI-Style
@@ -232,7 +233,7 @@ class Shortcuts {
         //mark all the weblogs in the current session with the same IP
         Mousetrap.bind(['p'], function (e) {
             preventDefault(e);
-            let dto = thiz.analysis_session_obj.dynamic_table_obj;
+            let dto = thiz.analysis_session_obj.dynamic_table;
             let ip_value = dto.get_dist_ip_data_by_class('.action');
             let verdict = dto.get_verdict_data_by_class('.action');
             dto.setBulkVerdict_WORKER(verdict, thiz.analysis_session_obj.dynamic_table.getHelperFlowsGroupedBy(ip_value));
@@ -241,11 +242,11 @@ class Shortcuts {
         //mark all  the weblogs in the current session with the same domain
         Mousetrap.bind(['d'], function (e) {
             preventDefault(e);
-            let dto = thiz.analysis_session_obj.dynamic_table_obj;
+            let dto = thiz.analysis_session_obj.dynamic_table;
             let url = dto.get_url_data_by_class('.action');
             let domain = findDomainOfURL(url); // getting domain
             let verdict = dto.get_verdict_data_by_class('.action');
-            dto.setBulkVerdict_WORKER(verdict, thiz.analysis_session_obj.dynamic_table.getHelperFlowsGroupedBy(domain));
+            dto.setBulkVerdict_WORKER(verdict, thiz.analysis_session_obj.dynamic_table.getHelperFlowsGroupedByDomain(domain));
         });
 
 

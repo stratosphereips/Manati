@@ -473,13 +473,19 @@ class DynamicTable {
 
     // WORKERS
     getHelperFlowsGroupedBy(ioc){
-        return this.analysis_session_obj._helper.getFlowsGroupedBy(COL_END_POINTS_SERVER_STR, ioc);
+        return this.analysis_session_obj._helper.getFlowsGroupedBy(this.aux_columns.dist_ip.str, ioc);
+    }
+    getHelperFlowsGroupedByDomain(ioc){
+        return this.analysis_session_obj._helper.getFlowsGroupedBy(this.aux_columns.url.str, ioc);
     }
     setBulkVerdict_WORKER (verdict, flows_labelled) {
         let thiz = this;
         let COLUMN_VERDICT = this.aux_columns.verdict.index,
             COLUMN_REG_STATUS = this.aux_columns.reg_status.index,
             COLUMN_DT_ID = this.aux_columns.dt_id.index;
+        if (isEmpty(flows_labelled)) {
+            return false;
+        }
         this.dt.rows('.selected').nodes().to$().removeClass('selected');
         showLoading();
         let blob = new Blob(["onmessage = function(e) { " +
