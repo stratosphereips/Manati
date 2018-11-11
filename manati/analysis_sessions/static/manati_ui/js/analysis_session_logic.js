@@ -252,7 +252,7 @@ class AnalysisSessionLogic {
     }
 
 
-    static executeFilterBtn (verdict) {
+    executeFilterBtn (verdict) {
         $('.searching-buttons .btn').filter('[data-verdict="' + verdict + '"]').click()
     };
 

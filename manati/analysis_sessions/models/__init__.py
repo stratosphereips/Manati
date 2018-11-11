@@ -8,5 +8,6 @@ from .app_parameter import AppParameter
 from .comment import Comment
 from .consult import VTConsult, WhoisConsult
 from .metric import Metric
-from .models import User, IOC, Weblog, WeblogHistory, ModuleAuxWeblog, AnalysisSession, AnalysisSessionUsers
+from .models import User, IOC, Weblog, WeblogHistory, ModuleAuxWeblog, AnalysisSession, AnalysisSessionUsers, \
+    WHOISRelatedIOC
 from .models import RegisterStatus
