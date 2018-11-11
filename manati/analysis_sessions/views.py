@@ -42,6 +42,7 @@ from django_rq import job
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic.detail import SingleObjectTemplateResponseMixin
+from .models import WHOISRelatedIOC
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)

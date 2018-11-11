@@ -1,13 +1,13 @@
-v0.11.2a
+v0.12.1a
 ----------
-* IoCs DB: now every time that the user uploads/edits a analysis session
- (weblog/netflow/ another logs),
-the system will update automatically the verdicts of the rows (IoC).
-First it gets all the IoC of the session,
-compares with its IoC DB and update the rows' verdict. This functionality also works for non-save
-session.
-* every time that the user places a verdict, the domain IoC (for now) of given row is updated.
-A history register is created too.
+* Fix sync IoCs
+* removing anonymous user. Now for using all the ManaTI features is needed be logged
+
+v0.12.0a
+----------
+* IoCs DB: now every time that the user uploads/edits a analysis session (weblog/netflow/ another logs), the system will update automatically the verdicts of the rows (IoC). First it gets all the IoC of the session, compares with its IoC DB and update the rows' verdict. This functionality also works for non-save session.
+* every time that the user places a verdict, the domain IoC (for now) of given row is updated. A history register is created too.
+
 
 v0.11.1a
 ----------

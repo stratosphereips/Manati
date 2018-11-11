@@ -4,6 +4,7 @@
 # Created by Raul B. Netto <raulbeni@gmail.com> on 8/25/18.
 from django.db import models
 from .base import TimeStampedModel
+from .app_parameter import AppParameter
 from django.db import transaction
 import json
 import datetime
@@ -20,13 +21,14 @@ from manati.share_modules.virustotal import vt
 from ipwhois import IPWhois
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+import re
 vt = vt()
 
 
 class VTConsultManager(models.Manager):
 
     @transaction.atomic
-    def create_one_consult(self, query_node,  user, line_report):
+    def create_one_consult(self, query_node, user, line_report):
         with transaction.atomic():
             info = line_report.split(";")
             index = 0
@@ -38,7 +40,8 @@ class VTConsultManager(models.Manager):
 
 
 class VTConsult(TimeStampedModel):
-    KEYS_INFO = ["IP","Rating","Owner","Country Code","Log Line No","Positives","Total","Malicious Samples","Hosts"]
+    KEYS_INFO = ["IP", "Rating", "Owner", "Country Code", "Log Line No", "Positives", "Total", "Malicious Samples",
+                 "Hosts"]
     query_node = models.CharField(max_length=100, null=False)
     info_report = JSONField(default=json.dumps({}), null=False)
     user = models.ForeignKey(User)
@@ -53,7 +56,8 @@ class VTConsult(TimeStampedModel):
             if query_type == 'ip':
                 management.call_command('virustotal_checker', "--nocsv", "--nocache", ff=query_node, user=user)
                 vt_consul = VTConsult.objects.filter(query_node=query_node,
-                                                     created_at__gt=timezone.now() - timezone.timedelta(days=15)).first()
+                                                     created_at__gt=timezone.now() - timezone.timedelta(
+                                                         days=15)).first()
             elif query_type == 'domain':
                 api_key = user.profile.virustotal_key_api
                 if not api_key:
@@ -74,16 +78,16 @@ class VTConsult(TimeStampedModel):
 
 
 class WhoisConsult(TimeStampedModel):
-    QUERY_TYPES = Choices(('ip','IP'),('domain','Domain'),)
+    QUERY_TYPES = Choices(('ip', 'IP'), ('domain', 'Domain'), )
     query_node = models.CharField(max_length=100, null=False)
     query_type = models.CharField(max_length=20, null=False, choices=QUERY_TYPES)
     info_report = JSONField(null=True)
     features_info = JSONField(null=True)  # pythonwhois
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE) # User or ExternalModule
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  # User or ExternalModule
     object_id = models.IntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
-    def __process_result_by_domain__(self,domain, save=True):  # python whois lib
+    def __process_result_by_domain__(self, domain, save=True):  # python whois lib
         d = domain
         try:
             if not self.info_report and d:
@@ -93,7 +97,7 @@ class WhoisConsult(TimeStampedModel):
                 print("PW, domain null " + str(d) + " " + str(self.id))
                 self.info_report = {}
         except WhoisException as e:
-            print("PW rejects " + str(d)+ " " + str(self.id) + ", ERROR TRACE " + e.message)
+            print("PW rejects " + str(d) + " " + str(self.id) + ", ERROR TRACE " + e.message)
             self.info_report = {}
         except:
             self.info_report = {}
@@ -107,7 +111,6 @@ class WhoisConsult(TimeStampedModel):
             self.__process_result_by_domain__(domain, save=save)
         return self.info_report
 
-
     # python whois
     def process_features_by_domain(self, domain, save=True):
         result = self.check_info_report(domain, save=save)
@@ -118,6 +121,7 @@ class WhoisConsult(TimeStampedModel):
         except UnicodeDecodeError as e:
             print(raw)
             raw = ','.join(raw).encode('ascii', 'ignore').decode('ascii').strip().split(',')
+
         # self.features_info_pw
 
         def get_dict(dict_obj, key, default):
@@ -220,7 +224,7 @@ class WhoisConsult(TimeStampedModel):
 
         if not self.features_info:
             features = dict(
-                emails= get_emails(),
+                emails=get_emails(),
                 domain_name=get_domain_name(),
                 name_servers=get_name_servers(),
                 registrar=get_registrar(),
@@ -258,21 +262,21 @@ class WhoisConsult(TimeStampedModel):
             expiration_date_a = self.features_info['expiration_date']
             if not creation_date_a or not expiration_date_a:
                 return None
-            cd_a = dateutil.parser.parse(creation_date_a) if not isinstance(creation_date_a,datetime.datetime) else creation_date_a
-            ed_a = dateutil.parser.parse(expiration_date_a) if not isinstance(expiration_date_a,datetime.datetime) else expiration_date_a
+            cd_a = dateutil.parser.parse(creation_date_a) if not isinstance(creation_date_a,
+                                                                            datetime.datetime) else creation_date_a
+            ed_a = dateutil.parser.parse(expiration_date_a) if not isinstance(expiration_date_a,
+                                                                              datetime.datetime) else expiration_date_a
             if cd_a and ed_a:
                 return float(abs(cd_a - ed_a).days)
             else:
                 return None
-
-
 
     def process_features_by_ip(self, ip):
         pass
 
     def check_features_info(self, save=True):
         if not self.features_info:
-            self.process_features_by_domain(self.query_node,save=save)
+            self.process_features_by_domain(self.query_node, save=save)
         return self.features_info
 
     @staticmethod
@@ -281,7 +285,7 @@ class WhoisConsult(TimeStampedModel):
         query_domains = []
         result = {}
         for url_or_ip in urls_or_ips:
-            query_type,query_node = get_data_from_url(url_or_ip)
+            query_type, query_node = get_data_from_url(url_or_ip)
             if query_type == 'ip':
                 query_ips.append(query_node)
             elif query_type == 'domain':
@@ -289,7 +293,7 @@ class WhoisConsult(TimeStampedModel):
             result[query_node] = {}
 
         with transaction.atomic():
-            #domain
+            # domain
             whois_objs = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='domain')
             query_node_created = []
             for whois_obj in whois_objs:
@@ -308,7 +312,7 @@ class WhoisConsult(TimeStampedModel):
 
             # bulk_update(whois_objs)
 
-            #ip TO-DO by IP
+            # ip TO-DO by IP
             # whois_objs_ip = WhoisConsult.objects.filter(query_node__in=query_domains, query_type='ip')
             for query_node in query_ips:
                 result[query_node] = {}
@@ -321,7 +325,7 @@ class WhoisConsult(TimeStampedModel):
         if not query_node:
             return {}
         elif query_type == 'domain':
-            return WhoisConsult.get_features_info_by_domain(content_object,query_node)
+            return WhoisConsult.get_features_info_by_domain(content_object, query_node)
         elif query_type == 'ip':
             # TO-DO IP version
             return {}
@@ -329,7 +333,7 @@ class WhoisConsult(TimeStampedModel):
             pass
 
     @staticmethod
-    def get_features_info_by_domain(content_object,domain_name):
+    def get_features_info_by_domain(content_object, domain_name):
         query_type = 'domain'
         whois_objs = WhoisConsult.objects.filter(query_node=domain_name, query_type=query_type)
         if whois_objs.exists():
@@ -342,7 +346,6 @@ class WhoisConsult(TimeStampedModel):
             whois.process_features_by_domain(domain_name)
         features = whois.features_info
         return features
-
 
     @staticmethod
     def __get_query_info__(query_node, user, **kwargs):
@@ -357,7 +360,8 @@ class WhoisConsult(TimeStampedModel):
                     return json.JSONEncoder.default(self, obj)
 
         whois_consult = WhoisConsult.objects.filter(query_node=query_node,
-                                                    created_at__gt=timezone.now() - timezone.timedelta(days=365)).first()
+                                                    created_at__gt=timezone.now() - timezone.timedelta(
+                                                        days=365)).first()
         if whois_consult is None:
             if 'ip' in kwargs:
                 obj = IPWhois(query_node)
@@ -371,8 +375,9 @@ class WhoisConsult(TimeStampedModel):
                                                             info_report=w,
                                                             content_object=user)
             else:
-                raise ValueError("you must determine is you want to do a domain or ip consultation by __get_query_info" +
-                                 "__('query', SomeUser, domain=True or ip=True")
+                raise ValueError(
+                    "you must determine is you want to do a domain or ip consultation by __get_query_info" +
+                    "__('query', SomeUser, domain=True or ip=True")
         whois_consult.check_info_report(query_node, save=True)
 
         return whois_consult
@@ -388,7 +393,7 @@ class WhoisConsult(TimeStampedModel):
     @staticmethod
     def get_query_by_domain(query_node):
         user = User.objects.get(username='anonymous_user_for_metrics')
-        return WhoisConsult.get_query_info_by_domain(query_node,user).info_report
+        return WhoisConsult.get_query_info_by_domain(query_node, user).info_report
 
     class Meta:
         db_table = 'manati_whois_consults'
