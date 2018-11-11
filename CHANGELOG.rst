@@ -1,3 +1,7 @@
+XXXX
+----------
+* Fix all hotkeys
+
 v0.12.1a
 ----------
 * Fix sync IoCs
