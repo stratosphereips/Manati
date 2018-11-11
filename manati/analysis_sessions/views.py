@@ -407,8 +407,8 @@ def delete_analysis_session_aux(id):
 @csrf_exempt
 def sync_iocs(request):
     try:
-        if request.method == 'GET':
-            u_iocs = json.loads(request.GET.get('iocs[]', ''))
+        if request.method == 'POST':
+            u_iocs = json.loads(request.POST.get('iocs[]', ''))
             labelled_iocs = IOC.get_IoCs_with_verdits(u_iocs)
             ioc_grouped_via_labels = {}
             for ioc in labelled_iocs:
