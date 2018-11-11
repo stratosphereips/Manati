@@ -74,7 +74,7 @@ function FlowsProcessed(col_host_str,co_ip_str){
 
     this.sendIoCsToServer = function (iocs, dynamic_table) {
         $.ajax({
-            type: "GET",
+            type: "POST",
             data: {
                 "iocs[]": JSON.stringify(iocs),
             },
@@ -87,7 +87,7 @@ function FlowsProcessed(col_host_str,co_ip_str){
                     if(verdict !== 'undefined'){
                         var iocs = ioc_grouped_via_labels[verdict];
                         for (var index in iocs){
-                            dynamic_table.dt.search(iocs[0]).draw();
+                            dynamic_table.dt.search(iocs[index]).draw();
                             dynamic_table.dt.rows({search:'applied'}).nodes().to$().addClass('selected');
                         }
                         dynamic_table.mark_verdict(verdict);

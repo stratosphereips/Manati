@@ -19,19 +19,16 @@
 # for copying permission.
 #
 from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib.auth.decorators import login_required
 from guardian.decorators import permission_required_or_403
 from django.http import HttpResponseServerError
-from django.core.urlresolvers import reverse
 from django.views import generic
 from manati.analysis_sessions.models import *
 from manati.analysis_sessions.forms import UserProfileForm
-from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from helpers import *
-import json, collections
+import collections
 from django.core import serializers
-from django.contrib.auth.mixins import LoginRequiredMixin
 from utils import *
 from manati.share_modules.util import *
 from manati.api_manager.core.modules_manager import ModulesManager
@@ -42,11 +39,16 @@ import logging
 from manati.analysis_sessions.serializers import WeblogSerializer
 import manati.share_modules as share_modules
 from django_rq import job
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views.generic.detail import SingleObjectTemplateResponseMixin
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 REDIRECT_TO_LOGIN = "/manati_project/login"
+
+
 # class IndexView(generic.ListView):
 #     template_name = 'manati_ui/index.html'
 #     context_object_name = 'latest_question_list'
@@ -63,9 +65,9 @@ REDIRECT_TO_LOGIN = "/manati_project/login"
 #     template_name = 'manati_ui/analysis_session/new.html'
 
 
-def postpone(function):
+def postpone(func):
     def decorator(*args, **kwargs):
-        t = Thread(target=function, args=args, kwargs=kwargs)
+        t = Thread(target=func, args=args, kwargs=kwargs)
         t.daemon = True
         t.start()
 
@@ -76,34 +78,35 @@ def postpone(function):
 def call_after_save_event(analysis_session):
     ModulesManager.after_save_attach_event(analysis_session)
 
+
 @postpone
 def call_after_sync_event():
     ModulesManager.attach_all_event()  # it will check if will create the task or not
 
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def new_analysis_session_view(request):
-    context = {'analysissession':AnalysisSession(), 'comment': Comment()}
+    context = {'analysissession': AnalysisSession(), 'comment': Comment()}
     return render(request, 'manati_ui/analysis_session/new.html', context)
 
-#ajax connexions
+
+# ajax connexions
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def create_analysis_session(request):
-    analysis_session_id = -1
     # try:
     if request.method == 'POST':
         current_user = request.user
         filename = str(request.POST.get('filename', ''))
-        u_data_list = json.loads(request.POST.get('data[]',''))
-        u_key_list = json.loads(request.POST.get('headers[]',''))
-        type_file = request.POST.get('type_file','')
-        uuid = request.POST.get('uuid','')
-        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list,current_user,
-                                                          type_file,uuid)
+        u_data_list = json.loads(request.POST.get('data[]', ''))
+        u_key_list = json.loads(request.POST.get('headers[]', ''))
+        type_file = request.POST.get('type_file', '')
+        uuid = request.POST.get('uuid', '')
+        analysis_session = AnalysisSession.objects.create(filename, u_key_list, u_data_list, current_user,
+                                                          type_file, uuid)
 
-        if not analysis_session :
+        if not analysis_session:
             # messages.error(request, 'Analysis Session wasn\'t created .')
             return HttpResponseServerError("Error saving the data")
         else:
@@ -126,7 +129,7 @@ def create_analysis_session(request):
     #     return render_to_json(request, data)
 
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_virus_total_consult(request):
     try:
@@ -137,19 +140,19 @@ def make_virus_total_consult(request):
             # query_type = str(request.GET.get('query_type', ''))
             if not current_user.is_authenticated():
                 current_user = User.objects.get(username='anonymous_user_for_metrics')
-            vtc_query_set = VTConsult.get_query_info(query_node, current_user,query_type)
+            vtc_query_set = VTConsult.get_query_info(query_node, current_user, query_type)
 
             return JsonResponse(dict(query_node=query_node,
                                      info_report=vtc_query_set.info_report,
                                      msg='VT Consult Done'))
         else:
             return HttpResponseServerError("Only POST request")
-    except Exception as e:
+    except Exception:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def make_whois_consult(request):
     try:
@@ -174,6 +177,7 @@ def make_whois_consult(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def export_metrics(request):
@@ -191,7 +195,7 @@ def export_metrics(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblog_history(request):
     try:
@@ -201,15 +205,17 @@ def get_weblog_history(request):
             webh_query_set = WeblogHistory.objects.filter(weblog_id=weblog_id).order_by('-created_at')
             # webh_json = serializers.serialize("json", webh_query_set)
             webh_json = serialize(webh_query_set,
-                                  fields=['id', 'weblog_id','version','created_at','verdict', 'old_verdict','author_name'],
+                                  fields=['id', 'weblog_id', 'version', 'created_at', 'verdict', 'old_verdict',
+                                          'author_name'],
                                   exclude=['weblog'],
-                                  aliases={'author_name': 'get_author_name', 'created_at':'created_at_txt'})
+                                  aliases={'author_name': 'get_author_name', 'created_at': 'created_at_txt'})
             return JsonResponse(dict(data=json.dumps(webh_json), msg='WeblogHistory Consulst DONE'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
+
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
@@ -223,14 +229,15 @@ def label_weblogs_whois_related(request):
                                                        weblog.analysis_session_id,
                                                        weblog.domain,
                                                        verdict)
-        return JsonResponse(dict(msg='All the weblogs related with ' + weblog.domain + " will be label like " + verdict))
+        return JsonResponse(
+            dict(msg='All the weblogs related with ' + weblog.domain + " will be label like " + verdict))
     else:
         return HttpResponseServerError("Only POST request")
 
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
-def find_domains_whois_related(request): # BY DOMAIN
+def find_domains_whois_related(request):  # BY DOMAIN
     # try:
     if request.method == 'GET':
         # current_user = request.user
@@ -244,11 +251,13 @@ def find_domains_whois_related(request): # BY DOMAIN
         else:
             ModulesManager.check_to_WHOIS_relate_domain(analysis_session_id, domain)
             whois_related_domains = domain_ioc.get_all_values_related_by(analysis_session_id)
-            return JsonResponse(dict(whois_related_domains=whois_related_domains,domain_primary=domain,
-                                 msg='Starting Module to process the relationship between domains...'))
+            return JsonResponse(dict(whois_related_domains=whois_related_domains, domain_primary=domain,
+                                     msg='Starting Module to process the relationship between domains...'))
     else:
         return HttpResponseServerError("Only GET request")
 
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def find_whois_distance_similarity_details(request):  # Between 2 domains
     # try:
@@ -258,7 +267,8 @@ def find_whois_distance_similarity_details(request):  # Between 2 domains
             current_user = User.objects.get(username='anonymous_user_for_metrics')
         domain_a = str(request.GET.get('domain_a', ''))
         domain_b = str(request.GET.get('domain_b', ''))
-        related, distance_numeric, dist_feature_detail = share_modules.whois_distance.distance_related_by_whois_obj(current_user, domain_a, domain_b)
+        related, distance_numeric, dist_feature_detail = share_modules.whois_distance.distance_related_by_whois_obj(
+            current_user, domain_a, domain_b)
         if not dist_feature_detail:
             return HttpResponseServerError("There is an error processing in the WSD algorithm")
         else:
@@ -270,7 +280,7 @@ def find_whois_distance_similarity_details(request):  # Between 2 domains
         return HttpResponseServerError("Only GET request")
 
 
-
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def refreshing_domains_whois_related(request):
     if request.method == 'GET':
@@ -287,7 +297,7 @@ def refreshing_domains_whois_related(request):
         else:
             msg = 'Refreshing WHOIS related domains'
             wris = domain_ioc.whois_related_iocs.filter(ioc_type=domain_ioc.ioc_type,
-                                                  weblogs__analysis_session_id=weblog.analysis_session_id).distinct()
+                                                        weblogs__analysis_session_id=weblog.analysis_session_id).distinct()
             wri_ids = [wri.id for wri in wris]
 
             wris = WHOISRelatedIOC.objects.filter((Q(from_ioc=domain_ioc) & Q(to_ioc__in=wri_ids)) |
@@ -315,8 +325,7 @@ def refreshing_domains_whois_related(request):
         return HttpResponseServerError("Only GET request")
 
 
-
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_modules_changes(request):
     try:
@@ -324,7 +333,8 @@ def get_modules_changes(request):
             # current_user = request.user
             weblog_id = str(request.GET.get('weblog_id', ''))
             weblog = Weblog.objects.filter(id=weblog_id).first()
-            return JsonResponse(dict(data=json.dumps(weblog.mod_attributes), msg='Modules Changes History Consulst DONE'))
+            return JsonResponse(
+                dict(data=json.dumps(weblog.mod_attributes), msg='Modules Changes History Consulst DONE'))
         else:
             return HttpResponseServerError("Only POST request")
     except Exception as e:
@@ -342,7 +352,8 @@ def convert(data):
     else:
         return data
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_db(request):
     # try:
@@ -359,7 +370,7 @@ def sync_db(request):
                 print("Headers Updated")
             data = convert(received_json_data['data'])
 
-        wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data,user)
+        wb_query_set = AnalysisSession.objects.sync_weblogs(analysis_session_id, data, user)
         json_query_set = serializers.serialize("json", wb_query_set)
         call_after_sync_event()
         return JsonResponse(dict(data=json_query_set, msg='Sync DONE'))
@@ -368,14 +379,14 @@ def sync_db(request):
         return HttpResponseServerError("Only POST request")
     # except Exception as e:
     #     raise e
-        # error = print_exception()
-        # logger.error(str(error))
-        # logger.error(str(e.message))
-        #return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
+    # error = print_exception()
+    # logger.error(str(error))
+    # logger.error(str(e.message))
+    # return HttpResponseServerError("ERROR in the server: " + str(e.message) + "\n:" + error)
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
-@permission_required_or_403('delete_analysissession', (AnalysisSession, 'pk','id'),template_name="403.html")
+@permission_required_or_403('delete_analysissession', (AnalysisSession, 'pk', 'id'), template_name="403.html")
 @csrf_exempt
 def delete_analysis_session(request, id):
     analysis_session = get_object_or_404(AnalysisSession, pk=id)
@@ -386,20 +397,23 @@ def delete_analysis_session(request, id):
     return redirect("/manati_project/manati_ui/analysis_sessions")
 
 
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @job('low')
 def delete_analysis_session_aux(id):
     AnalysisSession.objects.get(id=id).delete()
 
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def sync_iocs(request):
     try:
-        if request.method == 'GET':
-            u_iocs = json.loads(request.GET.get('iocs[]', ''))
+        if request.method == 'POST':
+            u_iocs = json.loads(request.POST.get('iocs[]', ''))
             labelled_iocs = IOC.get_IoCs_with_verdits(u_iocs)
             ioc_grouped_via_labels = {}
             for ioc in labelled_iocs:
                 verdict = labelled_iocs[ioc]
-                ioc_grouped_via_labels.setdefault(verdict,[])
+                ioc_grouped_via_labels.setdefault(verdict, [])
                 ioc_grouped_via_labels[verdict].append(ioc)
             # Metric.objects.create_bulk_by_user(u_measurements, current_user)
             json_data = json.dumps({'msg': 'Sync Metrics DONE',
@@ -432,6 +446,7 @@ def sync_metrics(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def publish_analysis_session(request, id):
@@ -457,6 +472,7 @@ def publish_analysis_session(request, id):
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
+
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
@@ -488,6 +504,7 @@ def change_status_analysis_session(request, id):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def update_uuid_analysis_session(request, id):
@@ -513,7 +530,8 @@ def update_uuid_analysis_session(request, id):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
-# @login_required(login_url=REDIRECT_TO_LOGIN)
+
+@login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_weblogs(request):
     try:
@@ -538,6 +556,7 @@ def get_weblogs(request):
         return HttpResponseServerError("There was a error in the Server")
 
 
+@method_decorator(login_required(login_url=REDIRECT_TO_LOGIN), 'dispatch')
 class IndexAnalysisSession(generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
@@ -551,6 +570,7 @@ class IndexAnalysisSession(generic.ListView):
         return AnalysisSession.objects.filter(Q(users__in=[user.id]) | Q(public=True))
 
 
+@method_decorator(login_required(login_url=REDIRECT_TO_LOGIN), 'dispatch')
 class IndexExternalModules(generic.ListView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
@@ -561,9 +581,9 @@ class IndexExternalModules(generic.ListView):
     def get_queryset(self):
         return ExternalModule.objects.exclude(status=ExternalModule.MODULES_STATUS.removed)
 
-from django.views.generic.detail import SingleObjectTemplateResponseMixin
 
-class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
+@method_decorator(login_required(login_url=REDIRECT_TO_LOGIN), 'dispatch')
+class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin, ):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
     template_name = 'manati_ui/analysis_session/hotkeys_list.html'
@@ -612,6 +632,7 @@ class IndexHotkeys(generic.ListView, SingleObjectTemplateResponseMixin,):
         return hotkeys
 
 
+@method_decorator(login_required(login_url=REDIRECT_TO_LOGIN), 'dispatch')
 class EditAnalysisSession(generic.DetailView):
     login_url = REDIRECT_TO_LOGIN
     redirect_field_name = 'redirect_to'
@@ -637,6 +658,7 @@ def profile_view(request):
     context = {"form": form}
     return render(request, 'manati_ui/user/edit.html', context)
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def update_comment_analysis_session(request, id):
@@ -645,11 +667,11 @@ def update_comment_analysis_session(request, id):
             user = request.user
             analysis_session = AnalysisSession.objects.get(id=id)
             comment = analysis_session.comments.last() if analysis_session.comments.exists() else Comment(user=user,
-                                                                                        content_object=analysis_session)
+                                                                                                          content_object=analysis_session)
             comment.text = request.POST['text']
             comment.full_clean()
             comment.save()
-            json_data = json.dumps({'msg':"The comment was save correcly"})
+            json_data = json.dumps({'msg': "The comment was save correcly"})
             return HttpResponse(json_data, content_type="application/json")
 
         else:
@@ -657,7 +679,6 @@ def update_comment_analysis_session(request, id):
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
-
 
 
 @login_required(login_url=REDIRECT_TO_LOGIN)
@@ -668,7 +689,7 @@ def update_comment_weblog(request):
             user = request.user
             weblog_id = request.POST.get('weblog_id', '')
             weblog = Weblog.objects.get(id=weblog_id)
-            comment = weblog.comments.last() if weblog.comments.exists() else Comment(user=user,content_object=weblog)
+            comment = weblog.comments.last() if weblog.comments.exists() else Comment(user=user, content_object=weblog)
             text = request.POST.get('text', None)
             if text:
                 comment.text = text
@@ -685,12 +706,12 @@ def update_comment_weblog(request):
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def get_comment_weblog(request):
     try:
         if request.method == 'GET':
-            user = request.user
             weblog_id = request.GET.get('weblog_id', '')
             weblog = Weblog.objects.get(id=weblog_id)
             if weblog.comments.exists():
@@ -720,6 +741,7 @@ def get_weblog_iocs(request):
     #     print_exception()
     #     return HttpResponseServerError("There was a error in the Server")
 
+
 @login_required(login_url=REDIRECT_TO_LOGIN)
 @csrf_exempt
 def profile_update(request):
@@ -742,7 +764,3 @@ def profile_update(request):
     except Exception as e:
         print_exception()
         return HttpResponseServerError("There was a error in the Server")
-
-
-
-

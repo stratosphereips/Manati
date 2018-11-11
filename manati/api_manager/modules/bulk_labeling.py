@@ -29,7 +29,7 @@ class BulkLabeling(Module):
                   ' for all the weblogs with the same domain in the whole database'
     version = 'v0.3'
     authors = ['Raul Benitez Netto']
-    events = [ModulesManager.MODULES_RUN_EVENTS.bulk_labelling]  # events when the module will be thrown
+    events = []  # events when the module will be thrown
 
     def run(self, **kwargs):
         event = kwargs['event_thrown']
