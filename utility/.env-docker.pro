@@ -1,0 +1,6 @@
+DOCKER_COMPOSE=True
+POSTGRES_PASSWORD=password
+POSTGRES_USER=manati_db_user
+POSTGRES_DB=manati_db
+REDISTOGO_URL_DOCKER=redis://redis:6379
+DB_SERVICE=postgres

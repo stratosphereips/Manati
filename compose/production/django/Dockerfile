@@ -1,39 +1,18 @@
-FROM python:3.5
-
+FROM python:2.7
 ENV PYTHONUNBUFFERED 1
+RUN groupadd -r manati \
+&& useradd -r -g manati manati_user
 
-RUN groupadd -r django \
-    && useradd -r -g django django
-
-# Requirements have to be pulled and installed here, otherwise caching won't work
-COPY ./requirements /requirements
-RUN pip install --no-cache-dir -r /requirements/production.txt \
-    && rm -rf /requirements
-
-COPY ./compose/production/django/gunicorn.sh /gunicorn.sh
-RUN sed -i 's/\r//' /gunicorn.sh
-RUN chmod +x /gunicorn.sh
-RUN chown django /gunicorn.sh
-
-COPY ./compose/production/django/entrypoint.sh /entrypoint.sh
-RUN sed -i 's/\r//' /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-RUN chown django /entrypoint.sh
-
-COPY ./compose/production/django/celery/worker/start.sh /start-celeryworker.sh
-RUN sed -i 's/\r//' /start-celeryworker.sh
-RUN chmod +x /start-celeryworker.sh
-
-COPY ./compose/production/django/celery/beat/start.sh /start-celerybeat.sh
-RUN sed -i 's/\r//' /start-celerybeat.sh
-RUN chmod +x /start-celerybeat.sh
-
-COPY . /app
-
-RUN chown -R django /app
-
-USER django
-
-WORKDIR /app
-
-ENTRYPOINT ["/entrypoint.sh"]
+RUN apt-get update && apt-get install -y gcc
+RUN apt-get install -y python python-pip python-dev libpq-dev python-setuptools \
+                        build-essential \
+                        software-properties-common
+RUN apt-get install -y  libssl-dev libffi-dev
+RUN mkdir /code
+WORKDIR /code/
+ADD ./requirements/base.txt /code/
+ADD ./requirements/production.txt /code/
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir  setuptools
+RUN pip install --no-cache-dir  -r production.txt
+ADD . /code/

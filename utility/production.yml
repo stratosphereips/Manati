@@ -1,0 +1,78 @@
+# also called local.ymml
+version: '3'
+
+services:
+  nginx:
+    image: nginx:1.13
+    ports:
+    - 8080:80
+    - 443:443
+    volumes:
+    - ./compose/local/nginx/conf.d:/etc/nginx/conf.d
+    - ./staticfiles:/code/staticfiles  # <-- bind the static volume
+    - ./media:/code/media  # <-- bind the media volume
+    - ./utility/run/:/run/  # <-- bind the media volume
+    links:
+    - web
+    depends_on:
+    - web
+  web:
+    build:
+      context: '.'
+      dockerfile: './compose/production/django/Dockerfile'
+    image: 127.0.0.1:5000/manati_app
+    env_file:
+      - '.env'
+      - '.env-docker'
+    command: 'bash -c "gunicorn config.wsgi:application -w 4 --bind unix:./utility/run/gunicorn.sock --capture-output --enable-stdio-inheritance --log-level=debug --access-logfile=- --log-file=-"'
+    volumes:
+      - '.:/code'
+      - 'manati_cachedata:/cache'
+      - 'manati_mediadata:/media'
+    links:
+      - postgres
+      - redis
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    restart: always
+    container_name: 'postgres'
+    image: 'postgres:9.6.5'
+    env_file:
+      - '.env-docker'
+    volumes:
+      - 'manati_pgdata:/var/lib/postgresql/data/'
+      - 'manati_pglog:/var/log/postgresql'
+      - 'manati_pgetc:/etc/postgresql'
+
+  redis:
+    container_name: 'redis'
+    image: 'redis:3.2.0'
+    volumes:
+      - 'manati_redisdata:/data'
+
+  rqworker:
+    build:
+      context: ..
+      dockerfile: './compose/production/django/Dockerfile'
+    image: 127.0.0.1:5000/manati_app
+    env_file:
+      - '.env'
+      - '.env-docker'
+    command: "bash -c 'python manage.py rqworker high default low'"
+    volumes:
+      - .:/code
+    depends_on:
+      - redis
+
+volumes:
+  manati_pgdata:
+  manati_pglog:
+  manati_pgetc:
+  manati_redisdata:
+  manati_cachedata:
+  manati_mediadata:
+
+
